@@ -37,8 +37,16 @@ let Ibuki = (() => {
       else updateList[maxIndex] = fun;
     };
   })();
+  let classList = {};
   return {
-    Animation: class {},
+    Class: class {
+      static style() {
+        return {};
+      }
+      static animation() {
+        return {};
+      }
+    },
     DOM: class {
       static withUnit(x) {
         return (typeof (x) === "number" ? `${Math.floor(x)}px` : x);
@@ -66,27 +74,66 @@ let Ibuki = (() => {
       static registGlobal() {
         let className = this.className();
         let styleObj = this.style();
-        let animObj = this.animation();
-        let css = "";
-        if ("keyframes" in animObj) {
-          let anims = animObj.keyframes;
-          for (let key in anims) css += ` @keyframes ${className}-${key} \{ ${anims[key]} \} `;
-          delete animObj.keyframes
-        }
-        if ("name" in animObj) animObj.name = `${className}-${animObj.name}`;
-        styleObj.animation = animObj;
         let style = this.applyStyle(styleObj);
         if (style === "") return;
-        css += `.${className} \{\n${style}\}`;
+        let css = `.${className} \{\n${style}\}`;
         appendGlobalStyle(css);
+      }
+      changeClass(c, op) {
+        let className = c.name.toLowerCase();
+        if (!(className in classList)) {
+          let styleObj = c.style();
+          let animObj = c.animation();
+          let nums = (() => {
+            let result = [];
+            for (let key in animObj) {
+              if (!isNaN(key)) result.push(key);
+            }
+            return result;
+          })();
+          let css = "";
+          if (nums.length > 0) {
+            let animationName = className + "animation";
+            let keyFrames = "";
+            for (let key of nums) {
+              keyFrames += `${key}% \{ ${this.constructor.applyStyle(animObj[key])}\}`;
+              delete animObj[key];
+            }
+            css = `@keyframes ${animationName} \{ ${keyFrames}\}\n`;
+            styleObj["animation-name"] = animationName;
+          }
+          if ("iteration" in animObj) {
+            animObj["iteration-count"] = animObj.iteration;
+            delete animObj.iteration;
+          }
+          if ("timing" in animObj) {
+            animObj["timing-function"] = animObj.timing;
+            delete animObj.timing;
+          }
+          if ("duration" in animObj) {
+            if (!isNaN(animObj.duration)) animObj.duration = Math.floor(animObj.duration * 1000) + "ms";
+          }
+          styleObj.animation = animObj;
+          let style = this.constructor.applyStyle(styleObj);
+          css += `.${className} \{\n${style}\}`;
+          appendGlobalStyle(css);
+          classList[className] = styleObj;
+        }
+        this.dom.classList[op](className);
+      }
+      addClass(c) {
+        this.changeClass(c, "add");
+      }
+      toggleClass(c) {
+        this.changeClass(c, "toggle");
+      }
+      removeClass(c) {
+        this.changeClass(c, "remove");
       }
       static className() {
         return this.name.toLowerCase();
       }
       static style() {
-        return {};
-      }
-      static animation() {
         return {};
       }
       static attribute() {
