@@ -325,11 +325,6 @@ if (true) {
         margin: 10,
       };
     }
-    // static attribute() {
-    //   return {
-    //     tag: "div"
-    //   }
-    // }
     constructor(parent = document.body) {
       super(parent);
     }
@@ -360,6 +355,4 @@ if (true) {
 
   // }
   new TestText();
-  // new TestText();
-
 }
