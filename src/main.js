@@ -14,14 +14,13 @@ let appendGlobalStyle = (() => {
   }
 })();
 let registUpdate = (() => {
-  // 一度の requestAnimationFrameで全て更新することで一度しかRecalcを走らせない
+  // 一度の requestAnimationFrameで全て更新することで一度しかRecalcを走らせない(だいじ)
   let updateList = [];
   let maxIndex = -1;
   let applyUpdateList = () => {
     for (let i = 0; i < Math.min(maxIndex + 1, updateList.length); i++) {
       if (updateList[i]() !== false) continue;
       updateList[i] = updateList[maxIndex];
-      updateList[maxIndex] = null;
       maxIndex--;
       i--;
     }
@@ -34,18 +33,18 @@ let registUpdate = (() => {
     else updateList[maxIndex] = fun;
   };
 })();
-
-
 // extends 元によって tag は決めれば良い
 class Ibuki {
+  static withUnit(x) {
+    return (typeof (x) === "number" ? `${Math.floor(x)}px` : x);
+  }
   static applyStyle(style, elem = undefined) {
     let result = "";
     let returnCode = !elem;
 
     function apply(key, val) {
-      const withUnit = x => (typeof (x) === "number" ? `${x}px` : x);
-      if (returnCode) result += `${key}:${withUnit(val)};\n`;
-      else elem.style[key] = withUnit(val);
+      if (returnCode) result += `${key}:${Ibuki.withUnit(val)};\n`;
+      else elem.style[key] = Ibuki.withUnit(val);
     }
     for (let key in style) {
       let val = style[key];
@@ -99,31 +98,40 @@ class Ibuki {
   }
   update() {}
   // x y を設定すると floating にする
-  floatPosition() {
-    let style = {
-      top: this._x || 0,
-      left: this._y || 0,
-    };
-    if (!this.isFloating) style.position = "absolute";
+  floatPosition(updateX, updateY) {
+    if (!this.isFloating) {
+      this.dom.style.position = "absolute";
+      this.dom.style.contain = "layout paint";
+    }
     this.isFloating = true;
-    this.applyStyle(style);
+    if (updateX) this.dom.style.left = Ibuki.withUnit(this.__x || 0);
+    if (updateY) this.dom.style.top = Ibuki.withUnit(this.__y || 0);
   }
   set x(val) {
-    this._x = val;
-    this.floatPosition();
-  }
-  get x() {
-    return this._x || 0;
+    val = Math.floor(val);
+    if (this.__x === val) return;
+    this.__x = val;
+    this.floatPosition(true, false);
   }
   set y(val) {
-    this._y = val;
-    this.floatPosition();
+    val = Math.floor(val);
+    if (this.__y === val) return;
+    this.__y = val;
+    this.floatPosition(false, true);
+  }
+  get x() {
+    return this.__x || 0;
   }
   get y() {
-    return this._y || 0;
+    return this.__y || 0;
+  }
+  static checkRegisted() {
+    if (!this.__registed) this.registGlobal();
+    this.__registed = true;
   }
 
   constructor() {
+    this.constructor.checkRegisted();
     this.dom = document.createElement("img");
     document.body.appendChild(this.dom);
     let attrs = this.constructor.attribute();
@@ -141,7 +149,7 @@ class TestImage extends Ibuki {
   static style() {
     // 全部に共通の css-style を書く
     return {
-      color: "#f00000",
+      // color: "#f00000",
       border: {
         radius: 20,
         width: 3,
@@ -154,10 +162,17 @@ class TestImage extends Ibuki {
     // 全部に共通の animation を書く
     return {
       keyframes: {
-        rot: ` 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); }`
+        rot: `
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }`
       },
       name: "rot",
       duration: "1s",
+      "timing-function": "linear",
       "iteration-count": `infinite`,
     };
   }
@@ -170,30 +185,29 @@ class TestImage extends Ibuki {
   }
   constructor() {
     super();
-    // 書くインスタンスごとに独立の状態を書く
-    const square = 100;
+    const square = 400;
     // x y を操作すると自動で abusolute に変更
-    this.x = Math.floor(square * Math.random()) % square;
-    this.y = Math.floor(square * Math.random()) % square;
+    this.x = square * Math.random() % square;
+    this.y = square * Math.random() % square;
+    this.i = 0;
   }
   update() {
+    // WARN: changing style is too slow
     this.x++;
     this.y++;
-    // this.applyStyle({
-    //   transform: `rotate(${this.x + this.y}deg)`,
-    //   border: {
-    //     radius: this.x % 100
-    //   }
-    // });
-    if (this.x > 200) return false;
+    this.i++;
+    this.applyStyle({
+      transform: `rotate(${this.x + this.y}deg)`,
+      border: {
+        radius: 40 * Math.abs(Math.sin(this.i / Math.PI / 10))
+      }
+    });
+    if (this.i > 100) return false;
   }
 }
-Ibuki.registGlobal();
-TestImage.registGlobal();
 let i = -1;
 registUpdate(() => {
   if ((i++ % 10) === 0) new TestImage();
-  // console.log(img);
 });
 if (false) {
   update(() => {
