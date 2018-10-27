@@ -1,151 +1,201 @@
-function appendStyle(code) {
-  // WARN: 流用したほうがよい？
-  let style = document.createElement("style");
-  style.type = "text/css";
-  style.innerHTML = code;
-  document.head.appendChild(style);
-}
-
-function applyStyle(elem, style = {}) {
-  const withUnit = x => (typeof (x) === "number" ? `${x}px` : x);
-  for (let key in style) {
-    let val = style[key];
-    if (typeof (val) === "object") {
-      let prefix = key; // 1階層まで省略できるように
-      for (let kk in val) {
-        let currentKey = kk === "" ? prefix : prefix + "-" + kk;
-        elem.style[currentKey] = withUnit(val[kk]);
-      }
-    } else {
-      elem.style[key] = withUnit(val);
+let appendGlobalStyle = (() => {
+  // 全てに固定なstyleがあるなら当然headに置いたほうがパフォーマンスはよさそう
+  let definedStyle = undefined;
+  return code => {
+    if (definedStyle !== undefined) {
+      definedStyle.sheet.insertRule(code);
+      return;
     }
+    let style = document.createElement("style");
+    style.type = "text/css";
+    style.innerHTML = code;
+    document.head.appendChild(style);
+    definedStyle = style;
   }
-}
-
-
-function update(fun) {
-  // WARN: 流用したほうが良い?(複数のrequestAnimationFrameは遅い?)
-  let updateFun = () => {
-    let ok = fun();
-    if (ok !== false) requestAnimationFrame(updateFun);
+})();
+let registUpdate = (() => {
+  // 一度の requestAnimationFrameで全て更新することで一度しかRecalcを走らせない
+  let updateList = [];
+  let maxIndex = -1;
+  let applyUpdateList = () => {
+    for (let i = 0; i < Math.min(maxIndex + 1, updateList.length); i++) {
+      if (updateList[i]() !== false) continue;
+      updateList[i] = updateList[maxIndex];
+      updateList[maxIndex] = null;
+      maxIndex--;
+      i--;
+    }
+    requestAnimationFrame(applyUpdateList);
   };
-  updateFun();
-}
+  requestAnimationFrame(applyUpdateList);
+  return fun => {
+    maxIndex++;
+    if (maxIndex === updateList.length) updateList.push(fun);
+    else updateList[maxIndex] = fun;
+  };
+})();
 
-function create(tag = "div", style = {}, options = {}, updateFunction = undefined) {
-  let elem = document.createElement(tag);
-  applyStyle(elem, style)
-  for (let key in options) {
-    if (key === "parent") options[key].appendChild(elem);
-    else if (key === "update") update(options[key].bind(elem))
-    else if (key !== "awake") elem[key] = options[key];
-  }
-  if (options["awake"]) options["awake"].bind(elem)();
-  return elem;
-}
 
-if (true) {
-  appendStyle(`@keyframes rot {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }`);
+// extends 元によって tag は決めれば良い
+class Ibuki {
+  static applyStyle(style, elem = undefined) {
+    let result = "";
+    let returnCode = !elem;
 
-  class TestImage {
-    constructor() {
-      const square = 400;
-      this.x = Math.floor(square * Math.random()) % square;
-      this.y = Math.floor(square * Math.random()) % square;
+    function apply(key, val) {
+      const withUnit = x => (typeof (x) === "number" ? `${x}px` : x);
+      if (returnCode) result += `${key}:${withUnit(val)};\n`;
+      else elem.style[key] = withUnit(val);
     }
-    get initialStyle() {
-      return {
-        position: "absolute",
-        color: "#f00000",
-        top: this.x,
-        left: this.y,
-        animation: {
-          "": "rot 1s",
-          "iteration-count": `infinite`,
-        },
-        border: {
-          radius: 20,
-          width: 3,
-          style: "solid",
-          color: "#000000",
-        }
-      };
-    }
-    get initialAttribute() {
-      return {
-        width: 100,
-        src: "./img/img.png",
-        parent: parent,
-      };
-    }
-    update() {
-      this.x++;
-      this.y++;
-      applyStyle(this, {
-        top: this.x,
-        left: this.y,
-        transform: `rotate(${this.x + this.y}deg)`,
-        "border-radius": this.x % 100
-      });
-      if (this.x > 500) {
-        this.remove();
-        return false;
+    for (let key in style) {
+      let val = style[key];
+      if (typeof (val) !== "object") {
+        apply(key, val)
+        continue;
       }
+      // 1階層まで省略できるように
+      for (let kk in val) apply(key + "-" + kk, val[kk]);
     }
+    if (returnCode) return result;
+  }
+  static registGlobal() {
+    let className = this.className();
+    let styleObj = this.style();
+    let animObj = this.animation();
+    let css = "";
+    if ("keyframes" in animObj) {
+      let anims = animObj.keyframes;
+      for (let key in anims) css += ` @keyframes ${className}-${key} \{ ${anims[key]} \} `;
+      delete animObj.keyframes
+    }
+    if ("name" in animObj) animObj.name = `${className}-${animObj.name}`;
+    styleObj.animation = animObj;
+    let style = Ibuki.applyStyle(styleObj);
+    if (style === "") return;
+    css += `.${className} \{\n${style}\}`;
+    appendGlobalStyle(css);
+  }
+  static className() {
+    return this.name.toLowerCase();
+  }
+  static style() {
+    return {};
+  }
+  static animation() {
+    return {};
+  }
+  static attribute() {
+    return {};
+  }
+  applyStyle(style) {
+    Ibuki.applyStyle(style, this.dom);
+  }
+  remove() {
+    this.dom.remove();
+    // WARN: GC が勝手にやってくれるので余計な処理かもしれない
+    let keys = Reflect.ownKeys(this);
+    for (let key of keys) delete this[key];
+    this.__proto__ = null;
+  }
+  update() {}
+  // x y を設定すると floating にする
+  floatPosition() {
+    let style = {
+      top: this._x || 0,
+      left: this._y || 0,
+    };
+    if (!this.isFloating) style.position = "absolute";
+    this.isFloating = true;
+    this.applyStyle(style);
+  }
+  set x(val) {
+    this._x = val;
+    this.floatPosition();
+  }
+  get x() {
+    return this._x || 0;
+  }
+  set y(val) {
+    this._y = val;
+    this.floatPosition();
+  }
+  get y() {
+    return this._y || 0;
   }
 
-  function createImg(parent = document.body) {
-    const square = 400;
-    let x = Math.floor(square * Math.random()) % square;
-    let y = Math.floor(square * Math.random()) % square;
-    return create("img", {
-      position: "absolute",
+  constructor() {
+    this.dom = document.createElement("img");
+    document.body.appendChild(this.dom);
+    let attrs = this.constructor.attribute();
+    for (let key in attrs) this.dom[key] = attrs[key];
+    this.dom.className = this.constructor.className();
+    registUpdate(() => {
+      if (!this.update) return false;
+      let ok = this.update();
+      if (ok === false) this.remove();
+      return ok;
+    });
+  }
+}
+class TestImage extends Ibuki {
+  static style() {
+    // 全部に共通の css-style を書く
+    return {
       color: "#f00000",
-      top: x,
-      left: y,
-      animation: {
-        "": "rot 1s",
-        "iteration-count": `infinite`,
-      },
       border: {
         radius: 20,
         width: 3,
         style: "solid",
         color: "#000000",
-      }
-    }, {
+      },
+    };
+  }
+  static animation() {
+    // 全部に共通の animation を書く
+    return {
+      keyframes: {
+        rot: ` 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); }`
+      },
+      name: "rot",
+      duration: "1s",
+      "iteration-count": `infinite`,
+    };
+  }
+  static attribute() {
+    // 全部に共通の attribute を書く
+    return {
       width: 100,
       src: "./img/img.png",
-      parent: parent,
-      awake() {},
-      update() {
-        x++;
-        y++;
-        applyStyle(this, {
-          top: x,
-          left: y,
-          transform: `rotate(${x + y}deg)`,
-          "border-radius": x % 100
-        });
-        if (x > 500) {
-          this.remove();
-          return false;
-        }
-      }
-    });
+    };
   }
-  createImg();
-  let i = 0;
-  update(() => {
-    i += 1;
-    if (i % 10 == 0) createImg();
-  });
+  constructor() {
+    super();
+    // 書くインスタンスごとに独立の状態を書く
+    const square = 100;
+    // x y を操作すると自動で abusolute に変更
+    this.x = Math.floor(square * Math.random()) % square;
+    this.y = Math.floor(square * Math.random()) % square;
+  }
+  update() {
+    this.x++;
+    this.y++;
+    // this.applyStyle({
+    //   transform: `rotate(${this.x + this.y}deg)`,
+    //   border: {
+    //     radius: this.x % 100
+    //   }
+    // });
+    if (this.x > 200) return false;
+  }
 }
-
-if (true) {
+Ibuki.registGlobal();
+TestImage.registGlobal();
+let i = -1;
+registUpdate(() => {
+  if ((i++ % 10) === 0) new TestImage();
+  // console.log(img);
+});
+if (false) {
   update(() => {
     let globalWidth = window.innerWidth;
     let globalHeight = screen.height;
