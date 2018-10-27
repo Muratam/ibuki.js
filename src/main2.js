@@ -1,4 +1,19 @@
-class TestImage extends IbukiDOM {
+class TestRotation extends Ibuki.Class {
+  static animation() {
+    return {
+      0: {
+        transform: `rotate(0deg)`
+      },
+      100: {
+        transform: `rotate(360deg)`
+      },
+      duration: 1,
+      timing: "linear",
+      iteration: `infinite`,
+    }
+  }
+}
+class TestImage extends Ibuki.DOM {
   static style() {
     // 全部に共通の css-style を書く
     return {
@@ -8,24 +23,6 @@ class TestImage extends IbukiDOM {
         style: "solid",
         color: "#000000",
       },
-    };
-  }
-  static animation() {
-    // 全部に共通の animation を書く
-    return {
-      keyframes: {
-        rot: `
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }`
-      },
-      name: "rot",
-      duration: "1s",
-      "timing-function": "linear",
-      "iteration-count": `infinite`,
     };
   }
   static attribute() {
@@ -38,6 +35,8 @@ class TestImage extends IbukiDOM {
   }
   constructor(parent = document.body) {
     super(parent);
+
+    this.addClass(TestRotation);
     const square = 400;
     // x y を操作すると自動で abusolute に変更
     this.x = square * Math.random() % square;
@@ -50,7 +49,6 @@ class TestImage extends IbukiDOM {
     this.y++;
     this.i++;
     this.style = {
-      transform: `rotate(${this.x + this.y}deg)`,
       border: {
         radius: 40 * Math.abs(Math.sin(this.i / Math.PI / 10))
       }
@@ -59,7 +57,7 @@ class TestImage extends IbukiDOM {
   }
 }
 
-class TestText extends IbukiDOM {
+class TestText extends Ibuki.DOM {
   static style() {
     return {
       width: "20",
@@ -85,20 +83,21 @@ class TestText extends IbukiDOM {
   }
   constructor(parent = document.body) {
     super(parent);
-    this.dom.innerHTML = "aaaa";
+    this.addClass(TestRotation);
+    this.text = "aaaa";
   }
 }
 let i = -1;
-let root = new IbukiDOM();
+let root = new Ibuki.DOM();
 new TestText(new TestText(new TestText(new TestText(root).registUpdate(function () {
   this.y = (this.y || 0) + 1;
 })))).registUpdate(function () {
   this.y = (this.y || 0) + 1;
 });
-registUpdate(() => {
+Ibuki.update(() => {
   if ((i++ % 10) === 0) new TestImage();
 });
-registUpdate(() => {
+Ibuki.update(() => {
   let globalWidth = window.innerWidth;
   let globalHeight = screen.height;
   // console.log(globalWidth);

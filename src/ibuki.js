@@ -39,6 +39,7 @@ let Ibuki = (() => {
   })();
   let classList = {};
   return {
+    update: registUpdate,
     Class: class {
       static style() {
         return {};
@@ -61,7 +62,6 @@ let Ibuki = (() => {
         }
         for (let key in style) {
           let val = style[key];
-
           if (val.constructor.name !== "Object") {
             apply(key, val)
             continue;
@@ -187,7 +187,7 @@ let Ibuki = (() => {
       }
 
       static checkRegisted() {
-        // if (this.name === "this.constructor") return; // WARN:
+        if (this.name === "DOM") return;
         if (!this.$registed) this.registGlobal();
         this.$registed = true;
       }
