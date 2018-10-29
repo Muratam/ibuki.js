@@ -1,6 +1,4 @@
-import {
-  Ibuki
-} from "./ibuki";
+import * as Ibuki from "./ibuki";
 class Thin extends Ibuki.Class {
   static style = {
     border: {
@@ -52,54 +50,51 @@ class GameView extends Ibuki.DOM {
     this.addClass(SinAnimation);
   }
 }
-/*
-class TopBar extends Ibuki.DOM {
-  static style() {
-    return {
-      background: {
-        color: new Ibuki.Color(0, 240, 200)
-      },
-      overflow: "hidden",
-      position: "absolute",
 
-      "border-bottom": {
-        width: 10,
-        style: "solid",
-        color: new Ibuki.Color(0, 0, 0)
-      }
-    };
-  }
-  constructor(parent) {
-    super(parent);
-    this.style = {
-      top: 0,
-      width: parent.width,
-      height: parent.height * 0.05,
-    }
-    this.addClass(SinAnimation);
-  }
-}
-class ButtomBar extends Ibuki.DOM {
-  static style() {
-    return {
-      background: {
-        color: new Ibuki.Color(0, 240, 200)
-      },
-      overflow: "hidden",
-      position: "absolute",
-    };
-  }
-  constructor(parent) {
-    super(parent);
-    this.style = {
-      top: parent.height * 0.95,
-      width: parent.width,
-      height: parent.height * 0.15,
-    }
-    this.addClass(SinAnimation);
-  }
-}
-*/
+// class TopBar extends Ibuki.DOM {
+//   static style = {
+//     background: {
+//       color: new Ibuki.Color(0, 240, 200)
+//     },
+//     overflow: "hidden",
+//     position: "absolute",
+
+//     "border-bottom": {
+//       width: 10,
+//       style: "solid",
+//       color: new Ibuki.Color(0, 0, 0)
+//     }
+//   }
+//   constructor(parent) {
+//     super(parent);
+//     this.style = {
+//       top: 0,
+//       width: parent.width,
+//       height: parent.height * 0.05,
+//     }
+//     this.addClass(SinAnimation);
+//   }
+// }
+// class ButtomBar extends Ibuki.DOM {
+//   static style = {
+//     background: {
+//       color: new Ibuki.Color(0, 240, 200)
+//     },
+//     overflow: "hidden",
+//     position: "absolute",
+//   }
+//   constructor(parent) {
+//     super(parent);
+//     this.style = {
+//       top: parent.height * 0.95,
+//       width: parent.width,
+//       height: parent.height * 0.15,
+//     }
+//     this.addClass(SinAnimation);
+//   }
+// }
+// new TopBar();
+// new ButtomBar();
 
 class Hai extends Ibuki.DOM {
   static style = {

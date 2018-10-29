@@ -1,8 +1,6 @@
-// head に 新たな css を登録
-let appendGlobalStyle = (() => {
-  // 全てに固定なstyleがあるなら当然headに置いたほうがパフォーマンスはよさそう
+{ // appendGlobalStyle: head に 新たな css を登録
   let definedStyle = undefined;
-  let result = code => {
+  var appendGlobalStyle = code => {
     if (definedStyle !== undefined) {
       // definedStyle.sheet.insertRule(code);
       definedStyle.innerHTML += code;
@@ -14,12 +12,8 @@ let appendGlobalStyle = (() => {
     document.head.appendChild(style);
     definedStyle = style;
   };
-  result("");
-  return result;
-})();
-// requestAnimationFrame に登録
-let registUpdate = (() => {
-  // 一度の requestAnimationFrameで全て更新することで一度しかRecalcを走らせない(だいじ)
+  appendGlobalStyle("");
+}; { // registUpdate: requestAnimationFrame に登録
   let updateList = [];
   let maxIndex = -1;
   let applyUpdateList = () => {
@@ -32,12 +26,12 @@ let registUpdate = (() => {
     requestAnimationFrame(applyUpdateList);
   };
   requestAnimationFrame(applyUpdateList);
-  return fun => {
+  var registUpdate = fun => {
     maxIndex++;
     if (maxIndex === updateList.length) updateList.push(fun);
     else updateList[maxIndex] = fun;
   };
-})();
+}
 // 数値 x に px をつける
 function withUnit(x) {
   return (typeof (x) === "number" ? `${Math.floor(x)}px` : x);
@@ -58,11 +52,9 @@ function applyStyle(style, elem = undefined) {
     for (let kk in val) apply(key + "-" + kk, val[kk]);
   }
   return result;
-}
-// class を登録
-let registClass = (() => {
+}; { // class を登録
   let classList = {};
-  return c => {
+  var registClass = c => {
     let className = c.name.toLowerCase();
     if (className in classList) return;
     let styleObj = c.style || {};
@@ -102,17 +94,20 @@ let registClass = (() => {
     appendGlobalStyle(css);
     classList[className] = styleObj;
   }
-})();
-
-// 名前を付けてclassオブジェクトにする
-class Class {
-  static animation = {}
-  static style = {}
 }
 
-class DOM {
+// 名前を付けてclassオブジェクトにする
+export class Class {
+  static animation = {}
+  static style = {}
+  // get className() {
+  //   console.log(this.constructor.name);
+  //   return this.constructor.name.toLowerCase();
+  // }
+}
+export class DOM {
   static registGlobal() {
-    let className = this.className();
+    let className = this.className;
     let styleObj = this.style;
     let style = applyStyle(styleObj);
     if (style === "") return;
@@ -132,7 +127,7 @@ class DOM {
   removeClass(c) {
     this.changeClass(c, "remove");
   }
-  static className() {
+  static get className() {
     return this.name.toLowerCase();
   }
   static style = {}
@@ -215,7 +210,7 @@ class DOM {
     if (parent.dom) parent.dom.appendChild(this.dom);
     else parent.appendChild(this.dom)
     for (let key in attrs) this.dom[key] = attrs[key];
-    this.dom.className = this.constructor.className();
+    this.dom.className = this.constructor.className;
     if (this.update) this.registUpdate(this.update);
     this.frame = 0;
     let methods = Reflect.ownKeys(this.constructor.prototype);
@@ -227,7 +222,7 @@ class DOM {
     }
   }
 }
-class Color {
+export class Color {
   constructor(r, g, b, a = 255) {
     this.r = this.clamp(r, 0, 255);
     this.g = this.clamp(g, 0, 255);
@@ -249,7 +244,7 @@ class Color {
     }
   }
 }
-class Root extends DOM {
+export class Root extends DOM {
   static style() {
     return {
       overflow: "hidden",
@@ -272,11 +267,11 @@ class Root extends DOM {
   //   };
   // }
 }
-export var Ibuki = {
-  registUpdate,
-  appendGlobalStyle,
-  DOM,
-  Root,
-  Color,
-  Class,
-}
+// export var Ibuki = {
+//   registUpdate,
+//   appendGlobalStyle,
+//   DOM,
+//   Root,
+//   Color,
+//   Class,
+// }
