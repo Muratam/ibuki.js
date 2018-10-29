@@ -52,13 +52,18 @@ function applyStyle(style, elem = undefined) {
     for (let kk in val) apply(key + "-" + kk, val[kk]);
   }
   return result;
-}; { // class を登録
-  let classList = {};
-  var registClass = c => {
-    let className = c.name.toLowerCase();
-    if (className in classList) return;
-    let styleObj = c.style || {};
-    let animObj = c.animation || {};
+};
+
+export class Class {
+  static animation = {}
+  static style = {}
+  // 名前を付けてclassオブジェクトにする
+  static $classList = {};
+  static $regist() {
+    if (this.className in Class.$classList) return;
+    console.log(`regist : ${this.className}`);
+    let styleObj = this.style || {};
+    let animObj = this.animation || {};
     let nums = (() => {
       let result = [];
       for (let key in animObj) {
@@ -68,7 +73,7 @@ function applyStyle(style, elem = undefined) {
     })();
     let css = "";
     if (nums.length > 0) {
-      let animationName = className + "animation";
+      let animationName = this.className + "animation";
       let keyFrames = "";
       for (let key of nums) {
         keyFrames += `${key}% \{ ${applyStyle(animObj[key])}\}`;
@@ -90,33 +95,33 @@ function applyStyle(style, elem = undefined) {
     }
     styleObj.animation = animObj;
     let style = applyStyle(styleObj);
-    css += `.${className} \{\n${style}\} \n`;
+    css += `.${this.className} \{\n${style}\} \n`;
     appendGlobalStyle(css);
-    classList[className] = styleObj;
+    Class.$classList[this.className] = styleObj;
+  }
+  static get className() {
+    return this.name.toLowerCase();
   }
 }
-
-// 名前を付けてclassオブジェクトにする
-export class Class {
-  static animation = {}
-  static style = {}
-  // get className() {
-  //   console.log(this.constructor.name);
-  //   return this.constructor.name.toLowerCase();
-  // }
-}
-export class DOM {
-  static registGlobal() {
-    let className = this.className;
-    let styleObj = this.style;
-    let style = applyStyle(styleObj);
-    if (style === "") return;
-    let css = `.${className} \{\n${style}\}`;
-    appendGlobalStyle(css);
+export class DOM extends Class {
+  static attribute = {
+    tag: "div"
+  }
+  registUpdate(updateFun) {
+    updateFun = updateFun.bind(this);
+    registUpdate((updateFrame => () => {
+      if (!updateFun) return false;
+      if (updateFrame) this.frame++;
+      let ok = updateFun();
+      if (ok === false) this.remove();
+      return ok;
+    })(this.$updateFrame || true));
+    this.$updateFrame = false;
+    return this;
   }
   changeClass(c, op) {
-    registClass(c);
-    this.dom.classList[op](c.name.toLowerCase());
+    c.$regist();
+    this.dom.classList[op](c.className);
   }
   addClass(c) {
     this.changeClass(c, "add");
@@ -126,13 +131,6 @@ export class DOM {
   }
   removeClass(c) {
     this.changeClass(c, "remove");
-  }
-  static get className() {
-    return this.name.toLowerCase();
-  }
-  static style = {}
-  static attribute = {
-    tag: "div"
   }
   remove() {
     this.dom.remove();
@@ -185,26 +183,8 @@ export class DOM {
     return this.dom.offsetHeight;
   }
 
-  static checkRegisted() {
-    if (this.name === "DOM") return;
-    if (!this.$registed) this.registGlobal();
-    this.$registed = true;
-  }
-  registUpdate(updateFun) {
-    updateFun = updateFun.bind(this);
-    registUpdate((updateFrame => () => {
-      if (!updateFun) return false;
-      if (updateFrame) this.frame++;
-      let ok = updateFun();
-      if (ok === false) this.remove();
-      return ok;
-    })(this.$updateFrame || true));
-    this.$updateFrame = false;
-    return this;
-  }
-
   constructor(parent = document.body) {
-    this.constructor.checkRegisted();
+    super().constructor.$regist();
     let attrs = this.constructor.attribute;
     this.dom = document.createElement(attrs.tag || "div");
     if (parent.dom) parent.dom.appendChild(this.dom);
