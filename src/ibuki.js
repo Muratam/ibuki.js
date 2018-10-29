@@ -69,8 +69,10 @@ export class Class {
   }
   // 名前を付けてclassオブジェクトにする
   static $classList = {};
+  static callAtOnce() {}
   static $regist() {
     if (this.className in Class.$classList) return;
+    this.callAtOnce();
     // console.log(`regist : ${this.className}`);
     let styleObj = this.style || {};
     let animObj = this.animation || {};
@@ -110,6 +112,7 @@ export class Class {
     Class.$classList[this.className] = styleObj;
   }
 }
+// 普通の DOM オブジェクトを作るならこれでOK
 export class DOM extends Class {
   static attribute = {
     tag: "div"
@@ -146,36 +149,8 @@ export class DOM extends Class {
     return this;
   }
 
-  // x y を設定すると absolute に floating にする
-  floatPosition(updateX, updateY) {
-    if (!this.isFloating) {
-      this.$dom.style.position = "absolute";
-      // this.$dom.style.contain = "layout paint";
-    }
-    this.isFloating = true;
-    if (updateX) this.$dom.style.left = Style.withUnit(this.$x || 0);
-    if (updateY) this.$dom.style.top = Style.withUnit(this.$y || 0);
-  }
   set style(val) {
     Style.apply(val, this.$dom);
-  }
-  set x(val) {
-    val = Math.floor(val);
-    if (this.$x === val) return;
-    this.$x = val;
-    this.floatPosition(true, false);
-  }
-  set y(val) {
-    val = Math.floor(val);
-    if (this.$y === val) return;
-    this.$y = val;
-    this.floatPosition(false, true);
-  }
-  get x() {
-    return this.$x || 0;
-  }
-  get y() {
-    return this.$y || 0;
   }
   get text() {
     return this.$dom.innerText || "";
@@ -183,16 +158,9 @@ export class DOM extends Class {
   set text(val) {
     this.$dom.innerText = val;
   }
-  get width() {
-    return this.$dom.offsetWidth;
-  }
-  get height() {
-    return this.$dom.offsetHeight;
-  }
   get frame() { // インスタンス化してからの経過フレーム
     return Updater.$instance.frame - this.$startFrame;
   }
-
   constructor(parent = document.body) {
     super().constructor.$regist();
     let attrs = this.constructor.attribute;
@@ -207,7 +175,12 @@ export class DOM extends Class {
     for (let method of methods) {
       if (method.startsWith("on")) {
         let name = method.toLowerCase().replace(/^on/, "");
-        this.$dom.addEventListener(name, this[method].bind(this));
+        let func = this[method].bind(this);
+        if (name === "resize") {
+          window.addEventListener("resize", func);
+        } else {
+          this.$dom.addEventListener(name, func);
+        }
       }
     }
   }
@@ -234,29 +207,141 @@ export class Color {
     }
   }
 }
-export class Root extends DOM {
-  static style() {
-    return {
-      overflow: "hidden",
-      position: "relative",
-    };
+// Ibukiエンジンをつかう場合のRootオブジェクト
+export class World extends DOM {
+  static style = {
+    overflow: "hidden",
+    position: "relative",
   }
-  constructor() {
-    super();
-    Style.$instance.regist(`body { margin:0px;padding 0px; } *{ box-sizing: border-box; }`);
+  static callAtOnce() {
+    Style.$instance.regist(`
+    body { margin:0px;padding 0px; }
+     *   { box-sizing: border-box; }
+    `);
+  }
+  get innerWidth() {
+    return this.width;
+  }
+  get innerHeight() {
+    return this.height;
+  }
+  get width() {
+    return window.innerWidth;
+  }
+  get height() {
+    return window.innerHeight;
+  }
+  adjust() {
     this.style = {
-      width: window.innerWidth,
-      height: window.innerHeight,
+      width: this.width,
+      height: this.height,
     };
   }
-  update() {
-    // console.log(this.frame);
+  constructor(width = null, height = null) {
+    super();
+    this.fixedWidth = width;
+    this.fixedHeight = height;
+    this.adjust();
   }
-  // update() {
-  //   // おもそう
-  //   this.style = {
-  //     width: window.innerWidth,
-  //     height: window.innerHeight,
-  //   };
-  // }
+  onResize() {
+    this.adjust();
+  }
+}
+// Ibukiエコシステムをつかう場合の各DOMオブジェクト
+// x y (相対位置), width height を持ち,parentに依存する
+// ワールドの中身は,兄弟位置に依存してほしくない.
+export class Block extends DOM {
+  set x(val) {
+    val = Math.floor(val);
+    if (this.$x === val) return;
+    this.$x = val;
+    this.floatPosition(true, false);
+  }
+  set y(val) {
+    val = Math.floor(val);
+    if (this.$y === val) return;
+    this.$y = val;
+    this.floatPosition(false, true);
+  }
+  get x() {
+    return this.$x || 0;
+  }
+  get y() {
+    return this.$y || 0;
+  }
+  get margin() {
+    // WARN: margin-left などの指定が効かないし,うまく動作しないかもしれない
+    return (this.$dom.style.margin || this.constructor.style.margin || 0);
+  }
+
+  get width() {
+    return this.$dom.offsetWidth;
+  }
+  get height() {
+    return this.$dom.offsetHeight;
+  }
+  get innerWidth() {
+    return this.$dom.scrollWidth;
+  }
+  get innerHeight() {
+    return this.$dom.scrollHeight;
+  }
+  get left() {
+    return this.x - this.margin;
+  }
+  get right() {
+    return this.x + this.width + this.margin;
+  }
+  get top() {
+    return this.y - this.margin;
+  }
+  get bottom() {
+    return this.y + this.height + this.margin;
+  }
+  set top(val) {
+    this.y = val;
+  }
+  set left(val) {
+    this.x = val;
+  }
+  set bottom(val) {
+    this.$dom.style.height = Style.withUnit(val - this.y);
+  }
+  set right(val) {
+    this.$dom.style.width = Style.withUnit(val - this.x);
+  }
+  set height(val) {
+    this.$dom.style.height = Style.withUnit(val);
+  }
+  set width(val) {
+    this.$dom.style.width = Style.withUnit(val);
+  }
+  // x y を設定すると absolute に floating にする
+  floatPosition(updateX, updateY) {
+    if (!this.$isFloating) {
+      this.$dom.style.position = "absolute";
+      this.$dom.style.contain = "layout paint";
+    }
+    this.$isFloating = true;
+    if (updateX) this.$dom.style.left = Style.withUnit(this.$x || 0);
+    if (updateY) this.$dom.style.top = Style.withUnit(this.$y || 0);
+  }
+  constructor(parent) {
+    super(parent);
+    this.style = {
+      top: this.constructor.style.top || 0,
+      left: this.constructor.style.left || 0,
+      width: this.constructor.style.width || parent.innerWidth,
+      height: this.constructor.style.height || parent.innerHeight,
+    }
+    this.floatPosition();
+  }
+}
+export class TextBlock extends Block {
+  static style = {
+    display: "flex",
+    "justify-content": "center",
+    "align-items": "center",
+    overflow: "auto"
+  }
 }
