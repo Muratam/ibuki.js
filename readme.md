@@ -10,3 +10,15 @@
 
 # warn
 sample は動かないかも知れないが当面気にしない
+
+# How To Use
+ES7の構文を用いるので,相応のビルドツールを用います.
+ここでは `parcel` を用いています.
+```sh
+## try this repo
+$ git clone git@github.com:Muratam/ibuki.js.git && cd ibuki.js
+## install parcel (global)
+$ npm i -g parcel-bundler
+## build and run -> check localhost:1234
+$ parcel index.html
+```

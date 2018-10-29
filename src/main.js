@@ -1,5 +1,15 @@
-const sinAnimation = Ibuki.Class({
-  animation: {
+import {
+  Ibuki
+} from "./ibuki";
+class Thin extends Ibuki.Class {
+  static style = {
+    border: {
+      width: 10,
+    }
+  }
+};
+class SinAnimation extends Ibuki.Class {
+  static animation = {
     0: {
       transform: `translate(0,0)`
     },
@@ -12,33 +22,24 @@ const sinAnimation = Ibuki.Class({
     duration: 0.75,
     timing: "ease",
     iteration: `infinite`,
-  },
-  style: {
+  }
+  static style = {
     cursor: "pointer",
   }
-});
-const thin = Ibuki.Class({
-  style: {
-    border: {
-      width: 10,
-    }
-  },
-});
+};
 class GameView extends Ibuki.DOM {
-  static style() {
-    return {
-      background: {
-        color: new Ibuki.Color(240, 240, 200)
-      },
-      overflow: "hidden",
-      position: "relative",
-      border: {
-        radius: 5,
-        width: 2,
-        style: "solid",
-        color: new Ibuki.Color(13, 13, 13),
-      },
-    };
+  static style = {
+    background: {
+      color: new Ibuki.Color(240, 240, 200)
+    },
+    overflow: "hidden",
+    position: "relative",
+    border: {
+      radius: 5,
+      width: 2,
+      style: "solid",
+      color: new Ibuki.Color(13, 13, 13),
+    }
   }
   constructor(parent) {
     super(parent);
@@ -48,7 +49,7 @@ class GameView extends Ibuki.DOM {
       width: parent.width * 0.98,
       height: parent.height * 0.5,
     }
-    // this.addClass(SinAnimation);
+    this.addClass(SinAnimation);
   }
 }
 /*
@@ -101,42 +102,40 @@ class ButtomBar extends Ibuki.DOM {
 */
 
 class Hai extends Ibuki.DOM {
-  static style() {
-    return {
-      width: "1em",
-      height: "2em",
-      font: {
-        color: "#000000",
-        size: 30,
+  static style = {
+    width: "1em",
+    height: "2em",
+    font: {
+      color: "#000000",
+      size: 30,
 
-      },
-      // color: new Ibuki.Color(13, 13, 13),
-      background: `linear-gradient(#ffffff,#eeeeee)`,
-      display: "flex",
-      "justify-content": "center",
-      "align-items": "center",
-      border: {
-        radius: 5,
-        width: 2,
-        style: "solid",
-        color: new Ibuki.Color(13, 13, 13),
-      },
-      padding: "0.6em",
-      margin: 10,
-    };
+    },
+    // color: new Ibuki.Color(13, 13, 13),
+    background: `linear-gradient(#ffffff,#eeeeee)`,
+    display: "flex",
+    "justify-content": "center",
+    "align-items": "center",
+    border: {
+      radius: 5,
+      width: 2,
+      style: "solid",
+      color: new Ibuki.Color(13, 13, 13),
+    },
+    padding: "0.6em",
+    margin: 10,
   }
   constructor(parent = document.body, name) {
     super(parent);
     this.text = name;
   }
   onClick() {
-    this.addClass(thin);
+    this.addClass(Thin);
   }
   onMouseEnter() {
-    this.addClass(sinAnimation);
+    this.addClass(SinAnimation);
   }
   onMouseLeave() {
-    this.removeClass(sinAnimation);
+    this.removeClass(SinAnimation);
   }
 }
 let root = new Ibuki.Root();
