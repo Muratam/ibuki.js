@@ -119,6 +119,10 @@ class Hai extends Ibuki.DOM {
     padding: "0.6em",
     margin: 10,
   }
+  // static attribute = {
+  //   tag: "img",
+  //   src: "../img/img.jpg"
+  // }
   constructor(parent = document.body, name) {
     super(parent);
     this.text = name;
