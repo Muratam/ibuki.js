@@ -1,35 +1,29 @@
-class SinAnimation extends Ibuki.Class {
-  static animation() {
-    return {
-      0: {
-        transform: `translate(0,0)`
-      },
-      50: {
-        transform: `translate(0,-10px)`
-      },
-      100: {
-        transform: `translate(0,0)`
-      },
-      duration: 0.75,
-      timing: "ease",
-      iteration: `infinite`,
+const sinAnimation = Ibuki.Class({
+  animation: {
+    0: {
+      transform: `translate(0,0)`
+    },
+    50: {
+      transform: `translate(0,-10px)`
+    },
+    100: {
+      transform: `translate(0,0)`
+    },
+    duration: 0.75,
+    timing: "ease",
+    iteration: `infinite`,
+  },
+  style: {
+    cursor: "pointer",
+  }
+});
+const thin = Ibuki.Class({
+  style: {
+    border: {
+      width: 10,
     }
-  }
-  static style() {
-    return {
-      cursor: "pointer",
-    }
-  }
-}
-class Thin extends Ibuki.Class {
-  static style() {
-    return {
-      border: {
-        width: 10,
-      }
-    };
-  }
-}
+  },
+});
 class GameView extends Ibuki.DOM {
   static style() {
     return {
@@ -136,13 +130,13 @@ class Hai extends Ibuki.DOM {
     this.text = name;
   }
   onClick() {
-    // this.addClass(Thin);
+    this.addClass(thin);
   }
   onMouseEnter() {
-    this.addClass(SinAnimation);
+    this.addClass(sinAnimation);
   }
   onMouseLeave() {
-    this.removeClass(SinAnimation);
+    this.removeClass(sinAnimation);
   }
 }
 let root = new Ibuki.Root();

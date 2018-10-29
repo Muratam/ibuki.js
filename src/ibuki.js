@@ -1,4 +1,5 @@
 let Ibuki = (() => {
+  // head に 新たな css を登録
   let appendGlobalStyle = (() => {
     // 全てに固定なstyleがあるなら当然headに置いたほうがパフォーマンスはよさそう
     let definedStyle = undefined;
@@ -17,6 +18,7 @@ let Ibuki = (() => {
     result("");
     return result;
   })();
+  // requestAnimationFrame に登録
   let registUpdate = (() => {
     // 一度の requestAnimationFrameで全て更新することで一度しかRecalcを走らせない(だいじ)
     let updateList = [];
@@ -37,87 +39,83 @@ let Ibuki = (() => {
       else updateList[maxIndex] = fun;
     };
   })();
-  let classList = {};
-  class Class {
-    static style() {
-      return {};
-    }
-    static animation() {
-      return {};
-    }
+  // 数値 x に px をつける
+  function withUnit(x) {
+    return (typeof (x) === "number" ? `${Math.floor(x)}px` : x);
   }
-  class DOM {
-    static withUnit(x) {
-      return (typeof (x) === "number" ? `${Math.floor(x)}px` : x);
+  // style オブジェクトを解析し css に(elem があれば適用もする)
+  function applyStyle(style, elem = undefined) {
+    let result = "";
+    let apply = (key, val) => {
+      if (elem) elem.style[key] = withUnit(val);
+      result += `${key}:${withUnit(val)};\n`
     }
-    static applyStyle(style, elem = undefined) {
-      let result = "";
-      let returnCode = !elem;
+    for (let key in style) {
+      let val = style[key];
+      if (val.constructor.name !== "Object") {
+        apply(key, val)
+        continue;
+      }
+      for (let kk in val) apply(key + "-" + kk, val[kk]);
+    }
+    return result;
+  }
 
-      let apply = (key, val) => {
-        if (returnCode) result += `${key}:${this.withUnit(val)};\n`;
-        else elem.style[key] = this.withUnit(val);
-      }
-      for (let key in style) {
-        let val = style[key];
-        if (val.constructor.name !== "Object") {
-          apply(key, val)
-          continue;
+  let registClass = (() => {
+    let classList = {};
+    return c => {
+      let className = c.name.toLowerCase();
+      if (className in classList) return;
+      let styleObj = c.style || {};
+      let animObj = c.animation || {};
+      let nums = (() => {
+        let result = [];
+        for (let key in animObj) {
+          if (!isNaN(key)) result.push(key);
         }
-        // 1階層まで省略できるように
-        for (let kk in val) apply(key + "-" + kk, val[kk]);
+        return result;
+      })();
+      let css = "";
+      if (nums.length > 0) {
+        let animationName = className + "animation";
+        let keyFrames = "";
+        for (let key of nums) {
+          keyFrames += `${key}% \{ ${applyStyle(animObj[key])}\}`;
+          delete animObj[key];
+        }
+        css = `@keyframes ${animationName} \{ ${keyFrames}\}\n`;
+        styleObj["animation-name"] = animationName;
       }
-      if (returnCode) return result;
+      if ("iteration" in animObj) {
+        animObj["iteration-count"] = animObj.iteration;
+        delete animObj.iteration;
+      }
+      if ("timing" in animObj) {
+        animObj["timing-function"] = animObj.timing;
+        delete animObj.timing;
+      }
+      if ("duration" in animObj) {
+        if (!isNaN(animObj.duration)) animObj.duration = Math.floor(animObj.duration * 1000) + "ms";
+      }
+      styleObj.animation = animObj;
+      let style = applyStyle(styleObj);
+      css += `.${className} \{\n${style}\}`;
+      appendGlobalStyle(css);
+      classList[className] = styleObj;
     }
+  })();
+  class DOM {
     static registGlobal() {
       let className = this.className();
       let styleObj = this.style();
-      let style = this.applyStyle(styleObj);
+      let style = applyStyle(styleObj);
       if (style === "") return;
       let css = `.${className} \{\n${style}\}`;
       appendGlobalStyle(css);
     }
     changeClass(c, op) {
-      let className = c.name.toLowerCase();
-      if (!(className in classList)) {
-        let styleObj = c.style();
-        let animObj = c.animation();
-        let nums = (() => {
-          let result = [];
-          for (let key in animObj) {
-            if (!isNaN(key)) result.push(key);
-          }
-          return result;
-        })();
-        let css = "";
-        if (nums.length > 0) {
-          let animationName = className + "animation";
-          let keyFrames = "";
-          for (let key of nums) {
-            keyFrames += `${key}% \{ ${this.constructor.applyStyle(animObj[key])}\}`;
-            delete animObj[key];
-          }
-          css = `@keyframes ${animationName} \{ ${keyFrames}\}\n`;
-          styleObj["animation-name"] = animationName;
-        }
-        if ("iteration" in animObj) {
-          animObj["iteration-count"] = animObj.iteration;
-          delete animObj.iteration;
-        }
-        if ("timing" in animObj) {
-          animObj["timing-function"] = animObj.timing;
-          delete animObj.timing;
-        }
-        if ("duration" in animObj) {
-          if (!isNaN(animObj.duration)) animObj.duration = Math.floor(animObj.duration * 1000) + "ms";
-        }
-        styleObj.animation = animObj;
-        let style = this.constructor.applyStyle(styleObj);
-        css += `.${className} \{\n${style}\}`;
-        appendGlobalStyle(css);
-        classList[className] = styleObj;
-      }
-      this.dom.classList[op](className);
+      registClass(c);
+      this.dom.classList[op](c.name.toLowerCase());
     }
     addClass(c) {
       this.changeClass(c, "add");
@@ -146,18 +144,18 @@ let Ibuki = (() => {
       // for (let key of keys) delete this[key];
       // this.__proto__ = null;
     }
-    // x y を設定すると floating にする
+    // x y を設定すると absolute に floating にする
     floatPosition(updateX, updateY) {
       if (!this.isFloating) {
         this.dom.style.position = "absolute";
-        this.dom.style.contain = "layout paint";
+        // this.dom.style.contain = "layout paint";
       }
       this.isFloating = true;
-      if (updateX) this.dom.style.left = this.constructor.withUnit(this.$x || 0);
-      if (updateY) this.dom.style.top = this.constructor.withUnit(this.$y || 0);
+      if (updateX) this.dom.style.left = withUnit(this.$x || 0);
+      if (updateY) this.dom.style.top = withUnit(this.$y || 0);
     }
     set style(val) {
-      this.constructor.applyStyle(val, this.dom);
+      applyStyle(val, this.dom);
     }
     set x(val) {
       val = Math.floor(val);
@@ -275,9 +273,15 @@ let Ibuki = (() => {
   return {
     registUpdate,
     appendGlobalStyle,
-    Class,
     DOM,
     Root,
-    Color
+    Color,
+    Class: (() => {
+      let anonymousClassIndex = 0;
+      return c => {
+        c.name = c.name || `anonymous-${anonymousClassIndex++}`;
+        return c;
+      }
+    })(),
   }
 })();
