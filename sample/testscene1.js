@@ -30,7 +30,7 @@ class TestImage extends Ibuki.DOM {
     return {
       tag: "img",
       width: 100,
-      src: "./img/img.png",
+      src: "./img/img.jpg",
     };
   }
   constructor(parent = document.body) {
@@ -96,9 +96,4 @@ new TestText(new TestText(new TestText(new TestText(root).registUpdate(function 
 });
 Ibuki.update(() => {
   if ((i++ % 10) === 0) new TestImage();
-});
-Ibuki.update(() => {
-  let globalWidth = window.innerWidth;
-  let globalHeight = screen.height;
-  // console.log(globalWidth);
 });
