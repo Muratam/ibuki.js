@@ -149,8 +149,19 @@ export class DOM extends Class {
     return this;
   }
 
+
   set style(val) {
     Style.apply(val, this.$dom);
+  }
+  get style() {
+    return new Proxy(this, {
+      set(obj, prop, value) {
+        let style = {};
+        style[prop] = value;
+        obj.style = style;
+        return true;
+      }
+    });
   }
   get text() {
     return this.$dom.innerText || "";

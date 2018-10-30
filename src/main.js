@@ -37,12 +37,6 @@ class GameView extends Ibuki.Block {
       color: new Ibuki.Color(13, 13, 13),
     },
   }
-  constructor(parent) {
-    super(parent);
-    // this.top = parent.height * 0.25;
-    // this.height = parent.height * 0.5;
-  }
-
 }
 
 class Hai extends Ibuki.TextBlock {
@@ -66,12 +60,8 @@ class Hai extends Ibuki.TextBlock {
     this.text = name;
   }
   onClick() {
-    this.addClass(Thin);
-    this.style = {
-      font: {
-        size: 100
-      }
-    }
+    // this.addClass(Thin);
+    this.style["border-width"] = 10;
   }
   onMouseEnter() {
     this.addClass(SinAnimation);
