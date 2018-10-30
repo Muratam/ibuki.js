@@ -1,11 +1,4 @@
 import * as Ibuki from "./ibuki";
-class Thin extends Ibuki.Class {
-  static style = {
-    border: {
-      width: 10,
-    }
-  }
-};
 class SinAnimation extends Ibuki.Class {
   static animation = {
     0: {
@@ -25,6 +18,8 @@ class SinAnimation extends Ibuki.Class {
     cursor: "pointer",
   }
 };
+let world = new Ibuki.World();
+
 class GameView extends Ibuki.Block {
   static style = {
     background: {
@@ -41,8 +36,8 @@ class GameView extends Ibuki.Block {
 
 class Hai extends Ibuki.TextBlock {
   static style = {
-    width: "2em",
-    height: "3em",
+    width: world.width / 14,
+    height: world.height / 6,
     font: {
       color: "#000000",
       size: "100%",
@@ -60,7 +55,6 @@ class Hai extends Ibuki.TextBlock {
     this.text = name;
   }
   onClick() {
-    // this.addClass(Thin);
     this.style["border-width"] = 10;
   }
   onMouseEnter() {
@@ -70,7 +64,6 @@ class Hai extends Ibuki.TextBlock {
     this.removeClass(SinAnimation);
   }
 }
-let world = new Ibuki.World();
 
 let gameView = new GameView(world);
 let names = [
@@ -79,13 +72,8 @@ let names = [
   "Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ", "Ⅵ", "Ⅶ", "Ⅷ", "Ⅸ",
   "東", "南", "西", "北", "發", " ", "中"
 ];
-let x = 0;
 for (let i = 0; i < 14; i++) {
   let name = names[Math.floor(Math.random() * names.length)];
   let hai = new Hai(gameView, name);
-  hai.x = x;
-  hai.y = 0;
-  x = hai.right;
-  // hai.x = hai.width * i * 1.1;
-  // hai.y = gameView.height - hai.height * 1.3;
+  hai.x = world.width * i / 14;
 }
