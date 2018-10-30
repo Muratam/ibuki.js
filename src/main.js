@@ -30,8 +30,6 @@ class GameView extends Ibuki.Block {
     background: {
       color: new Ibuki.Color(240, 240, 200)
     },
-    overflow: "hidden",
-    position: "relative",
     border: {
       radius: 5,
       width: 2,
@@ -41,22 +39,21 @@ class GameView extends Ibuki.Block {
   }
   constructor(parent) {
     super(parent);
-    this.top = parent.height * 0.25;
-    this.height = parent.height * 0.5;
+    // this.top = parent.height * 0.25;
+    // this.height = parent.height * 0.5;
   }
 
 }
 
 class Hai extends Ibuki.TextBlock {
   static style = {
-    ...Ibuki.TextBlock.style,
     width: "2em",
     height: "3em",
     font: {
       color: "#000000",
-      size: 30,
+      size: "100%",
     },
-    background: `linear-gradient(#ffffff,#eeeeee)`,
+    background: `linear-gradient(#ffffff,#ceceee)`,
     border: {
       radius: 5,
       width: 2,
@@ -68,11 +65,13 @@ class Hai extends Ibuki.TextBlock {
     super(parent);
     this.text = name;
   }
-  update() {
-    // this.y++;
-  }
   onClick() {
     this.addClass(Thin);
+    this.style = {
+      font: {
+        size: 100
+      }
+    }
   }
   onMouseEnter() {
     this.addClass(SinAnimation);
@@ -83,7 +82,7 @@ class Hai extends Ibuki.TextBlock {
 }
 let world = new Ibuki.World();
 
-let gameView = new GameView(new GameView(new GameView(world))).addClass(SinAnimation);
+let gameView = new GameView(world);
 let names = [
   "一", "二", "三", "四", "五", "六", "七", "八", "九",
   "１", "２", "３", "４", "５", "６", "７", "８", "９",

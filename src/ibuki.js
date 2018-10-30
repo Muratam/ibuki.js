@@ -225,22 +225,27 @@ export class World extends DOM {
   get innerHeight() {
     return this.height;
   }
-  get width() {
-    return window.innerWidth;
-  }
-  get height() {
-    return window.innerHeight;
-  }
   adjust() {
+    let pWidth = this.parent.innerWidth || this.parent.width;
+    let wRatio = pWidth / this.width;
+    let pHeight = this.parent.innerHeight || this.parent.height;
+    let hRatio = pHeight / this.height;
+    let ratio = Math.min(wRatio, hRatio);
     this.style = {
+      top: Math.max(0, (pHeight - this.height * ratio) / 2),
+      left: Math.max(0, (pWidth - this.width * ratio) / 2),
       width: this.width,
       height: this.height,
+      "transform-origin": `0px 0px`,
+      transform: `scale(${ratio})`
     };
   }
-  constructor(width = null, height = null) {
+  constructor(width = 960, height = 640, parent = window) {
     super();
-    this.fixedWidth = width;
-    this.fixedHeight = height;
+    this.parent = parent;
+    this.width = width;
+    this.height = height;
+    this.world = this;
     this.adjust();
   }
   onResize() {
@@ -255,13 +260,13 @@ export class Block extends DOM {
     val = Math.floor(val);
     if (this.$x === val) return;
     this.$x = val;
-    this.floatPosition(true, false);
+    this.$dom.style.left = Style.withUnit(this.$x || 0);
   }
   set y(val) {
     val = Math.floor(val);
     if (this.$y === val) return;
     this.$y = val;
-    this.floatPosition(false, true);
+    this.$dom.style.top = Style.withUnit(this.$y || 0);
   }
   get x() {
     return this.$x || 0;
@@ -316,32 +321,28 @@ export class Block extends DOM {
   set width(val) {
     this.$dom.style.width = Style.withUnit(val);
   }
-  // x y を設定すると absolute に floating にする
-  floatPosition(updateX, updateY) {
-    if (!this.$isFloating) {
-      this.$dom.style.position = "absolute";
-      this.$dom.style.contain = "layout paint";
-    }
-    this.$isFloating = true;
-    if (updateX) this.$dom.style.left = Style.withUnit(this.$x || 0);
-    if (updateY) this.$dom.style.top = Style.withUnit(this.$y || 0);
-  }
   constructor(parent) {
     super(parent);
-    this.style = {
-      top: this.constructor.style.top || 0,
-      left: this.constructor.style.left || 0,
-      width: this.constructor.style.width || parent.innerWidth,
-      height: this.constructor.style.height || parent.innerHeight,
-    }
-    this.floatPosition();
+    this.world = parent.world;
+    this.top = this.constructor.style.top || 0;
+    this.left = this.constructor.style.left || 0;
+    this.width = this.constructor.style.width || parent.innerWidth;
+    this.height = this.constructor.style.height || parent.innerHeight;
+    this.$dom.style.position = "absolute";
+    this.$dom.style.contain = "layout paint";
   }
 }
+// transformでの位置の場合は x,y = 0 のまま
+
 export class TextBlock extends Block {
   static style = {
     display: "flex",
     "justify-content": "center",
     "align-items": "center",
     overflow: "auto"
+  }
+  constructor(parent) {
+    super(parent);
+    this.style = TextBlock.style;
   }
 }

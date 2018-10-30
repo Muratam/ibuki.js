@@ -22,3 +22,27 @@ $ npm i -g parcel-bundler
 ## build and run -> check localhost:1234
 $ parcel index.html
 ```
+
+@keyframes ができる `https://developer.mozilla.org/ja/docs/Web/CSS/@keyframes`
+css animation が できる
+強引におくこともできる
+
+Mahjong DTM
+kataを無視してTASシステム構築pc
+
+
+HTMLのいいところ:
+  DOM/CSSが強い
+  DOM/CSS/VUE的な知見を使いたい
+  PIXELーCollect?
+  DTMのあれしたい
+  麻雀
+  VTuber
+  負債
+
+Unityのいいところ:
+  3D(+CG)は強い
+  だいたい合っていればいいなら物理エンジンはらく
+  拡張(AssetStore)が多い
+
+ふやまーじゃんの実装:
