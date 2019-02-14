@@ -1,13 +1,20 @@
 {
+  "license": "MIT",
+  "author": "murata <murata@kmc.gr.jp> (https://muratam.github.io)",
+  "description": "ibuki game engine",
+  "scripts": {
+    "build": "webpack"
+  },
   "devDependencies": {
-    "@babel/core": "^7.1.2",
-    "@babel/plugin-proposal-class-properties": "^7.1.0",
-    "@babel/plugin-transform-runtime": "^7.1.0",
-    "babel-core": "^6.26.3",
-    "babel-preset-env": "^1.7.0",
-    "babel-preset-es2017": "^6.24.1"
+    "ts-loader": "^5.3.3",
+    "ts-node": "^8.0.2",
+    "tslint": "^5.12.1",
+    "typedoc": "^0.14.2",
+    "webpack": "^4.29.3",
+    "webpack-cli": "^3.2.3"
   },
   "dependencies": {
-    "@babel/runtime": "^7.1.2"
+    "imports-loader": "^0.8.0",
+    "typescript": "^3.3.3"
   }
 }
