@@ -1,79 +1,44 @@
 import * as Ibuki from "./ibuki";
-class SinAnimation extends Ibuki.Class {
-  static animation = {
-    0: {
-      transform: `translate(0,0)`
-    },
-    50: {
-      transform: `translate(0,-10px)`
-    },
-    100: {
-      transform: `translate(0,0)`
-    },
-    duration: 0.75,
-    timing: "ease",
-    iteration: `infinite`,
-  }
+// import "svg.js";
+class SVGCanvas extends Ibuki.DOM {
   static style = {
-    cursor: "pointer",
-  }
-};
-let world = new Ibuki.World();
-
-class GameView extends Ibuki.Block {
-  static style = {
-    background: {
-      color: new Ibuki.Color(240, 240, 200)
-    },
-    border: {
-      radius: 5,
-      width: 2,
-      style: "solid",
-      color: new Ibuki.Color(13, 13, 13),
-    },
-  }
-}
-
-class Hai extends Ibuki.TextBlock {
-  static style = {
-    width: world.width / 14,
-    height: world.height / 6,
+    // width: "100%",
+    // height: "100%",
     font: {
       color: "#000000",
-      size: "100%",
     },
-    background: `linear-gradient(#ffffff,#ceceee)`,
-    border: {
-      radius: 5,
-      width: 2,
-      style: "solid",
-      color: new Ibuki.Color(13, 13, 13),
-    },
+    background: `linear-gradient(#ffffff,#9eceee)`,
   }
-  constructor(parent = document.body, name) {
-    super(parent);
-    this.text = name;
+  static attribute = {
+    tag: "svg",
+    x: "0",
+    y: "0",
+    width: "20",
+    height: "20",
+    xmlns: "http://www.w3.org/2000/svg",
+    version: "1.1",
   }
-  onClick() {
-    this.style["border-width"] = 10;
+  static callAtOnce() {
+    Ibuki.Style.$instance.regist(`
+    body { margin:0px;padding 0px; }
+     *   { box-sizing: border-box; }
+    html,body { height: 100%; }
+    `);
   }
-  onMouseEnter() {
-    this.addClass(SinAnimation);
-  }
-  onMouseLeave() {
-    this.removeClass(SinAnimation);
+};
+class SVGElem extends Ibuki.DOM {
+  static attribute = {
+    tag: "rect",
+    x: "5",
+    y: "5",
+    width: "30",
+    height: "30",
+    stroke: "black",
+    fill: "#fff",
+    "stroke-width": "2",
   }
 }
 
-let gameView = new GameView(world);
-let names = [
-  "一", "二", "三", "四", "五", "六", "七", "八", "九",
-  "１", "２", "３", "４", "５", "６", "７", "８", "９",
-  "Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ", "Ⅵ", "Ⅶ", "Ⅷ", "Ⅸ",
-  "東", "南", "西", "北", "發", " ", "中"
-];
-for (let i = 0; i < 14; i++) {
-  let name = names[Math.floor(Math.random() * names.length)];
-  let hai = new Hai(gameView, name);
-  hai.x = world.width * i / 14;
-}
+let svgCanvas = new SVGCanvas();
+new SVGElem(svgCanvas);
+// SVG(svgCanvas.$dom).rect(100, 100).fill("#f06");

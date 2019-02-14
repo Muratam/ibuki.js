@@ -6,6 +6,7 @@ class Updater {
   }
   applyUpdateList() {
     this.frame++;
+    this.time = new Date().getTime() / 1000;
     for (let i = 0; i < Math.min(this.maxIndex + 1, this.updateList.length); i++) {
       if (this.updateList[i]() !== false) continue;
       this.updateList[i] = this.updateList[maxIndex];
@@ -18,11 +19,12 @@ class Updater {
     this.updateList = [];
     this.maxIndex = -1;
     this.frame = 0;
+    this.time = new Date().getTime() / 1000;
     requestAnimationFrame(this.applyUpdateList.bind(this));
   }
   static $instance = new Updater();
 }
-class Style {
+export class Style {
   regist(code) {
     this.$dom.innerHTML += code;
   }
@@ -112,8 +114,37 @@ export class Class {
     Class.$classList[this.className] = styleObj;
   }
 }
+class Ibuki extends Class {
+  onDestroy() {
+    // TODO: UpdateだけじゃなくてDOMが死んだときも呼ばれて欲しい
+  }
+  registUpdate(updateFun) {
+    updateFun = updateFun.bind(this);
+    Updater.$instance.regist(() => {
+      if (!updateFun) return false;
+      let ok = updateFun();
+      if (ok === false) this.onDestroy();
+      return ok;
+    });
+    return this;
+  }
+  get frame() { // インスタンス化してからの経過フレーム
+    return Updater.$instance.frame - this.$startFrame;
+  }
+  get time() {
+    return Updater.$instance.time - this.$startTime;
+  }
+  constructor() {
+    super();
+    if (this.update) this.registUpdate(this.update);
+    this.$startFrame = Updater.$instance.frame;
+    this.$startTime = Updater.$instance.time;
+  }
+
+}
+
 // 普通の DOM オブジェクトを作るならこれでOK
-export class DOM extends Class {
+export class DOM extends Ibuki {
   static attribute = {
     tag: "div"
   }
@@ -131,25 +162,6 @@ export class DOM extends Class {
   removeClass(c) {
     return this.changeClass(c, "remove");
   }
-  remove() {
-    this.$dom.remove();
-    // WARN: GC が勝手にやってくれるので余計な処理かもしれない
-    // let keys = Reflect.ownKeys(this);
-    // for (let key of keys) delete this[key];
-    // this.__proto__ = null;
-  }
-  registUpdate(updateFun) {
-    updateFun = updateFun.bind(this);
-    Updater.$instance.regist(() => {
-      if (!updateFun) return false;
-      let ok = updateFun();
-      if (ok === false) this.remove();
-      return ok;
-    });
-    return this;
-  }
-
-
   set style(val) {
     Style.apply(val, this.$dom);
   }
@@ -163,39 +175,42 @@ export class DOM extends Class {
       }
     });
   }
-  get text() {
-    return this.$dom.innerText || "";
-  }
-  set text(val) {
-    this.$dom.innerText = val;
-  }
-  get frame() { // インスタンス化してからの経過フレーム
-    return Updater.$instance.frame - this.$startFrame;
+
+  onDestroy() {
+    this.$dom.remove();
+    // WARN: GC が勝手にやってくれるので余計な処理かもしれない
+    // let keys = Reflect.ownKeys(this);
+    // for (let key of keys) delete this[key];
+    // this.__proto__ = null;
   }
   constructor(parent = document.body) {
     super().constructor.$regist();
+    super();
     let attrs = this.constructor.attribute;
     this.$dom = document.createElement(attrs.tag || "div");
     if (parent.$dom) parent.$dom.appendChild(this.$dom);
     else parent.appendChild(this.$dom)
-    for (let key in attrs) this.$dom[key] = attrs[key];
     this.$dom.className = this.constructor.className;
-    if (this.update) this.registUpdate(this.update);
-    this.$startFrame = Updater.$instance.frame;
+    for (let key in attrs) {
+      if (key === "tag") continue;
+      this.$dom.setAttribute(key, Style.withUnit(attrs[key]));
+      // this.$dom[key] = Style.withUnit(attrs[key]);
+    }
     let methods = Reflect.ownKeys(this.constructor.prototype);
     for (let method of methods) {
-      if (method.startsWith("on")) {
-        let name = method.toLowerCase().replace(/^on/, "");
-        let func = this[method].bind(this);
-        if (name === "resize") {
-          window.addEventListener("resize", func);
-        } else {
-          this.$dom.addEventListener(name, func);
-        }
+      if (!method.startsWith("on")) continue
+      let name = method.toLowerCase().replace(/^on/, "");
+      if (name === "ondestroy") continue;
+      let func = this[method].bind(this);
+      if (name === "resize") {
+        window.addEventListener("resize", func);
+      } else {
+        this.$dom.addEventListener(name, func);
       }
     }
   }
 }
+
 export class Color {
   constructor(r, g, b, a = 255) {
     this.r = this.clamp(r, 0, 255);
@@ -218,7 +233,7 @@ export class Color {
     }
   }
 }
-// Ibukiエンジンをつかう場合のRootオブジェクト
+// Ibukiエンジンをつかう場合のRootオブジェクト(自動でリサイズしてくれるスグレモノ)
 export class World extends DOM {
   static style = {
     overflow: "hidden",
@@ -237,9 +252,9 @@ export class World extends DOM {
     return this.height;
   }
   adjust() {
-    let pWidth = this.parent.innerWidth || this.parent.width;
+    let pWidth = this.$parent.innerWidth || this.$parent.width;
     let wRatio = pWidth / this.width;
-    let pHeight = this.parent.innerHeight || this.parent.height;
+    let pHeight = this.$parent.innerHeight || this.$parent.height;
     let hRatio = pHeight / this.height;
     let ratio = Math.min(wRatio, hRatio);
     this.style = {
@@ -253,20 +268,28 @@ export class World extends DOM {
   }
   constructor(width = 960, height = 640, parent = window) {
     super();
-    this.parent = parent;
+    this.$parent = parent;
+    this.$world = this;
     this.width = width;
     this.height = height;
-    this.world = this;
+    this.$canvas = document.createElement("canvas");
+    this.$canvas.style.width = Style.withUnit(width);
+    this.$canvas.style.height = Style.withUnit(height);
+    this.$canvas.width = width;
+    this.$canvas.height = height;
+    this.$dom.appendChild(this.$canvas);
+    this.$ctx = this.$canvas.getContext("2d");
     this.adjust();
   }
   onResize() {
     this.adjust();
   }
+  update() {
+    this.$ctx.clearRect(0, 0, this.width, this.height);
+  }
 }
 // Ibukiエコシステムをつかう場合の各DOMオブジェクト
-// x y (相対位置), width height を持ち,parentに依存する
-// ワールドの中身は,兄弟位置に依存してほしくない.
-export class Block extends DOM {
+export class UI extends DOM {
   set x(val) {
     val = Math.floor(val);
     if (this.$x === val) return;
@@ -285,11 +308,6 @@ export class Block extends DOM {
   get y() {
     return this.$y || 0;
   }
-  get margin() {
-    // WARN: margin-left などの指定が効かないし,うまく動作しないかもしれない
-    return (this.$dom.style.margin || this.constructor.style.margin || 0);
-  }
-
   get width() {
     return this.$dom.offsetWidth;
   }
@@ -306,13 +324,13 @@ export class Block extends DOM {
     return this.x - this.margin;
   }
   get right() {
-    return this.x + this.width + this.margin;
+    return this.x + this.width;
   }
   get top() {
     return this.y - this.margin;
   }
   get bottom() {
-    return this.y + this.height + this.margin;
+    return this.y + this.height;
   }
   set top(val) {
     this.y = val;
@@ -334,18 +352,39 @@ export class Block extends DOM {
   }
   constructor(parent) {
     super(parent);
-    this.world = parent.world;
+    this.$world = parent.$world;
     this.top = this.constructor.style.top || 0;
     this.left = this.constructor.style.left || 0;
     this.width = this.constructor.style.width || parent.innerWidth;
     this.height = this.constructor.style.height || parent.innerHeight;
-    this.$dom.style.position = "absolute";
-    this.$dom.style.contain = "layout paint";
+    this.style.position = "absolute";
+    this.style.contain = "layout paint";
   }
 }
-// transformでの位置の場合は x,y = 0 のまま
+export class CanvasElement extends Ibuki {
+  constructor(parent) {
+    super();
+    this.$world = parent.$world;
+    this.$ctx = this.$world.$ctx;
+  }
+  // fillRect strokeRect clearRect
+  // beginPath moveTo lineTo fill arc bezierCurveTo rect
+  // Path2D(...... -> stroke,fill)
+  // Path2D("M10 10 h 80 v 80 h -80 Z"); Path2D(svg data)
+  // {fill,stroke}Style line{width,cap,join}
+  // gradient pattern shadow
+  // Image drawImage ctx.imageSmoothingEnabled = false;
+  // save restore translate ...
+  // globalCompositeOperation
+  // createImageData toDataURL
+  // addHitRegion
+  // drawImage は 整数値にしておく
+  // 固定機能なら offscreenCanvasを作成して render( or 複数のcanvas)
 
-export class TextBlock extends Block {
+}
+
+
+export class UIText extends UI {
   static style = {
     display: "flex",
     "justify-content": "center",
@@ -354,6 +393,12 @@ export class TextBlock extends Block {
   }
   constructor(parent) {
     super(parent);
-    this.style = TextBlock.style;
+    this.style = UIText.style;
+  }
+  get text() {
+    return this.$dom.innerText || "";
+  }
+  set text(val) {
+    this.$dom.innerText = val;
   }
 }

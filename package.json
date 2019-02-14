@@ -8,6 +8,7 @@
     "babel-preset-es2017": "^6.24.1"
   },
   "dependencies": {
-    "@babel/runtime": "^7.1.2"
+    "@babel/runtime": "^7.1.2",
+    "svg.js": "^2.6.6"
   }
 }
