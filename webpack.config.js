@@ -2,7 +2,7 @@ module.exports = {
   // mode: 'development',
   mode: "production",
   entry: {
-    'hoge': './src/hoge.ts'
+    'main': './src/main.ts'
   },
   output: {
     path: `${__dirname}/dist`,
