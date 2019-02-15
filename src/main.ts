@@ -144,7 +144,6 @@ namespace Ibuki { // DOM
     get style(): Style { return this.$style; }
     set style(style: Style) {
       let normalized = CSS.parse(style);
-      console.log(normalized);
       for (let key in normalized) {
         let val = normalized[key]
         this.$dom.style[key] = val;
@@ -163,6 +162,7 @@ namespace Ibuki { // DOM
         "*": { "box-sizing": "border-box" }
       });
       this.adjustWindow()
+      window.addEventListener("resize", () => this.adjustWindow())
       this.$dom.innerText = "aaaaaa";
       this.style = { "background-color": "#faaaaa" }
     }
@@ -182,7 +182,6 @@ namespace Ibuki { // DOM
         ...CSS.transform({ scale: ratio, origin: "0px 0px" })
       }
     }
-    // TODO:自動でフィットさせたい
   }
 }
 
