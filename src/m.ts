@@ -32,21 +32,9 @@ namespace Ibuki { // Functions
   }
 
 }
-namespace Ibuki.CSS {
-  export function parse(style: Style): { [key: string]: string } {
-    let result: { [key: string]: string } = {}
-    for (let key in style) {
-      let val = style[key]
-      if (typeof val === "number") result[key] = `${Math.floor(val)}px`
-      else if (typeof val === "string") result[key] = val
-      else result[key] = `${parse(val)}`
-    }
-    return result
-  }
-  export function flatten(style: { [key: string]: string }): string {
-    let result = "";
-    for (let key in style) result += `${key}:${style[key]};`
-    return result;
+namespace Ibuki { // StyleSheet
+  export interface Style {
+    [key: string]: string | number | Style
   }
   export function transform(tr: { [key: string]: string | number }): Style {
     let result = { transform: "" }
@@ -56,7 +44,17 @@ namespace Ibuki.CSS {
     }
     return result
   }
-  export class Global {
+  export function parseCSS(style: Style): string {
+    let result = ""
+    for (let key in style) {
+      let val = style[key]
+      if (typeof val === "number") result += `${key}:${val}px;`
+      else if (typeof val === "string") result += `${key}:${val};`
+      else result += `${key}:${parseCSS(val)}px;`
+    }
+    return result
+  }
+  export class GlobalCSS {
     static doms: HTMLStyleElement[] = []
     public static regist(styles: string | { [key: string]: Style }) {
       let dom = document.createElement("style")
@@ -64,18 +62,14 @@ namespace Ibuki.CSS {
       if (typeof styles === "string") dom.innerHTML = styles
       else {
         let styleStr = ""
-        for (let key in styles) styleStr += `${key}{${flatten(parse(styles[key]))}}`
+        for (let key in styles) styleStr += `${key}{${parseCSS(styles[key])}}`
         dom.innerHTML = styleStr
       }
       this.doms.push(dom)
       document.head.appendChild(dom)
     }
   }
-}
-namespace Ibuki { // StyleSheet
-  export interface Style {
-    [key: string]: string | number | Style
-  }
+
 }
 namespace Ibuki { // Color
   export class Color {
@@ -136,17 +130,15 @@ namespace Ibuki { // DOM
     protected border: Rect
     protected $style: Style = {}
     protected $dom: HTMLElement;
-    constructor(parent?: DOM | HTMLElement) {
+    constructor(parent?: DOM) {
       this.$dom = document.createElement("div");
-      if (parent instanceof DOM) parent.$dom.appendChild(this.$dom);
-      else parent.appendChild(this.$dom);
+      if (parent) parent.$dom.appendChild(this.$dom);
+      else document.body.appendChild(this.$dom);
     }
     get style(): Style { return this.$style; }
     set style(style: Style) {
-      let normalized = CSS.parse(style);
-      console.log(normalized);
-      for (let key in normalized) {
-        let val = normalized[key]
+      for (let key in style) {
+        let val = style[key]
         this.$dom.style[key] = val;
       }
       this.$style = style;
@@ -155,34 +147,34 @@ namespace Ibuki { // DOM
 
   // 画面全体に自動でフィットする根本のDOM
   export class World extends DOM {
-    constructor(width: number = 1280, height: number = 720) {
-      super(document.body)
+    constructor(width: number = 1280, height: number = 960) {
+      super()
       this.size = { x: width, y: height }
-      CSS.Global.regist({
-        body: { margin: 0, padding: 0, overflow: "hidden" },
+      GlobalCSS.regist({
+        body: { margin: 0, padding: 0 },
         "*": { "box-sizing": "border-box" }
       });
-      this.adjustWindow()
-      this.$dom.innerText = "aaaaaa";
-      this.style = { "background-color": "#faaaaa" }
+      this.adjust()
     }
-    private adjustWindow() {
-      let pWidth = window.innerWidth;
-      let wRatio = pWidth / this.size.x;
-      let pHeight = window.innerHeight;
-      let hRatio = pHeight / this.size.y;
-      let ratio = Math.min(wRatio, hRatio);
+    adjust() {
+      let pWidth = window.innerWidth
+      let wRatio = pWidth / this.size.x
+      let pHeight = window.innerHeight
+      let hRatio = pHeight / this.size.y
+      let ratio = Math.min(wRatio, hRatio)
       this.style = {
         overflow: "hidden",
         position: "relative",
+        "background-color": "#aaaaaa",
         top: Math.max(0, (pHeight - this.size.y * ratio) / 2),
         left: Math.max(0, (pWidth - this.size.x * ratio) / 2),
         width: this.size.x,
         height: this.size.y,
-        ...CSS.transform({ scale: ratio, origin: "0px 0px" })
+        ...transform({ scale: ratio, origin: "0px 0px" })
       }
+      console.log(this.$style)
     }
-    // TODO:自動でフィットさせたい
+    // TODO: 自動でフィット？
   }
 }
 
