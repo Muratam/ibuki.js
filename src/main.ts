@@ -1,52 +1,62 @@
-/*
-Ibuki.ts は設計が悪い気がする
-東方弾幕画報をゲーム化したい
-必要なもの : (対戦するなら)ネットワーク機能
-Proxy を使ってリアルタイムで反映されるようにしたい
-Component は付け足しが基本な設計
-- 画面はスクロールされない => 基本サイズを設定できる(+ fit-width/fit-height)
-- 例えば,会話画面が欲しいとき,必要な情報は
-  - カラー(アクセント/サブ/etc...),ライフサイクル
-  - 文字 / 表示方法
-  - 表示領域
-let talkTmpl = new TalkScene(StringOption?,ColorOption,OperationOption?);
-talkTmpl.print("いい感じに表示");
-tweenがほしい?
-*/
-// js の 多種多様なライブラリを統一して集めていい感じにしたい
-// 動的なゲームはあまり対象とは考えていない.(?)
-// DOM で全てなんとかしたい？
-// アクションゲームを作るのは難しいような構造に挑戦したい.
-// - table / markdown / SVG ...
-// particle / effect / 3D は無理なのは仕方がない(?)
-// sum とか shlottle とか MathJax とか グラフとか色々生やしたい
-// 色々なDOM(jq..とか)も用意に使えるようにしたい？
-class Color {
-  public r: number = 1.0
-  public g: number = 1.0
-  public b: number = 1.0
-  public a: number = 1.0
-}
-interface ColorScheme {
-  baseColor?: Color // 70%
-  mainColor?: Color // 25%
-  accentColor?: Color // 5%
-  palette?: Color[] // others
-}
-interface Text {
-  text: string
-  size?: number
-  fontName?: string
-  color?: Color
-  isBold?: boolean
-  edgeColor?: Color
-}
-interface TalkWidget {
-  text: Text
-  colorScheme?: ColorScheme
+import * as CSS from "./style";
+import { Color, ColorScheme, LinearGradient } from "./color";
+import { World, Box } from "./dom";
+import { Text } from "./widget/text";
+// TODO: animation / tween / background / effect / widgets / on* / requestAnimationFrame
+//     : ColorScheme / Gradation
+import * as _ from "lodash";
+namespace Ibuki { // animation
+  export interface Tween {
+
+  }
 }
 
-interface Tween {
+namespace Ibuki { // Widget
 
+  export interface ConversationGameWidgetOption {
+    heightPercent: number,
+    colorScheme?: ColorScheme
+  }
+  export class ConversationGameWidget extends Box {
+    constructor(parent: Box, option: ConversationGameWidgetOption) {
+      super(parent, {
+        height: parent.height * option.heightPercent,
+        pos: { y: parent.height * (1 - option.heightPercent), x: 0 },
+        background: new LinearGradient("left", ["#8ab", "#000"])
+      });
+    }
+  }
 }
-interface OperationOption { }
+
+namespace Ibuki { // other
+  export interface OperationOption { }
+}
+namespace Ibuki {
+  let world = new World()
+  let scrollable = new Box(world, { overflow: "scroll" })
+  let text = new Text(scrollable, "iikanji", {
+    size: 100,
+    color: Color.parse("#fab"),
+    fontName: "Hiragino Maru Gothic Pro",
+    edge: {
+      color: Color.parse("#000"), width: 3
+    }
+  });
+  let text2 = new Text(scrollable, "iikanji", {
+    size: 40,
+    color: Color.parse("#fab"),
+    fontName: "Hiragino Maru Gothic Pro",
+  });
+  for (let i = 0; i < 1000; i++)text.text += i + " ";
+  // new ConversationGameWidget(world, { heightPercent: 0.3 });
+  //.text = "Hello World!";
+  //  {
+  //   let box = new Ibuki.DOM(world, {
+  //     border: { color: Color.parse("#0a0"), width: 10, style: "solid", radius: 10 },
+  //     // padding: 10,
+  //     // margin: 20,
+  //     height: 100,
+  //   });
+  //   box.$dom.innerText = "aaaaaa";
+  // }
+}
