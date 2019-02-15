@@ -40,7 +40,9 @@ export class LinearGradient {
     console.assert(this.colors.length >= 2, `${this.colors}  Linear Gradient Less Colors`)
   }
   toCSS(): string {
-    return `linear-gradient(${this.directionDegree}deg,${this.colors.join(",")})`;
+    return `linear-gradient(${this.directionDegree}deg,${
+      this.colors.map(x => x.toCSS()).join(",")
+      })`;
   }
 }
 export interface ColorScheme {

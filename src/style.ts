@@ -19,7 +19,6 @@ export function parse(style: AnyStyle): Style {
       let parsed = parse(val)
       for (let nkey in parsed) result[`${rightKey}-${nkey}`] = parsed[nkey]
     }
-
   }
   if (!isOK) return {};
   return result

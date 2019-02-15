@@ -33,7 +33,8 @@ export interface Border {
 export interface BoxOption {
   // そのコンテナ内部でfloatするときの位置(後続のDOMに影響を与えたい場合はnull)
   pos?: Vec2
-  background?: Color | LinearGradient | SourceURL
+  fit?: { x: "left" | "center" | "right", y: "top" | "center" | "bottom" }
+  background?: Color | LinearGradient
   tag?: string    // 指定するとそれで要素を作成する
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
@@ -63,6 +64,9 @@ export class Box {
     } else parent.appendChild(this.$dom);
     this.applyBoxOption(option);
   }
+  destroy() {
+    this.$dom.remove();
+  }
   applyStyle(style: { [key: string]: any }): Box {
     let normalized = CSS.parse(style);
     console.log(normalized);
@@ -78,8 +82,24 @@ export class Box {
       style.top = option.pos.y;
       style.left = option.pos.x;
       style.position = "relative";
+      delete style.pos
     }
-    // if (!style.oveflow) style.overflow = "hidden"
+    if (option.fit) {
+      style.position = "absolute"
+
+      if (option.fit.x === "right") style.right = 0
+      else if (option.fit.x === "center") {
+        style["margin-left"] = style["margin-right"] = "auto";
+        style.left = style.right = 0;
+      }
+      if (option.fit.y === "bottom") style["bottom"] = 0
+      else if (option.fit.y === "center") {
+        style["margin-bottom"] = style["margin-top"] = "auto";
+        style.bottom = style.top = 0
+      }
+      delete style.fit
+    }
+    if (!style.oveflow) style.overflow = "hidden"
     return this.applyStyle(style);
   }
 }
