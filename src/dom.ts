@@ -1,6 +1,11 @@
-import { Color } from "./color";
+import { Color, LinearGradient } from "./color";
 import * as CSS from "./style";
 
+// export class SourceURL {
+//   readonly url: string
+//   constructor(url: string) { this.url = url; }
+//   toCSS(): string { return `url("${this.url}")` }
+// }
 export interface Vec2 {
   x: number
   y: number
@@ -24,28 +29,30 @@ export interface Border {
   right?: BorderContentType
 }
 
-// 固定のサイズもしくはparent(%)に合わせたサイズになるべき
-export interface DOMOption {
+// 固定のサイズのBoxで全て表現
+export interface BoxOption {
   // そのコンテナ内部でfloatするときの位置(後続のDOMに影響を与えたい場合はnull)
   pos?: Vec2
+  background?: Color | LinearGradient | SourceURL
   tag?: string    // 指定するとそれで要素を作成する
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
   margin?: Rect | number
   padding?: Rect | number
   border?: Border | BorderContentType
+  overflow?: "hidden" | "scroll"
 }
-export class DOM {
+export class Box {
   public readonly width: number = 0;
   public readonly height: number = 0;
   public readonly $dom: HTMLElement = null;
-  protected $parent: DOM = null;
+  protected $parent: Box = null;
   protected $world: World = null;
-  constructor(parent: DOM | HTMLElement, option: DOMOption = {}) {
+  constructor(parent: Box | HTMLElement, option: BoxOption = {}) {
     this.$dom = document.createElement(option.tag || "div");
     this.width = option.width
     this.height = option.height
-    if (parent instanceof DOM) {
+    if (parent instanceof Box) {
       parent.$dom.appendChild(this.$dom);
       this.$world = parent.$world;
       this.$parent = parent;
@@ -54,36 +61,34 @@ export class DOM {
       this.height = this.height || parent.height;
       option.height = option.height || parent.height;
     } else parent.appendChild(this.$dom);
-    this.applyDOMOption(option);
+    this.applyBoxOption(option);
   }
-  applyStyle(style: { [key: string]: any }): DOM {
+  applyStyle(style: { [key: string]: any }): Box {
     let normalized = CSS.parse(style);
+    console.log(normalized);
     for (let key in normalized) {
       let val = normalized[key]
       this.$dom.style[key] = val;
     }
     return this;
   }
-  private applyDOMOption(option: DOMOption): DOM {
-    let style: CSS.AnyStyle = {
-      width: option.width,
-      height: option.height,
-      margin: option.margin,
-      padding: option.padding,
-      border: option.border
-    };
+  private applyBoxOption(option: BoxOption): Box {
+    let style: CSS.AnyStyle = { ...option };
     if (option.pos) {
       style.top = option.pos.y;
       style.left = option.pos.x;
       style.position = "relative";
     }
+    // if (!style.oveflow) style.overflow = "hidden"
     return this.applyStyle(style);
   }
 }
 // 画面に自動でフィットするDOMの祖
-export class World extends DOM {
-  constructor(width: number = 1280, height: number = 720) {
+export class World extends Box {
+  alwaysFullScreen: boolean = false
+  constructor(width: number = 1280, height: number = 720, alwaysFullScreen: boolean = false) {
     super(document.body, { width: width, height: height })
+    this.alwaysFullScreen = alwaysFullScreen;
     this.initializeWorld()
     this.adjustWindow()
   }
@@ -105,11 +110,18 @@ export class World extends DOM {
       overflow: "hidden",
       position: "relative",
       background: "#ffffff",
-      top: Math.max(0, (pHeight - this.height * ratio) / 2),
-      left: Math.max(0, (pWidth - this.width * ratio) / 2),
-      width: this.width,
-      height: this.height,
-      ...CSS.transform({ scale: ratio, origin: "0px 0px" })
+      ... this.alwaysFullScreen ? {
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh"
+      } : {
+          top: Math.max(0, (pHeight - this.height * ratio) / 2),
+          left: Math.max(0, (pWidth - this.width * ratio) / 2),
+          width: this.width,
+          height: this.height,
+          ...CSS.transform({ scale: ratio, origin: "0px 0px" })
+        },
     });
   }
 }

@@ -1,5 +1,3 @@
-import { Color } from "./color";
-
 export interface AnyStyle {
   [key: string]: any
 }
@@ -8,17 +6,22 @@ export interface Style {
 }
 export function parse(style: AnyStyle): Style {
   let result: { [key: string]: string } = {}
+  let isOK = false;
   for (let key in style) {
     let val = style[key]
-    if (val === null || val === undefined) continue
-    if (typeof val === "number") result[key] = `${Math.floor(val)}px`
-    else if (typeof val === "string") result[key] = val
-    else if (val instanceof Color) result[key] = `${val}`
+    if (val === null || val === undefined || val === false) continue
+    isOK = true;
+    let rightKey = key.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
+    if (typeof val === "number") result[rightKey] = `${Math.floor(val)}px`
+    else if (typeof val === "string") result[rightKey] = val
+    else if (val.toCSS) result[rightKey] = val.toCSS()
     else {
       let parsed = parse(val)
-      for (let nkey in parsed) result[`${key}-${nkey}`] = parsed[nkey]
+      for (let nkey in parsed) result[`${rightKey}-${nkey}`] = parsed[nkey]
     }
+
   }
+  if (!isOK) return {};
   return result
 }
 export function flatten(style: Style): string {
