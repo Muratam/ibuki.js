@@ -1,14 +1,14 @@
 import * as CSS from "./style";
 import { Color, ColorScheme, LinearGradient } from "./color";
-import { World, Box, iota } from "./dom";
-import { Text, FAIcon, TextSequence } from "./widget/text";
+import { WorldBox, Box, iota } from "./dom";
+import { Text, FAIcon, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
-import { FlexBox } from "./widget/container"
+import { FlexBox, Table } from "./widget/container"
 // TODO: animation / tween / effect / widgets / on* / requestAnimationFrame
 //     : ColorScheme / image tag  / vividjs / katex / markdown / table / tips
 //     : operation(click/button(?)) / scene / graph(tree/chart) / solver / click(hover) help
 //     : inputfield / bootstrap / webgl(?) / live2d / slider
-//     : <progress> // a / progress / canvas / table
+//     : <progress> // a / progress / canvas / table /  input.value
 // MEDIA :: audio / img / video / iframe / progress / meter /
 
 import * as _ from "lodash";
@@ -37,12 +37,13 @@ namespace Ibuki {
 }
 namespace WorldExample {
   function textSeqWorld() {
-    let world = new World()
+    let world = new WorldBox()
     let center = new Box(world, {
       background: Color.parse("#fce"),
       width: world.width * 0.5,
       height: world.height * 0.5,
       isButton: true,
+      textAlign: "right",
       fit: { x: "center", y: "center" }
     }).on("click", () => { console.log(1); });
     new TextSequence(center, [
@@ -53,21 +54,33 @@ namespace WorldExample {
       ["}", "#000"],
     ])
     new FlexBox(world, {
+      flexDirection: "column",
+      alignItems: "flex-start",
       background: Color.parse("#fce"),
       width: world.width * 0.2,
       height: world.height * 0.2,
       fit: { x: "right", y: "center" },
       isScrollable: true
     }).tree(p => {
-      new TextSequence(p, [
-        p => new Input(p, { type: "text", label: p => new Text(p, "namedayo") }),
-        p => new Input(p, { type: "select", options: ["C#", "C++", "js"], label: "lang : " }),
-        p => new Input(p, { type: "checkbox", label: "css : " }),
-        p => new Input(p, { type: "checkbox", label: "js : " }),
-        p => new Input(p, { type: "checkbox", label: "html : " }),
-        p => new Input(p, { type: "checkbox", label: "html : " }),
-      ])
+      new Input(p, { type: "text", label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.4, 20) })
+      new Input(p, { type: "select", options: ["C#", "C++", "js"], label: p2 => new FixedSizeText(p2, "language : ", p.width * 0.4, 20) })
+      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "css : ", p.width * 0.4, 20) })
+      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "js : ", p.width * 0.4, 20) })
+      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "html : ", p.width * 0.4, 20) })
+      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "hot : ", p.width * 0.4, 20) })
     });
+    new Table(world, {
+      background: Color.parse("#fce"),
+      width: world.width * 0.2,
+      height: world.height * 0.2,
+      fit: { x: "left", y: "center" },
+    }, (x, y) => {
+      if (y % 2 === 0) return { background: Color.parse("#fff") }
+      return { background: Color.parse("#888") }
+    }).addContents([
+      ["iikanji", "yatteiki", "year"],
+      ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
+    ])
   }
   textSeqWorld();
   // new ConversationGameWidget(world, { heightPercent: 0.35 })//.text = "Hello World!";

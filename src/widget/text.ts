@@ -1,19 +1,26 @@
 import { Color } from "../color";
-import { DOM } from "../dom";
+import { DOM, DOMOption, HasValueWidgetInterface } from "../dom";
 import { library, icon } from '@fortawesome/fontawesome-svg-core'
 import * as FA from '@fortawesome/free-solid-svg-icons'
-export interface TextOption {
+export interface TextOption extends DOMOption {
   size?: number
   fontName?: string
   color?: Color
   isBold?: boolean
-  tag?: "span" | "code" | "pre" | "marquee"
+  tag?: "span" | "code" | "pre" | "marquee" | "div"
   edge?: { color: Color, width: number }
 }
-export class Text extends DOM {
+export type TextSeed = string | ((p: DOM) => DOM) // そのtextで作成するか関数適応
+export class Text extends DOM implements HasValueWidgetInterface {
+  private $text: string;
+  get value(): string { return this.$text; }
+  set value(val: string) {
+    this.$text = val.replace(" ", '\u00a0');
+    this.$dom.innerText = this.$text;
+  }
   constructor(parent: DOM, text: string, option: TextOption = {}) {
     super(parent, option.tag || "span")
-    this.text = text;
+    this.value = text;
     this.applyStyle({
       color: option.color,
       font: {
@@ -24,16 +31,19 @@ export class Text extends DOM {
       ...(!option.edge ? {} : { "-webkit-text-stroke": option.edge })
     })
   }
-  private $text: string;
-  get text(): string { return this.$text; }
-  set text(val: string) {
-    this.$text = val.replace(" ", '\u00a0');
-    this.$dom.innerText = this.$text;
+  static bloom(parent: DOM, seed: TextSeed): DOM {
+    if (typeof seed === "string") return new Text(parent, seed)
+    return seed(parent)
   }
 }
-type TextSequenceElem = string | [string, TextOption | string] | ((parent: DOM) => DOM);
+export class FixedSizeText extends Text {
+  constructor(parent: DOM, text: string, width: number, height: number, textOption: TextOption = {}) {
+    super(parent, text, { tag: "div", ...textOption })
+    this.applyStyle({ width: width, height: height, display: "inline-block" })
+  }
+}
+type TextSequenceElem = [string, TextOption | string] | TextSeed;
 export class TextSequence extends DOM {
-  private children: DOM[] = [];
   private currentOption: TextOption;
   constructor(parent: DOM, texts: TextSequenceElem[]) {
     super(parent, "span");
@@ -42,26 +52,21 @@ export class TextSequence extends DOM {
   }
   add(texts: TextSequenceElem[]) {
     for (let elem of texts) {
-      if (typeof elem === "function") {
-        this.children.push(elem(this));
-      } else if (typeof elem === "string") {
-        this.children.push(new Text(this, elem, this.currentOption))
-      } else {
+      if (typeof elem === "function") elem(this)
+      else if (typeof elem === "string") new Text(this, elem, this.currentOption)
+      else {
         let [text, option] = elem;
         if (typeof option === "string")
           this.currentOption.color = Color.parse(option)
         else this.currentOption = { ...this.currentOption, ...option };
-        let textElem = new Text(this, text, this.currentOption);
-        this.children.push(textElem);
+        new Text(this, text, this.currentOption);
       }
     }
   }
-  clear() {
-    for (let child of this.children) child.destroy();
-  }
+  clear() { for (let child of this.children) child.destroy(); }
 }
 
-export interface FAIconOption {
+export interface FAIconOption extends DOMOption {
   size?: number,
   color?: Color
 }

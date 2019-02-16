@@ -1,9 +1,10 @@
-import { Box, BoxOption, DOM } from "../dom";
+import { Box, BoxOption, DOM, HasValueWidgetInterface, DOMOption } from "../dom";
+import { Text, TextSeed } from "./text"
 export type InputType =
   "password" | "search" | "text" | "textarea" | "select" |
   "date" | "email" | "tel" | "time" | "url" | "checkbox" | "radio" |
   "number" | "file" | "range" | "color" | "hidden"
-export interface InputOption {
+export interface InputOption extends DOMOption {
   type?: InputType
   name?: string // checkbox / radio では同じ名前にすると共有
   size?: number
@@ -31,20 +32,19 @@ export interface InputOption {
   options?: string[] | { [key: string]: string[] }
   // custom
   list?: string[] | string // string[] の時は datalist が生える
-  label?: string | ((parent: DOM) => DOM)// 間にlabelを生やす
+  label?: TextSeed// 間にlabelを生やす
 }
-export class Input extends DOM {
+export class Input extends DOM implements HasValueWidgetInterface {
+  set value(val: string) { this.$dom.setAttribute("value", val) }
+  get value(): string { return this.$dom.getAttribute("value") }
+  // private $value: { get: () => string, set: (val: string) => void }
   constructor(parent: DOM, inputOption: InputOption = {}) {
     if (inputOption.label) {
-      let label = new DOM(parent, "label");
-      if (typeof inputOption.label === "string")
-        label.$dom.innerText = inputOption.label
-      else inputOption.label(label)
-      parent = label
+      parent = new DOM(parent, "label");
+      Text.bloom(parent, inputOption.label)
     }
-    if (inputOption.type === "textarea") {
-      super(parent, "textarea");
-    } else if (inputOption.type === "select") {
+    if (inputOption.type === "textarea") super(parent, "textarea");
+    else if (inputOption.type === "select") {
       super(parent, "select");
       if (inputOption.options instanceof Array) {
         for (let option of inputOption.options)
@@ -73,7 +73,7 @@ export class Input extends DOM {
   }
 }
 
-export interface FormOption {
+export interface FormOption extends BoxOption {
   // TODO: with submit(button?)
   action?: string
   method?: "get" | "post"
@@ -90,10 +90,8 @@ export class Form extends Box {
 }
 export class FieldSet extends Box {
   // 間に fieldset / legend[] を生やす
-  constructor(parent: Box, boxOption: BoxOption = {}, legend: string | ((parent: Box) => Box) = "") {
-    super(parent, { tag: "fieldset" }, boxOption)
-    let legendBox = new Box(this, { tag: "legend", height: -1, width: -1 })
-    if (typeof legend === "string") legendBox.$dom.innerText = legend
-    else legend(legendBox)
+  constructor(parent: Box, boxOption: BoxOption = {}, legend: TextSeed) {
+    super(parent, { ...boxOption, tag: "fieldset" })
+    Text.bloom(new DOM(this, "legend"), legend)
   }
 }
