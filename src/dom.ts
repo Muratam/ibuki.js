@@ -68,6 +68,8 @@ export class DOM {
   public readonly $world: WorldBox;
   public readonly $parent: DOM; // 移ることがある？
   private $children: DOM[] = [];
+  private $destroyed: boolean = false;
+  public get destroyed(): boolean { return this.$destroyed; }
   public get children() { return this.$children; }
   private static DOMMaxId: number = 0;
   public get id(): string { return this.$dom.id }
@@ -97,7 +99,10 @@ export class DOM {
     else this.$dom.addEventListener(name, callback)
     return this
   }
-  destroy() { this.$dom.remove(); }
+  destroy() {
+    this.$dom.remove();
+    this.$destroyed = true;
+  }
   applyStyle(style: { [key: string]: any }): DOM {
     let normalized = CSS.parse(style);
     for (let key in normalized) {
@@ -150,8 +155,6 @@ export class DOM {
   }
   tree(func: (parent: DOM) => any) { func(this); }
 }
-export interface HasValueWidgetInterface { value: string }
-
 // 固定の width / height を持つ DOM
 // 指定しなければ親と同じになる
 // DOM の子にはなれない

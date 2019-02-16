@@ -26,7 +26,7 @@ export class Table extends Box {
   private ySize: number = 0;
   private domOptionFunc: DOMOptionFunc
   constructor(parent: Box, option: TableOption = {}, domOptionFunc: DOMOptionFunc = (x, y) => ({})) {
-    super(parent, { ...option, tag: "table" })
+    super(new Box(parent, option), { ...option, tag: "table" })
     this.domOptionFunc = domOptionFunc;
     if (option.caption) Text.bloom(this, option.caption)
   }

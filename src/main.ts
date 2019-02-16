@@ -4,6 +4,7 @@ import { WorldBox, Box, iota } from "./dom";
 import { Text, FAIcon, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
 import { FlexBox, Table } from "./widget/container"
+import { Root, DataStore } from "./root"
 // TODO: animation / tween / effect / widgets / on* / requestAnimationFrame
 //     : ColorScheme / vividjs / katex / markdown / tips
 //     : operation(click/button(?)) / scene / graph(tree/chart) / solver / click(hover) help
@@ -35,13 +36,15 @@ namespace Ibuki {
 }
 namespace WorldExample {
   function textSeqWorld() {
+    let store: DataStore = {}
     let world = new WorldBox()
     let center = new Box(world, {
       background: Color.parse("#fce"),
       width: world.width * 0.5,
       height: world.height * 0.5,
       isButton: true,
-      textAlign: "right",
+      textAlign: "center",
+      isScrollable: true,
       fit: { x: "center", y: "center" }
     }).on("click", () => { console.log(1); });
     new TextSequence(center, [
@@ -60,8 +63,12 @@ namespace WorldExample {
       fit: { x: "right", y: "center" },
       isScrollable: true
     }).tree(p => {
-      new Input(p, { type: "text", label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.4, 20) })
+      store.l1 = new Input(p, { type: "text", label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.4, 20) }).value
       new Input(p, { type: "select", options: ["C#", "C++", "js"], label: p2 => new FixedSizeText(p2, "language : ", p.width * 0.4, 20) })
+      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, store.l1.compute(t => t + "yade"), p.width * 0.4, 20) })
+      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "js : ", p.width * 0.4, 20) })
+      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "html : ", p.width * 0.4, 20) })
+      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "hot : ", p.width * 0.4, 20) })
       new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "css : ", p.width * 0.4, 20) })
       new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "js : ", p.width * 0.4, 20) })
       new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "html : ", p.width * 0.4, 20) })
@@ -72,11 +79,12 @@ namespace WorldExample {
       width: world.width * 0.2,
       height: world.height * 0.2,
       fit: { x: "left", y: "center" },
+      isScrollable: true,
     }, (x, y) => {
       if (y % 2 === 0) return { background: Color.parse("#fff") }
       return { background: Color.parse("#888") }
     }).addContents([
-      ["iikanji", "yatteiki", "year"],
+      ["iikanji", store.l1, "year"],
       ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
     ])
   }

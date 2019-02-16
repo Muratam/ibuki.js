@@ -1,5 +1,6 @@
-import { Box, BoxOption, DOM, HasValueWidgetInterface, DOMOption } from "../dom";
+import { Box, BoxOption, DOM, DOMOption } from "../dom";
 import { Text, TextSeed } from "./text"
+import { Root, HasRootValueWidgetInterface } from "../root"
 export type InputType =
   "password" | "search" | "text" | "textarea" | "select" |
   "date" | "email" | "tel" | "time" | "url" | "checkbox" | "radio" |
@@ -34,10 +35,9 @@ export interface InputOption extends DOMOption {
   list?: string[] | string // string[] の時は datalist が生える
   label?: TextSeed// 間にlabelを生やす
 }
-export class Input extends DOM implements HasValueWidgetInterface {
-  set value(val: string) { this.$dom.setAttribute("value", val) }
-  get value(): string { return this.$dom.getAttribute("value") }
-  // private $value: { get: () => string, set: (val: string) => void }
+export class Input extends DOM implements HasRootValueWidgetInterface<string> {
+  public readonly value: Root<string>
+  public readonly $dom: HTMLInputElement
   constructor(parent: DOM, inputOption: InputOption = {}) {
     if (inputOption.label) {
       parent = new DOM(parent, "label");
@@ -57,6 +57,14 @@ export class Input extends DOM implements HasValueWidgetInterface {
         }
       }
     } else super(parent, "input");
+    this.value = new Root("")
+    this.value.regist(r => this.$dom.setAttribute("value", r))
+    this.$dom.addEventListener("change", () => {
+      this.value.set(this.$dom.value)
+    })
+    this.$dom.addEventListener("keyup", () => {
+      this.value.set(this.$dom.value)
+    })
     this.applyInputOption({ ...inputOption })
   }
   private applyInputOption(option: InputOption) {

@@ -1,5 +1,7 @@
 import { Color } from "../color";
-import { DOM, DOMOption, HasValueWidgetInterface } from "../dom";
+import { DOM, DOMOption } from "../dom";
+import { MayRoot, assign } from "../root"
+import { HasValueWidgetInterface, Root } from "../root";
 import { library, icon } from '@fortawesome/fontawesome-svg-core'
 import * as FA from '@fortawesome/free-solid-svg-icons'
 export interface TextOption extends DOMOption {
@@ -10,17 +12,18 @@ export interface TextOption extends DOMOption {
   tag?: "span" | "code" | "pre" | "marquee" | "div"
   edge?: { color: Color, width: number }
 }
-export type TextSeed = string | ((p: DOM) => DOM) // そのtextで作成するか関数適応
-export class Text extends DOM implements HasValueWidgetInterface {
+export type TextSeed = MayRoot<string> | ((p: DOM) => DOM) // そのtextで作成するか関数適応
+export class Text extends DOM implements HasValueWidgetInterface<string> {
   private $text: string;
   get value(): string { return this.$text; }
   set value(val: string) {
+    if (this.destroyed) return;
     this.$text = val.replace(" ", '\u00a0');
     this.$dom.innerText = this.$text;
   }
-  constructor(parent: DOM, text: string, option: TextOption = {}) {
+  constructor(parent: DOM, text: MayRoot<string>, option: TextOption = {}) {
     super(parent, option.tag || "span")
-    this.value = text;
+    assign(text, t => this.value = t)
     this.applyStyle({
       color: option.color,
       font: {
@@ -33,11 +36,12 @@ export class Text extends DOM implements HasValueWidgetInterface {
   }
   static bloom(parent: DOM, seed: TextSeed): DOM {
     if (typeof seed === "string") return new Text(parent, seed)
+    if (seed instanceof Root) return new Text(parent, seed)
     return seed(parent)
   }
 }
 export class FixedSizeText extends Text {
-  constructor(parent: DOM, text: string, width: number, height: number, textOption: TextOption = {}) {
+  constructor(parent: DOM, text: MayRoot<string>, width: number, height: number, textOption: TextOption = {}) {
     super(parent, text, { tag: "div", ...textOption })
     this.applyStyle({ width: width, height: height, display: "inline-block" })
   }
@@ -53,7 +57,7 @@ export class TextSequence extends DOM {
   add(texts: TextSequenceElem[]) {
     for (let elem of texts) {
       if (typeof elem === "function") elem(this)
-      else if (typeof elem === "string") new Text(this, elem, this.currentOption)
+      else if (typeof elem === "string" || elem instanceof Root) new Text(this, elem, this.currentOption)
       else {
         let [text, option] = elem;
         if (typeof option === "string")
