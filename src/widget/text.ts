@@ -46,7 +46,7 @@ export class FixedSizeText extends Text {
     this.applyStyle({ width: width, height: height, display: "inline-block" })
   }
 }
-type TextSequenceElem = [string, TextOption | string] | TextSeed;
+type TextSequenceElem = [MayRoot<string>, TextOption | string] | TextSeed;
 export class TextSequence extends DOM {
   private currentOption: TextOption;
   constructor(parent: DOM, texts: TextSequenceElem[]) {

@@ -1,22 +1,19 @@
 import * as CSS from "./style";
 import { Color, ColorScheme, LinearGradient } from "./color";
-import { WorldBox, Box, iota } from "./dom";
+import { WorldBox, Box } from "./dom";
 import { Text, FAIcon, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
 import { FlexBox, Table } from "./widget/container"
-import { Root, DataStore } from "./root"
-// TODO: animation / tween / effect / widgets / on* / requestAnimationFrame
+import { Root, range, DataStore, Updator } from "./root"
+import { KeyBoard } from "./keyboard"
+// TODO: animation / tween / effect / widgets / on*
 //     : ColorScheme / vividjs / katex / markdown / tips
 //     : operation(click/button(?)) / scene / graph(tree/chart) / solver / click(hover) help
 //     : bootstrap / webgl(?) / live2d / slider
 //     : a / canvas /  input.value(want Proxy)
+//     : table はみだし
 import * as _ from "lodash";
 
-namespace Ibuki { // animation
-  export interface Tween {
-
-  }
-}
 
 namespace Ibuki {
   export interface ConversationGameWidgetOption {
@@ -37,8 +34,10 @@ namespace Ibuki {
 namespace WorldExample {
   function textSeqWorld() {
     let store: DataStore = {}
+    store.n1 = Root.perFrame(10)
+    store.k1 = new Root("")
     let world = new WorldBox()
-    let center = new Box(world, {
+    new Box(world, {
       background: Color.parse("#fce"),
       width: world.width * 0.5,
       height: world.height * 0.5,
@@ -46,14 +45,16 @@ namespace WorldExample {
       textAlign: "center",
       isScrollable: true,
       fit: { x: "center", y: "center" }
-    }).on("click", () => { console.log(1); });
-    new TextSequence(center, [
-      ["int main(){\n", { size: 72, fontName: "Menlo" }],
-      ["  printf();\n", "#0fb"],
-      ["  return;\n", "#ff0"],
-      p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
-      ["}", "#000"],
-    ])
+    }).on("click", () => { console.log(1); })
+      .tree(p =>
+        new TextSequence(p, [
+          ["int main(){\n", { size: 72, fontName: "Menlo" }],
+          [store.n1.compute(x => x + "\n"), "#0fb"],
+          ["  return;\n", "#ff0"],
+          p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
+          [store.k1, "#000"],
+        ])
+      );
     new FlexBox(world, {
       flexDirection: "column",
       alignItems: "flex-start",
@@ -87,6 +88,7 @@ namespace WorldExample {
       ["iikanji", store.l1, "year"],
       ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
     ])
+    KeyBoard.onKeyDown(key => { store.k1.set(key) })
   }
   textSeqWorld();
   // new ConversationGameWidget(world, { heightPercent: 0.35 })//.text = "Hello World!";

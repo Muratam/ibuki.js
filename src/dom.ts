@@ -50,18 +50,6 @@ export interface BoxOption extends DOMOption {
   height?: number // null なら親と同じ
   isScrollable?: boolean
 }
-export function iota(a: number, b: number = null, step: number = 1): number[] {
-  if (b === null) {
-    let result = new Array<number>(a);
-    for (let i = 0; i < a; i++) result[i] = i
-    return result
-  }
-  if (b <= a) return [];
-  let n = (b - a) / step
-  let result = new Array<number>(n)
-  for (let i = a, j = 0; j < n; i += step, j++) result[j] = i
-  return result
-}
 export class DOM {
   public readonly $dom: HTMLElement = null;
   public readonly $DOMId: number;

@@ -34,6 +34,21 @@ export class Root<T> {
     this.regist(t => { result.set(func(t)) })
     return result
   }
+  // 正確な時間を測るのには不向き
+  static perFrame(step: number = 1, n: number = Infinity): Root<number> {
+    let result = new Root(0)
+    Updator.regist(
+      function* () {
+        let i = 0
+        for (let i = 0, j = 0; i < n; i++) {
+          if (i % step === 0) result.set(j++)
+          yield true;
+        }
+        yield false;
+      }
+    )
+    return result;
+  }
 }
 export interface DataStore { [key: string]: Root<any> }
 export interface HasValueWidgetInterface<T> {
@@ -41,4 +56,33 @@ export interface HasValueWidgetInterface<T> {
 }
 export interface HasRootValueWidgetInterface<T> {
   readonly value: Root<T>
+}
+export function* range(a: number = null, b: number = null): IterableIterator<number> {
+  let i = b === null ? 0 : a === null ? Infinity : a;
+  let n = b === null ? a : b;
+  while (i < n) { yield i; i += 1; }
+}
+// 毎フレーム読んでくれる
+export class Updator {
+  private maxIndex: number = -1;
+  private updateList: IterableIterator<boolean>[] = [];
+  static $instance = new Updator();
+  registImpl(fun: () => IterableIterator<boolean>) {
+    this.maxIndex++;
+    if (this.maxIndex === this.updateList.length) this.updateList.push(fun());
+    else this.updateList[this.maxIndex] = fun();
+  }
+  static regist(fun: () => IterableIterator<boolean>) {
+    Updator.$instance.registImpl(fun);
+  }
+  private applyUpdateList() {
+    for (let i = 0; i < Math.min(this.maxIndex + 1, this.updateList.length); i++) {
+      if (this.updateList[i].next().value !== false) continue;
+      this.updateList[i] = this.updateList[this.maxIndex];
+      this.maxIndex--;
+      i--;
+    }
+    requestAnimationFrame(this.applyUpdateList.bind(this));
+  }
+  constructor() { requestAnimationFrame(this.applyUpdateList.bind(this)); }
 }
