@@ -26,7 +26,10 @@ export class Table extends Container {
   private ySize: number = 0;
   private containerOptionFunc: ContainerOptionFunc
   constructor(parent: Container, option: TableOption = {}, containerOptionFunc: ContainerOptionFunc = (x, y) => ({})) {
-    super(new Container(parent, option), { ...option, tag: "table" })
+    // サイズが変わる？
+    // super(new Container(parent, option), { ...option, tag: "table" })
+    super(parent, { ...option, tag: "table" })
+    this.applyStyle({ "table-layout": "fixed" })
     this.containerOptionFunc = containerOptionFunc;
     if (option.caption) Text.bloom(this, option.caption)
   }

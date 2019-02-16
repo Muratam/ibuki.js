@@ -1,4 +1,4 @@
-import { DOM, DOMOption, ContainerOption, Container } from "../dom";
+import { DOM, DOMOption, BoxOption, Box, Container } from "../dom";
 import { Root, MayRoot, assign } from "../root";
 // MEDIA :: audio / img / video
 export class ProgressBar extends DOM {
@@ -28,12 +28,12 @@ export class MeterBar extends DOM {
     if (option.optimum) this.$dom.optimum = option.optimum
   }
 }
-export interface IFrameOption extends ContainerOption { src: string }
-export class IFrame extends DOM {
+export interface IFrameOption extends BoxOption { src: string }
+export class IFrame extends Box {
   public readonly $dom: HTMLIFrameElement
   constructor(parent: Container, option: IFrameOption) {
     super(parent, { ...option, tag: "iframe" })
-    let parsed = this.parseContainerOption(parent, option)
+    let parsed = this.parseBoxOption(parent, option)
     this.$dom.src = parsed.src;
     this.$dom.width = parsed.width;
     this.$dom.height = parsed.height;
@@ -41,13 +41,13 @@ export class IFrame extends DOM {
     delete this.$dom.style["height"]
   }
 }
-export interface ImageOption extends ContainerOption { src: string }
+export interface ImageOption extends BoxOption { src: string }
 export class Image extends DOM {
   public readonly $dom: HTMLIFrameElement
   constructor(parent: Container, option: ImageOption) {
     // illegal size!
     super(parent, { ...option, tag: "iframe" })
-    let parsed = this.parseContainerOption(parent, option)
+    let parsed = this.parseBoxOption(parent, option)
     this.$dom.src = parsed.src;
     this.$dom.width = parsed.width;
     this.$dom.height = parsed.height;

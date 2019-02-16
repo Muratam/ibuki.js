@@ -1,5 +1,6 @@
 import { Color, LinearGradient } from "./color";
 import * as CSS from "./style";
+import { MayRoot } from "./root";
 
 export interface Vec2 {
   x: number
@@ -36,8 +37,7 @@ export type TagSeed = string | ((p: DOM) => DOM) // そのタグで作成する�
 export interface DOMOption {
   // そのコンテナ内部でfloatするときの位置(後続のDOMに影響を与えたい場合はnull)
   tag?: string
-  pos?: Vec2
-  fit?: { x: "left" | "center" | "right", y: "top" | "center" | "bottom" }
+  fontSize?: number
   background?: Color | LinearGradient
   margin?: Rect | number
   padding?: Rect | number
@@ -45,11 +45,16 @@ export interface DOMOption {
   textAlign?: TextAlignType
   isButton?: boolean
 }
-export interface ContainerOption extends DOMOption {
+export interface BoxOption extends DOMOption {
+  pos?: Vec2
+  fit?: { x: "left" | "center" | "right", y: "top" | "center" | "bottom" }
+  draggable?: boolean // ドラッグできるか？
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
+  scale?: number  // | Vec2
   isScrollable?: boolean
 }
+export interface ContainerOption extends BoxOption { }
 export class DOM {
   public readonly $dom: HTMLElement = null;
   public readonly $DOMId: number;
@@ -113,26 +118,6 @@ export class DOM {
   }
   parseDOMOption(option: DOMOption): CSS.AnyStyle {
     let style: CSS.AnyStyle = { ...option };
-    if (option.pos) {
-      style.top = option.pos.y;
-      style.left = option.pos.x;
-      style.position = "relative";
-      delete style.pos
-    }
-    if (option.fit) {
-      style.position = "absolute"
-      if (option.fit.x === "right") style.right = 0
-      else if (option.fit.x === "center") {
-        style["margin-left"] = style["margin-right"] = "auto";
-        style.left = style.right = 0;
-      }
-      if (option.fit.y === "bottom") style["bottom"] = 0
-      else if (option.fit.y === "center") {
-        style["margin-bottom"] = style["margin-top"] = "auto";
-        style.bottom = style.top = 0
-      }
-      delete style.fit
-    }
     if (option.isButton) {
       this.on("mouseover", () => { this.$dom.style.cursor = "pointer" })
       this.on("mouseout", () => { this.$dom.style.cursor = "default" })
@@ -141,30 +126,98 @@ export class DOM {
     delete style.tag
     return style
   }
-  parseContainerOption(parent: Container, option: ContainerOption): CSS.AnyStyle {
+  parseBoxOption(parent: Container | HTMLElement, option: BoxOption): CSS.AnyStyle {
     let result: CSS.AnyStyle = { ...option }
-    result.width = result.width || parent.width
-    result.height = result.height || parent.height
+    let parentWidth = parent instanceof Container ? parent.width : parent.scrollWidth
+    let parentHeight = parent instanceof Container ? parent.height : parent.scrollHeight
+    let parentScale = parent instanceof Container ? parent.scale : 1.0
+    result.width = result.width || parentWidth
+    result.height = result.height || parentHeight
+    let scale = (result.scale || 1.0) * parentScale
+    result.position = "absolute";
+    result.top = 0
+    result.left = 0
+    if (option.pos) {
+      result.top = option.pos.y;
+      result.left = option.pos.x;
+      delete result.pos
+    }
+    if (option.fit) {
+      if (option.fit.x === "right") {
+        result.left = parentWidth - result.width * scale
+      } else if (option.fit.x === "center") {
+        result.left = parentWidth / 2 - result.width * scale / 2
+      }
+      if (option.fit.y === "bottom") {
+        result.top = parentHeight - result.height * scale
+      } else if (option.fit.y === "center") {
+        result.top = parentHeight / 2 - result.height * scale / 2
+      }
+      delete result.fit
+    }
     if (result.isScrollable) {
       result.overflow = "scroll"
       delete result.isScrollable
     } else result.overflow = "hidden"
+    if (result.scale) {
+      result = {
+        ...result,
+        ...CSS.transform({ scale: scale, origin: "0px 0px" })
+      }
+    } else { result.scale = scale }
     return result;
   }
   tree(func: (parent: DOM) => any) { func(this); }
 }
-// 固定の width / height を持つ DOM
+// 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
-// DOM の子にはなれない
-export class Container extends DOM {
-  public width: number = 0;
-  public height: number = 0;
+export class Box extends DOM {
+  private $width: number = 0;
+  private $height: number = 0;
+  private $left: number = 0;
+  private $top: number = 0;
+  private $scale: number = 1;
+  constructor(parent: Container | HTMLElement, option: BoxOption = {}) {
+    super(parent, option)
+    let style = this.parseBoxOption(parent, option)
+    this.applyStyle(style)
+    this.$width = style.width
+    this.$height = style.height
+    this.$left = style.left
+    this.$top = style.top
+    this.$scale = style.scale
+  }
+  get top(): number { return this.$top }
+  set top(val: number) {
+    this.$top = val;
+    this.applyStyle({ top: val })
+  }
+  get left(): number { return this.$left }
+  set left(val: number) {
+    this.$left = val;
+    this.applyStyle({ left: val })
+  }
+  get width(): number { return this.$width }
+  set width(val: number) {
+    this.$width = val;
+    this.applyStyle({ width: val })
+  }
+  get height(): number { return this.$height }
+  set height(val: number) {
+    this.$height = val;
+    this.applyStyle({ height: val })
+  }
+  get scale(): number { return this.$scale }
+  set scale(val: number) {
+    this.$scale = val;
+    this.applyStyle(CSS.transform({ scale: val, origin: "0px 0px" }))
+  }
+}
+// HTMLElement
+// DOMを子として持てる
+export class Container extends Box {
   constructor(parent: Container | HTMLElement, option: ContainerOption = {}) {
     super(parent, option)
-    let style = this.parseContainerOption((parent instanceof HTMLElement) ? this : parent, option)
-    this.applyStyle(style)
-    this.width = style.width
-    this.height = style.height
   }
   tree(func: (parent: Container) => any) { func(this); }
 }
@@ -178,9 +231,14 @@ export class World extends Container {
     this.adjustWindow()
   }
   private initializeWorld() {
+    let inheritFontSize = { fontFamily: "inherit", fontSize: "100%" }
     CSS.Global.regist({
       body: { margin: 0, padding: 0, overflow: "hidden", background: "#000" },
-      "*": { "box-sizing": "border-box" }
+      "*": { "box-sizing": "border-box" },
+      textarea: inheritFontSize,
+      input: inheritFontSize,
+      select: inheritFontSize,
+      button: inheritFontSize,
     });
     window.addEventListener("resize", () => this.adjustWindow())
   }

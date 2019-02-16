@@ -13,7 +13,7 @@ import * as _ from "lodash";
 //     : operation(click/button(?)) / scene / graph(tree/chart) / solver / click(hover) help
 //     : bootstrap / webgl(?) / live2d / slider
 //     : a / canvas /  input.value(want Proxy)
-//     : table はみだし
+//     : table はみだし / fixedSizeText
 
 
 namespace Ibuki {
@@ -40,16 +40,16 @@ namespace WorldExample {
     let world = new World()
     new Container(world, {
       background: Color.parse("#fce"),
-      width: world.width * 0.5,
-      height: world.height * 0.5,
       isButton: true,
+      scale: 0.5,
+      fontSize: 100,
       textAlign: "center",
       isScrollable: true,
       fit: { x: "center", y: "center" }
     }).on("click", () => { console.log(1); })
       .tree(p =>
         new TextSequence(p, [
-          ["int main(){\n", { size: 72, fontName: "Menlo" }],
+          ["int main(){\n", { fontName: "Menlo" }],
           [store.n1.compute(x => x + "\n"), "#0fb"],
           ["  return;\n", "#ff0"],
           p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
@@ -59,27 +59,20 @@ namespace WorldExample {
     new FlexBox(world, {
       flexDirection: "column",
       alignItems: "flex-start",
-      background: Color.parse("#fce"),
-      width: world.width * 0.2,
-      height: world.height * 0.2,
+      background: Color.parse("#fab"),
+      scale: 0.2,
+      fontSize: 100,
       fit: { x: "right", y: "center" },
       isScrollable: true
     }).tree(p => {
-      store.l1 = new Input(p, { type: "text", label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.4, 20) }).value
-      new Input(p, { type: "select", options: ["C#", "C++", "js"], label: p2 => new FixedSizeText(p2, "language : ", p.width * 0.4, 20) })
-      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, store.l1.compute(t => t + "yade"), p.width * 0.4, 20) })
-      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "js : ", p.width * 0.4, 20) })
-      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "html : ", p.width * 0.4, 20) })
-      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "hot : ", p.width * 0.4, 20) })
-      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "css : ", p.width * 0.4, 20) })
-      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "js : ", p.width * 0.4, 20) })
-      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "html : ", p.width * 0.4, 20) })
-      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, "hot : ", p.width * 0.4, 20) })
+      store.l1 = new Input(p, { type: "text", size: 10, label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.5, 20) }).value
+      new Input(p, { type: "select", options: ["C#", "C++", "js"], label: p2 => new FixedSizeText(p2, "language : ", p.width * 0.5, 20) })
+      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, store.l1.compute(t => t + "yade"), p.width * 0.5, 20) })
     });
     new Table(world, {
       background: Color.parse("#fce"),
-      width: world.width * 0.2,
-      height: world.height * 0.2,
+      scale: 0.2,
+      fontSize: 100,
       fit: { x: "left", y: "center" },
       isScrollable: true,
     }, (x, y) => {
@@ -88,6 +81,11 @@ namespace WorldExample {
     }).addContents([
       ["iikanji", store.l1, "year"],
       ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
+      ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
+      ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
+      ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
+      ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
+      ["iikanji", store.l1, "year"],
     ])
     store.i1 = new Root(0)
     let i1 = 0
@@ -105,7 +103,7 @@ namespace WorldExample {
       new ProgressBar(p, store.i1, {}, 100)
       new Text(p, store.i1.compute(x => x + "%"))
       new MeterBar(p, store.i1, { min: 0, max: 100, low: 22, high: 66, optimum: 80 })
-      // new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html" })
+      new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html" })
       new Image(p, { src: "https://sagisawa.0am.jp/me.jpg" })
     })
   }
