@@ -70,7 +70,7 @@ export class Box {
   public readonly $world: World;
   public readonly $parent: Box; // 移ることがある？
   protected $boxOption: BoxOption;
-  constructor(parent: Box | HTMLElement, option: BoxOption = {}) {
+  constructor(parent: Box | HTMLElement, option: BoxOption = {}, attrs: { [key: string]: any } = {}) {
     this.$dom = document.createElement(option.tag || "div");
     this.$createdBoxId = Box.createdBoxMaxId++
     this.$dom.id = `ibuki-box-${this.$createdBoxId}`
@@ -87,11 +87,13 @@ export class Box {
     } else console.assert(false, "root Box need to be World class")
     this.$boxOption = option;
     this.applyBoxOption(option);
+    this.setAttributes(attrs);
   }
   private static createdBoxMaxId: number = 0;
-
-  on(name: Event, callback: () => void): Box {
-    this.$dom.addEventListener(name, () => { callback.bind(this.$dom)() });
+  public get id(): string { return this.$dom.id }
+  on(name: Event, callback: () => void, bind = false): Box {
+    if (bind) this.$dom.addEventListener(name, callback.bind(this.$dom))
+    else this.$dom.addEventListener(name, callback)
     return this
   }
   destroy() {
@@ -150,7 +152,8 @@ export class Box {
         if (val) this.$dom.setAttribute(key, "")
         else this.$dom.removeAttribute(key)
       } else if (val instanceof Array)
-        this.$dom.setAttribute(key, `${val}`)
+        this.$dom.setAttribute(key, val.join(" , "))
+      else this.$dom.setAttribute(key, `${val}`)
     }
   }
   tree(func: () => any) { func.bind(this)(); }

@@ -1,6 +1,6 @@
 import * as CSS from "./style";
 import { Color, ColorScheme, LinearGradient } from "./color";
-import { World, Box } from "./dom";
+import { World, Box, iota } from "./dom";
 import { Text, FAIcon, TextSequence } from "./widget/text";
 import { InputBox } from "./widget/input"
 // TODO: animation / tween / effect / widgets / on* / requestAnimationFrame
@@ -50,19 +50,19 @@ namespace WorldExample {
       (p: Box) => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
       ["}", "#000"],
     ])
-    let right = new Box(world, {
+    new Box(world, {
       background: Color.parse("#fce"),
       width: world.width * 0.2,
       height: world.height * 0.2,
-      fit: { x: "right", y: "center" }
+      fit: { x: "right", y: "center" },
+      isScrollable: true
+    }).tree(function () {
+      new InputBox(this, { type: "password" }, { height: 10 })
+      new Text(this, "iikanji", { size: 10 })
+      new InputBox(this, { type: "textarea" }, { height: this.height * 0.5 })
+      new InputBox(this, { type: "textarea" }, { height: this.height * 0.5 })
     });
-    new TextSequence(right, [
-      ["int main(){\n", { size: 20, fontName: "Menlo" }],
-      ["  printf();\n", "#0fb"],
-      ["  return;\n", "#ff0"],
-      (p: Box) => new FAIcon(p, "faIgloo", { size: 20, color: Color.parse("#fab") }),
-      ["}", "#000"],
-    ])
+
   }
   textSeqWorld();
   // new ConversationGameWidget(world, { heightPercent: 0.35 })//.text = "Hello World!";
