@@ -33,25 +33,37 @@ export class IFrame extends Box {
   public readonly $dom: HTMLIFrameElement
   constructor(parent: Container, option: IFrameOption) {
     super(parent, { ...option, tag: "iframe" })
-    let parsed = this.parseBoxOption(parent, option)
-    this.$dom.src = parsed.src;
-    this.$dom.width = parsed.width;
-    this.$dom.height = parsed.height;
-    delete this.$dom.style["width"]
-    delete this.$dom.style["height"]
+    this.$dom.src = option.src;
   }
 }
-export interface ImageOption extends BoxOption { src: string }
-export class Image extends DOM {
-  public readonly $dom: HTMLIFrameElement
+export interface ImageOption extends BoxOption {
+  src: string
+  forceSize?: boolean
+}
+export class Image extends Box {
+  public readonly $dom: HTMLImageElement
+
   constructor(parent: Container, option: ImageOption) {
     // illegal size!
-    super(parent, { ...option, tag: "iframe" })
+    super(parent, { ...option, tag: "img" })
     let parsed = this.parseBoxOption(parent, option)
     this.$dom.src = parsed.src;
-    this.$dom.width = parsed.width;
-    this.$dom.height = parsed.height;
-    delete this.$dom.style["width"]
-    delete this.$dom.style["height"]
+    this.$dom.style.removeProperty("width")
+    this.$dom.style.removeProperty("height")
+    if (!option.forceSize) {
+      this.$dom.onload = () => {
+        // 小さい方に合わせる
+        let baseWidth = this.$dom.naturalWidth;
+        let baseHeight = this.$dom.naturalHeight;
+        if (parsed.width / baseWidth > parsed.height / baseHeight) {
+          this.$dom.height = this.$dom.width * baseHeight / baseWidth
+        } else {
+          this.$dom.width = this.$dom.height * baseWidth / baseHeight
+        }
+      }
+    } else {
+      this.$dom.width = parsed.width;
+      this.$dom.height = parsed.height;
+    }
   }
 }

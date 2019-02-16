@@ -167,7 +167,6 @@ export class DOM {
     } else { result.scale = scale }
     return result;
   }
-  tree(func: (parent: DOM) => any) { func(this); }
 }
 // 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
@@ -212,6 +211,7 @@ export class Box extends DOM {
     this.$scale = val;
     this.applyStyle(CSS.transform({ scale: val, origin: "0px 0px" }))
   }
+  // tree(func: (parent: Box) => any): Box { func(this); return this; }
 }
 // HTMLElement
 // DOMを子として持てる
@@ -219,7 +219,7 @@ export class Container extends Box {
   constructor(parent: Container | HTMLElement, option: ContainerOption = {}) {
     super(parent, option)
   }
-  tree(func: (parent: Container) => any) { func(this); }
+  tree(func: (parent: Container) => any): Container { func(this); return this; }
 }
 // 画面に自動でフィットするDOMの祖
 export class World extends Container {

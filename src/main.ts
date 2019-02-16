@@ -38,7 +38,7 @@ namespace WorldExample {
     store.n1 = Root.perFrame(10)
     store.k1 = new Root("")
     let world = new World()
-    new Container(world, {
+    let center = new Container(world, {
       background: Color.parse("#fce"),
       isButton: true,
       scale: 0.5,
@@ -46,16 +46,23 @@ namespace WorldExample {
       textAlign: "center",
       isScrollable: true,
       fit: { x: "center", y: "center" }
-    }).on("click", () => { console.log(1); })
-      .tree(p =>
-        new TextSequence(p, [
-          ["int main(){\n", { fontName: "Menlo" }],
-          [store.n1.compute(x => x + "\n"), "#0fb"],
-          ["  return;\n", "#ff0"],
-          p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
-          [store.k1, "#000"],
-        ])
-      );
+    }).tree(p =>
+      new TextSequence(p, [
+        ["int main(){\n", { fontName: "Menlo" }],
+        [store.n1.compute(x => x + "\n"), "#0fb"],
+        ["  return;\n", "#ff0"],
+        p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
+        [store.k1, "#000"],
+      ])
+    );
+    Updator.regist(function* () {
+      while (true) {
+        center.left += 1;
+        center.scale *= 0.999;
+        yield true
+      }
+      yield false
+    })
     new FlexBox(world, {
       flexDirection: "column",
       alignItems: "flex-start",
@@ -68,7 +75,7 @@ namespace WorldExample {
       store.l1 = new Input(p, { type: "text", size: 10, label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.5, 20) }).value
       new Input(p, { type: "select", options: ["C#", "C++", "js"], label: p2 => new FixedSizeText(p2, "language : ", p.width * 0.5, 20) })
       new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, store.l1.compute(t => t + "yade"), p.width * 0.5, 20) })
-    });
+    }).on("click", () => { console.log(1); });
     new Table(world, {
       background: Color.parse("#fce"),
       scale: 0.2,
@@ -103,7 +110,7 @@ namespace WorldExample {
       new ProgressBar(p, store.i1, {}, 100)
       new Text(p, store.i1.compute(x => x + "%"))
       new MeterBar(p, store.i1, { min: 0, max: 100, low: 22, high: 66, optimum: 80 })
-      new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html" })
+      // new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html" })
       new Image(p, { src: "https://sagisawa.0am.jp/me.jpg" })
     })
   }
