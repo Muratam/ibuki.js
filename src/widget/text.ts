@@ -2,8 +2,6 @@ import { Color } from "../color";
 import { DOM, DOMOption } from "../dom";
 import { MayRoot, assign } from "../root"
 import { HasValueWidgetInterface, Root } from "../root";
-import { library, icon } from '@fortawesome/fontawesome-svg-core'
-import * as FA from '@fortawesome/free-solid-svg-icons'
 export interface TextOption extends DOMOption {
   size?: number
   fontName?: string
@@ -70,20 +68,3 @@ export class TextSequence extends DOM {
   clear() { for (let child of this.children) child.destroy(); }
 }
 
-export interface FAIconOption extends DOMOption {
-  size?: number,
-  color?: Color
-}
-export class FAIcon extends DOM {
-  constructor(parent: DOM, name: string, option?: FAIconOption) {
-    super(parent, "span")
-    let fa = FA[name] // ex:faIgloo
-    library.add(fa)
-    this.$dom.appendChild(icon(fa).node[0]);
-    if (!option) return;
-    this.applyStyle({
-      color: option.color,
-      font: { size: option.size }
-    });
-  }
-}

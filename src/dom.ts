@@ -185,6 +185,35 @@ export class Box extends DOM {
     this.$left = style.left
     this.$top = style.top
     this.$scale = style.scale
+    if (option.draggable) {
+      // WARN: いっぱい登録すると重そう / タッチ未対応
+      let x = 0;
+      let y = 0;
+      let dragState = 0
+      function dragStart(e: MouseEvent) {
+        // x = e.pageX - this.offsetLeft;
+        // y = e.pageY - this.offsetTop;
+
+        dragState++
+      }
+      let dragging = (e: MouseEvent) => {
+        if (dragState === 0) return;
+        console.log([e.pageX, e.pageY])
+        this.left = e.pageX - x;
+        this.top = e.pageY - y;
+      }
+      function dragEnd(e: MouseEvent) {
+        dragState = 0;
+      }
+      this.$dom.addEventListener("mousedown", dragStart)
+      // this.$dom.addEventListener("touchstart", dragStart)
+      document.body.addEventListener("mousemove", dragging)
+      // document.body.addEventListener("touchmove", dragging)
+      this.$dom.addEventListener("mouseup", dragEnd)
+      // this.$dom.addEventListener("touchend", dragEnd)
+      document.body.addEventListener("mouseleave", dragEnd)
+      // document.body.addEventListener("touchleave", dragEnd)
+    }
   }
   get top(): number { return this.$top }
   set top(val: number) {

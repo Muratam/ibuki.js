@@ -1,19 +1,20 @@
 import * as CSS from "./style";
 import { Color, ColorScheme, LinearGradient } from "./color";
 import { World, Container } from "./dom";
-import { Text, FAIcon, TextSequence, FixedSizeText } from "./widget/text";
+import { Text, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
 import { FlexBox, Table } from "./widget/container"
 import { Root, range, DataStore, Updator } from "./root"
 import { KeyBoard } from "./keyboard"
 import { ProgressBar, MeterBar, IFrame, Image } from "./widget/media";
+import { FAIcon } from "./widget/external"
 import * as _ from "lodash";
-// TODO: animation / tween / effect / widgets / on*
-//     : ColorScheme / vividjs / katex / markdown / tips
-//     : operation(click/button(?)) / scene / graph(tree/chart) / solver / click(hover) help
-//     : bootstrap / webgl(?) / live2d / slider
-//     : a / canvas /  input.value(want Proxy)
-//     : table はみだし / fixedSizeText
+
+// TODO: animation / tween / scene / effect
+// ext : vividjs / katex / markdown / live2d / graph(tree/chart)
+//     : ColorScheme / tips / click(hover)
+//     : bootstrap / webgl(?) / canvas
+//     : a / table はみだし
 
 
 namespace Ibuki {
@@ -55,20 +56,13 @@ namespace WorldExample {
         [store.k1, "#000"],
       ])
     );
-    Updator.regist(function* () {
-      while (true) {
-        center.left += 1;
-        center.scale *= 0.999;
-        yield true
-      }
-      yield false
-    })
     new FlexBox(world, {
       flexDirection: "column",
       alignItems: "flex-start",
       background: Color.parse("#fab"),
       scale: 0.2,
       fontSize: 100,
+      draggable: true,
       fit: { x: "right", y: "center" },
       isScrollable: true
     }).tree(p => {
