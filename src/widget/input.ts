@@ -1,5 +1,6 @@
 import { Color } from "../color";
 import { Box, BoxOption, World, iota } from "../dom";
+import { Text } from "./text"
 export type InputType =
   "password" | "search" | "text" | "textarea" | "select" |
   "date" | "email" | "tel" | "time" | "url" | "checkbox" | "radio" |
@@ -34,11 +35,13 @@ export interface InputOption {
   list?: string[] | string // string[] の時は datalist が生える
   label?: string | ((parent: Box) => Box)// 間にlabelを生やす
 }
-export class InputBox extends Box {
+export class Input extends Box {
   constructor(parent: Box, inputOption: InputOption = {}, boxOption: BoxOption = {}) {
-    function tagged(tag: string): BoxOption { return ({ tag: tag, ...boxOption }); }
+    function tagged(tag: string): BoxOption {
+      return ({ tag: tag, height: -1, width: -1, ...boxOption });
+    }
     if (inputOption.label) {
-      let label = new Box(parent, { tag: "label" });
+      let label = new Box(parent, { tag: "label", width: -1, height: -1 });
       if (typeof inputOption.label === "string")
         label.$dom.innerText = inputOption.label
       else inputOption.label(label)
@@ -95,9 +98,8 @@ export class FieldSet extends Box {
   // 間に fieldset / legend[] を生やす
   constructor(parent: Box, boxOption: BoxOption = {}, legend: string | ((parent: Box) => Box) = "") {
     super(parent, { tag: "fieldset" }, boxOption)
-    let legendBox = new Box(this, { tag: "legend" })
+    let legendBox = new Box(this, { tag: "legend", height: -1, width: -1 })
     if (typeof legend === "string") legendBox.$dom.innerText = legend
     else legend(legendBox)
   }
 }
-// MEDIA :: audio / img / video / iframe / progress / meter /

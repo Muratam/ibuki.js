@@ -12,7 +12,7 @@ export interface TextOption {
 }
 export class Text extends Box {
   constructor(parent: Box, text: string, option: TextOption = {}) {
-    super(parent, { tag: option.tag || "span" })
+    super(parent, { tag: option.tag || "span", height: -1, width: -1 })
     this.text = text;
     this.applyStyle({
       color: option.color,
@@ -31,12 +31,12 @@ export class Text extends Box {
     this.$dom.innerText = this.$text;
   }
 }
-type TextSequenceElem = [string, TextOption | string] | ((parent: Box) => Box);
+type TextSequenceElem = string | [string, TextOption | string] | ((parent: Box) => Box);
 export class TextSequence extends Box {
   private children: Box[] = [];
   private currentOption: TextOption;
   constructor(parent: Box, texts: TextSequenceElem[]) {
-    super(parent, { tag: "span" });
+    super(parent, { tag: "span", width: -1, height: -1 });
     this.currentOption = {};
     this.add(texts)
   }
@@ -44,6 +44,8 @@ export class TextSequence extends Box {
     for (let elem of texts) {
       if (typeof elem === "function") {
         this.children.push(elem(this));
+      } else if (typeof elem === "string") {
+        this.children.push(new Text(this, elem, this.currentOption))
       } else {
         let [text, option] = elem;
         if (typeof option === "string")

@@ -2,12 +2,13 @@ import * as CSS from "./style";
 import { Color, ColorScheme, LinearGradient } from "./color";
 import { World, Box, iota } from "./dom";
 import { Text, FAIcon, TextSequence } from "./widget/text";
-import { InputBox } from "./widget/input"
+import { Input } from "./widget/input"
 // TODO: animation / tween / effect / widgets / on* / requestAnimationFrame
 //     : ColorScheme / image tag  / vividjs / katex / markdown / table / tips
 //     : operation(click/button(?)) / scene / graph(tree/chart) / solver / click(hover) help
 //     : inputfield / bootstrap / webgl(?) / live2d / slider
 //     : <progress> // a / progress / canvas / table
+// MEDIA :: audio / img / video / iframe / progress / meter /
 
 import * as _ from "lodash";
 
@@ -47,7 +48,7 @@ namespace WorldExample {
       ["int main(){\n", { size: 72, fontName: "Menlo" }],
       ["  printf();\n", "#0fb"],
       ["  return;\n", "#ff0"],
-      (p: Box) => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
+      p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
       ["}", "#000"],
     ])
     new Box(world, {
@@ -56,12 +57,44 @@ namespace WorldExample {
       height: world.height * 0.2,
       fit: { x: "right", y: "center" },
       isScrollable: true
-    }).tree(function () {
-      new InputBox(this, { type: "password" }, { height: 10 })
-      new Text(this, "iikanji", { size: 10 })
-      new InputBox(this, { type: "textarea" }, { height: this.height * 0.5 })
-      new InputBox(this, { type: "textarea" }, { height: this.height * 0.5 })
+    }).tree(p => {
+      new TextSequence(p, [
+        p => new Input(p, { type: "text", label: p => new Text(p, "namedayo") }),
+        "\n",
+        p => new Input(p, { type: "select", options: ["C#", "C++", "js"], label: "lang : " }),
+        "\n",
+        p => new Input(p, { type: "checkbox", label: "css : " }),
+        "\n",
+        p => new Input(p, { type: "checkbox", label: "js : " }),
+        "\n",
+        p => new Input(p, { type: "checkbox", label: "html : " }),
+        "\n",
+        p => new Input(p, { type: "checkbox", label: "html : " }),
+        "\n",
+      ])
+      // world.$dom.
+      // new InputBox(this, { type: "password" }, { height: 10 })
+      // new Text(this, "iikanji", { size: 10 })
+      // new InputBox(this, { type: "textarea" }, { height: this.height * 0.5 })
+      // new InputBox(this, { type: "textarea" }, { height: this.height * 0.5 })
     });
+    /*
+
+    <div>
+      <input id="html" name="html" type="checkbox" />
+      <label for="html">HTML</label>
+    </div>
+
+    <div>
+      <input id="css" name="css" type="checkbox" />
+      <label for="css">CSS</label>
+    </div>
+
+    <div>
+      <input id="javascript" name="javascript" type="checkbox" />
+      <label for="javascript">JavaScript</label>
+    </div>
+    */
 
   }
   textSeqWorld();

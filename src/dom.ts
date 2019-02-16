@@ -1,11 +1,6 @@
 import { Color, LinearGradient } from "./color";
 import * as CSS from "./style";
 
-// export class SourceURL {
-//   readonly url: string
-//   constructor(url: string) { this.url = url; }
-//   toCSS(): string { return `url("${this.url}")` }
-// }
 export interface Vec2 {
   x: number
   y: number
@@ -143,6 +138,8 @@ export class Box {
     } else {
       style.overflow = "hidden"
     }
+    if (style.height < 0) delete style.height
+    if (style.width < 0) delete style.width
     return this.applyStyle(style);
   }
   setAttributes(attrs: { [key: string]: any }) {
@@ -156,7 +153,7 @@ export class Box {
       else this.$dom.setAttribute(key, `${val}`)
     }
   }
-  tree(func: () => any) { func.bind(this)(); }
+  tree(func: (parent: Box) => any) { func(this); }
 }
 // 画面に自動でフィットするDOMの祖
 export class World extends Box {
