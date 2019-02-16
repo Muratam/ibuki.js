@@ -28,8 +28,14 @@ export interface Border {
   left?: BorderContentType
   right?: BorderContentType
 }
-
-// 固定のサイズのBoxで全て表現
+export type Event =
+  "focus" | "blur" | "select" | "change" |
+  "load" | "dragdrop" |
+  "click" | "dblclick" |
+  "keyup" | "keydown" | "keypress" |
+  "mouseout" | "mouseover" | "mouseup" |
+  "mousemove" | "mousedown" | "mouseup"
+// 固定のサイズのBoxで全てを表現
 export interface BoxOption {
   // そのコンテナ内部でfloatするときの位置(後続のDOMに影響を与えたい場合はnull)
   pos?: Vec2
@@ -41,42 +47,68 @@ export interface BoxOption {
   margin?: Rect | number
   padding?: Rect | number
   border?: Border | BorderContentType
-  overflow?: "hidden" | "scroll"
+  isButton?: boolean
+  isScrollable?: boolean
+}
+export function iota(a: number, b: number = null, step: number = 1): number[] {
+  if (b === null) {
+    let result = new Array<number>(a);
+    for (let i = 0; i < a; i++) result[i] = i
+    return result
+  }
+  if (b <= a) return [];
+  let n = (b - a) / step
+  let result = new Array<number>(n)
+  for (let i = a, j = 0; j < n; i += step, j++) result[j] = i
+  return result
 }
 export class Box {
-  public readonly width: number = 0;
-  public readonly height: number = 0;
+  public width: number = 0;
+  public height: number = 0;
   public readonly $dom: HTMLElement = null;
-  protected $parent: Box = null;
-  protected $world: World = null;
+  public readonly $createdBoxId: number;
+  public readonly $world: World;
+  public readonly $parent: Box; // 移ることがある？
+  protected $boxOption: BoxOption;
   constructor(parent: Box | HTMLElement, option: BoxOption = {}) {
     this.$dom = document.createElement(option.tag || "div");
-    this.width = option.width
-    this.height = option.height
+    this.$createdBoxId = Box.createdBoxMaxId++
+    this.$dom.id = `ibuki-box-${this.$createdBoxId}`
     if (parent instanceof Box) {
       parent.$dom.appendChild(this.$dom);
       this.$world = parent.$world;
       this.$parent = parent;
-      this.width = this.width || parent.width;
       option.width = option.width || parent.width;
-      this.height = this.height || parent.height;
       option.height = option.height || parent.height;
-    } else parent.appendChild(this.$dom);
+    } else if (this instanceof World) {
+      parent.appendChild(this.$dom);
+      this.$world = this;
+      this.$parent = this;
+    } else console.assert(false, "root Box need to be World class")
+    this.$boxOption = option;
     this.applyBoxOption(option);
+  }
+  private static createdBoxMaxId: number = 0;
+
+  on(name: Event, callback: () => void): Box {
+    this.$dom.addEventListener(name, () => { callback.bind(this.$dom)() });
+    return this
   }
   destroy() {
     this.$dom.remove();
   }
   applyStyle(style: { [key: string]: any }): Box {
     let normalized = CSS.parse(style);
-    console.log(normalized);
+    // console.log(normalized);
     for (let key in normalized) {
       let val = normalized[key]
       this.$dom.style[key] = val;
     }
     return this;
   }
-  private applyBoxOption(option: BoxOption): Box {
+  applyBoxOption(option: BoxOption): Box {
+    this.width = option.width || this.width || this.$parent.width;
+    this.height = option.height || this.height || this.$parent.height;
     let style: CSS.AnyStyle = { ...option };
     if (option.pos) {
       style.top = option.pos.y;
@@ -86,7 +118,6 @@ export class Box {
     }
     if (option.fit) {
       style.position = "absolute"
-
       if (option.fit.x === "right") style.right = 0
       else if (option.fit.x === "center") {
         style["margin-left"] = style["margin-right"] = "auto";
@@ -99,9 +130,30 @@ export class Box {
       }
       delete style.fit
     }
-    if (!style.oveflow) style.overflow = "hidden"
+    if (option.isButton) {
+      this.on("mouseover", () => { this.$dom.style.cursor = "pointer" })
+      this.on("mouseout", () => { this.$dom.style.cursor = "default" })
+      delete style.isButton
+    }
+    if (style.isScrollable) {
+      style.overflow = "scroll"
+      delete style.isScrollable
+    } else {
+      style.overflow = "hidden"
+    }
     return this.applyStyle(style);
   }
+  setAttributes(attrs: { [key: string]: any }) {
+    for (let key in attrs) {
+      let val = attrs[key]
+      if (typeof val === "boolean") {
+        if (val) this.$dom.setAttribute(key, "")
+        else this.$dom.removeAttribute(key)
+      } else if (val instanceof Array)
+        this.$dom.setAttribute(key, `${val}`)
+    }
+  }
+  tree(func: () => any) { func.bind(this)(); }
 }
 // 画面に自動でフィットするDOMの祖
 export class World extends Box {
@@ -113,7 +165,6 @@ export class World extends Box {
     this.adjustWindow()
   }
   private initializeWorld() {
-    this.$world = this;
     CSS.Global.regist({
       body: { margin: 0, padding: 0, overflow: "hidden", background: "#000" },
       "*": { "box-sizing": "border-box" }

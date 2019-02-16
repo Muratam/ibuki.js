@@ -2,19 +2,18 @@ import { Color } from "../color";
 import { Box } from "../dom";
 import { library, icon } from '@fortawesome/fontawesome-svg-core'
 import * as FA from '@fortawesome/free-solid-svg-icons'
-import { pushd } from "shelljs";
 export interface TextOption {
   size?: number
   fontName?: string
   color?: Color
   isBold?: boolean
+  tag?: "span" | "code" | "pre" | "marquee"
   edge?: { color: Color, width: number }
 }
 export class Text extends Box {
-  constructor(parent: Box, text: string, option?: TextOption) {
-    super(parent, { tag: "span" })
+  constructor(parent: Box, text: string, option: TextOption = {}) {
+    super(parent, { tag: option.tag || "span" })
     this.text = text;
-    if (!option) return;
     this.applyStyle({
       color: option.color,
       font: {
@@ -59,6 +58,7 @@ export class TextSequence extends Box {
     for (let child of this.children) child.destroy();
   }
 }
+
 export interface FAIconOption {
   size?: number,
   color?: Color

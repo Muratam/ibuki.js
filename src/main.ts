@@ -2,11 +2,13 @@ import * as CSS from "./style";
 import { Color, ColorScheme, LinearGradient } from "./color";
 import { World, Box } from "./dom";
 import { Text, FAIcon, TextSequence } from "./widget/text";
-
+import { InputBox } from "./widget/input"
 // TODO: animation / tween / effect / widgets / on* / requestAnimationFrame
-//     : ColorScheme / image tag  / vividjs / katex / markdown / table
+//     : ColorScheme / image tag  / vividjs / katex / markdown / table / tips
 //     : operation(click/button(?)) / scene / graph(tree/chart) / solver / click(hover) help
-//     : inputfield / button / bootstrap / webgl(?) / live2d
+//     : inputfield / bootstrap / webgl(?) / live2d / slider
+//     : <progress> // a / progress / canvas / table
+
 import * as _ from "lodash";
 
 namespace Ibuki { // animation
@@ -15,8 +17,7 @@ namespace Ibuki { // animation
   }
 }
 
-namespace Ibuki { // Widget
-
+namespace Ibuki {
   export interface ConversationGameWidgetOption {
     heightPercent: number,
     colorScheme?: ColorScheme
@@ -39,13 +40,27 @@ namespace WorldExample {
       background: Color.parse("#fce"),
       width: world.width * 0.5,
       height: world.height * 0.5,
+      isButton: true,
       fit: { x: "center", y: "center" }
-    });
+    }).on("click", () => { console.log(1); });
     new TextSequence(center, [
       ["int main(){\n", { size: 72, fontName: "Menlo" }],
       ["  printf();\n", "#0fb"],
       ["  return;\n", "#ff0"],
       (p: Box) => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
+      ["}", "#000"],
+    ])
+    let right = new Box(world, {
+      background: Color.parse("#fce"),
+      width: world.width * 0.2,
+      height: world.height * 0.2,
+      fit: { x: "right", y: "center" }
+    });
+    new TextSequence(right, [
+      ["int main(){\n", { size: 20, fontName: "Menlo" }],
+      ["  printf();\n", "#0fb"],
+      ["  return;\n", "#ff0"],
+      (p: Box) => new FAIcon(p, "faIgloo", { size: 20, color: Color.parse("#fab") }),
       ["}", "#000"],
     ])
   }
