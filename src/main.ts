@@ -5,12 +5,10 @@ import { Text, FAIcon, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
 import { FlexBox, Table } from "./widget/container"
 // TODO: animation / tween / effect / widgets / on* / requestAnimationFrame
-//     : ColorScheme / image tag  / vividjs / katex / markdown / table / tips
+//     : ColorScheme / vividjs / katex / markdown / tips
 //     : operation(click/button(?)) / scene / graph(tree/chart) / solver / click(hover) help
-//     : inputfield / bootstrap / webgl(?) / live2d / slider
-//     : <progress> // a / progress / canvas / table /  input.value
-// MEDIA :: audio / img / video / iframe / progress / meter /
-
+//     : bootstrap / webgl(?) / live2d / slider
+//     : a / canvas /  input.value(want Proxy)
 import * as _ from "lodash";
 
 namespace Ibuki { // animation
