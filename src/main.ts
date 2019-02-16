@@ -3,6 +3,7 @@ import { Color, ColorScheme, LinearGradient } from "./color";
 import { World, Box, iota } from "./dom";
 import { Text, FAIcon, TextSequence } from "./widget/text";
 import { Input } from "./widget/input"
+import { FlexBox } from "./widget/container"
 // TODO: animation / tween / effect / widgets / on* / requestAnimationFrame
 //     : ColorScheme / image tag  / vividjs / katex / markdown / table / tips
 //     : operation(click/button(?)) / scene / graph(tree/chart) / solver / click(hover) help
@@ -51,7 +52,7 @@ namespace WorldExample {
       p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
       ["}", "#000"],
     ])
-    new Box(world, {
+    new FlexBox(world, {
       background: Color.parse("#fce"),
       width: world.width * 0.2,
       height: world.height * 0.2,
@@ -60,42 +61,13 @@ namespace WorldExample {
     }).tree(p => {
       new TextSequence(p, [
         p => new Input(p, { type: "text", label: p => new Text(p, "namedayo") }),
-        "\n",
         p => new Input(p, { type: "select", options: ["C#", "C++", "js"], label: "lang : " }),
-        "\n",
         p => new Input(p, { type: "checkbox", label: "css : " }),
-        "\n",
         p => new Input(p, { type: "checkbox", label: "js : " }),
-        "\n",
         p => new Input(p, { type: "checkbox", label: "html : " }),
-        "\n",
         p => new Input(p, { type: "checkbox", label: "html : " }),
-        "\n",
       ])
-      // world.$dom.
-      // new InputBox(this, { type: "password" }, { height: 10 })
-      // new Text(this, "iikanji", { size: 10 })
-      // new InputBox(this, { type: "textarea" }, { height: this.height * 0.5 })
-      // new InputBox(this, { type: "textarea" }, { height: this.height * 0.5 })
     });
-    /*
-
-    <div>
-      <input id="html" name="html" type="checkbox" />
-      <label for="html">HTML</label>
-    </div>
-
-    <div>
-      <input id="css" name="css" type="checkbox" />
-      <label for="css">CSS</label>
-    </div>
-
-    <div>
-      <input id="javascript" name="javascript" type="checkbox" />
-      <label for="javascript">JavaScript</label>
-    </div>
-    */
-
   }
   textSeqWorld();
   // new ConversationGameWidget(world, { heightPercent: 0.35 })//.text = "Hello World!";

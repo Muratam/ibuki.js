@@ -1,6 +1,4 @@
-import { Color } from "../color";
-import { Box, BoxOption, World, iota } from "../dom";
-import { Text } from "./text"
+import { Box, BoxOption, DOM } from "../dom";
 export type InputType =
   "password" | "search" | "text" | "textarea" | "select" |
   "date" | "email" | "tel" | "time" | "url" | "checkbox" | "radio" |
@@ -33,43 +31,40 @@ export interface InputOption {
   options?: string[] | { [key: string]: string[] }
   // custom
   list?: string[] | string // string[] の時は datalist が生える
-  label?: string | ((parent: Box) => Box)// 間にlabelを生やす
+  label?: string | ((parent: DOM) => DOM)// 間にlabelを生やす
 }
-export class Input extends Box {
-  constructor(parent: Box, inputOption: InputOption = {}, boxOption: BoxOption = {}) {
-    function tagged(tag: string): BoxOption {
-      return ({ tag: tag, height: -1, width: -1, ...boxOption });
-    }
+export class Input extends DOM {
+  constructor(parent: DOM, inputOption: InputOption = {}) {
     if (inputOption.label) {
-      let label = new Box(parent, { tag: "label", width: -1, height: -1 });
+      let label = new DOM(parent, "label");
       if (typeof inputOption.label === "string")
         label.$dom.innerText = inputOption.label
       else inputOption.label(label)
       parent = label
     }
     if (inputOption.type === "textarea") {
-      super(parent, tagged("textarea"));
+      super(parent, "textarea");
     } else if (inputOption.type === "select") {
-      super(parent, tagged("select"));
+      super(parent, "select");
       if (inputOption.options instanceof Array) {
         for (let option of inputOption.options)
-          new Box(this, { tag: "option" }).$dom.innerText = option
+          new DOM(this, "option").$dom.innerText = option
       } else {
         for (let optionKey in inputOption.options) {
-          let optgroup = new Box(this, { tag: "optgroup" }, { label: optionKey })
+          let optgroup = new DOM(this, "optgroup").setAttributes({ label: optionKey })
           for (let option of inputOption.options[optionKey])
-            new Box(optgroup, { tag: "option" }).$dom.innerText = option
+            new DOM(optgroup, "option").$dom.innerText = option
         }
       }
-    } else super(parent, tagged("input"));
+    } else super(parent, "input");
     this.applyInputOption({ ...inputOption })
   }
   private applyInputOption(option: InputOption) {
     if (typeof option.autocomplete === "boolean")
       option.autocomplete = option.autocomplete ? "on" : "off"
     if (option.list && typeof option.list !== "string") {
-      let datalist = new Box(this.$parent, { tag: "datalist" })
-      option.list.map((x: string) => new Box(datalist, { tag: "option" }, { value: x }))
+      let datalist = new DOM(this.$parent, "datalist")
+      option.list.map((x: string) => new DOM(datalist, "option").setAttributes({ value: x }))
       option.list = datalist.id
     }
     delete option.label
@@ -77,10 +72,9 @@ export class Input extends Box {
     this.setAttributes(option);
   }
 }
-// [select] -> option[value,selected,label,disabled] / optgroup
 
 export interface FormOption {
-  // with submit(button?)
+  // TODO: with submit(button?)
   action?: string
   method?: "get" | "post"
   "accept-charset"?: string

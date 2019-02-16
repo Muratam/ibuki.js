@@ -57,55 +57,77 @@ export function iota(a: number, b: number = null, step: number = 1): number[] {
   for (let i = a, j = 0; j < n; i += step, j++) result[j] = i
   return result
 }
-export class Box {
-  public width: number = 0;
-  public height: number = 0;
+export class DOM {
   public readonly $dom: HTMLElement = null;
-  public readonly $createdBoxId: number;
+  public readonly $DOMId: number;
   public readonly $world: World;
-  public readonly $parent: Box; // 移ることがある？
-  protected $boxOption: BoxOption;
-  constructor(parent: Box | HTMLElement, option: BoxOption = {}, attrs: { [key: string]: any } = {}) {
-    this.$dom = document.createElement(option.tag || "div");
-    this.$createdBoxId = Box.createdBoxMaxId++
-    this.$dom.id = `ibuki-box-${this.$createdBoxId}`
-    if (parent instanceof Box) {
+  public readonly $parent: DOM; // 移ることがある？
+  private static DOMMaxId: number = 0;
+  public get id(): string { return this.$dom.id }
+  constructor(parent: DOM | HTMLElement, tag: string = "div") {
+    this.$dom = document.createElement(tag || "div");
+    this.$DOMId = DOM.DOMMaxId++
+    this.$dom.id = `ibuki-box-${this.$DOMId}`
+    if (parent instanceof DOM) {
       parent.$dom.appendChild(this.$dom);
       this.$world = parent.$world;
       this.$parent = parent;
-      option.width = option.width || parent.width;
-      option.height = option.height || parent.height;
     } else if (this instanceof World) {
       parent.appendChild(this.$dom);
       this.$world = this;
       this.$parent = this;
-    } else console.assert(false, "root Box need to be World class")
-    this.$boxOption = option;
-    this.applyBoxOption(option);
-    this.setAttributes(attrs);
+    } else console.assert(false, "now root Box need to be World class")
   }
-  private static createdBoxMaxId: number = 0;
-  public get id(): string { return this.$dom.id }
-  on(name: Event, callback: () => void, bind = false): Box {
+  on(name: Event, callback: () => void, bind = false): DOM {
     if (bind) this.$dom.addEventListener(name, callback.bind(this.$dom))
     else this.$dom.addEventListener(name, callback)
     return this
   }
-  destroy() {
-    this.$dom.remove();
-  }
-  applyStyle(style: { [key: string]: any }): Box {
+  destroy() { this.$dom.remove(); }
+  applyStyle(style: { [key: string]: any }): DOM {
     let normalized = CSS.parse(style);
-    // console.log(normalized);
     for (let key in normalized) {
       let val = normalized[key]
       this.$dom.style[key] = val;
     }
     return this;
   }
+  setAttributes(attrs: { [key: string]: any }): DOM {
+    for (let key in attrs) {
+      let val = attrs[key]
+      if (typeof val === "boolean") {
+        if (val) this.$dom.setAttribute(key, "")
+        else this.$dom.removeAttribute(key)
+      } else if (val instanceof Array)
+        this.$dom.setAttribute(key, val.join(" , "))
+      else this.$dom.setAttribute(key, `${val}`)
+    }
+    return this
+  }
+  tree(func: (parent: DOM) => any) { func(this); }
+}
+export class Box extends DOM {
+  public width: number = 0;
+  public height: number = 0;
+  protected $boxOption: BoxOption;
+  constructor(parent: Box | HTMLElement, option: BoxOption = {}, attrs: { [key: string]: any } = {}) {
+    super(parent, option.tag)
+    if (parent instanceof Box) {
+      option.width = option.width || parent.width;
+      option.height = option.height || parent.height;
+    }
+    this.applyBoxOption(option);
+    this.setAttributes(attrs);
+  }
   applyBoxOption(option: BoxOption): Box {
-    this.width = option.width || this.width || this.$parent.width;
-    this.height = option.height || this.height || this.$parent.height;
+    this.$boxOption = option;
+    if (this.$parent instanceof Box) {
+      this.width = option.width || this.width || this.$parent.width;
+      this.height = option.height || this.height || this.$parent.height;
+    } else {
+      this.width = option.width || this.width;
+      this.height = option.height || this.height;
+    }
     let style: CSS.AnyStyle = { ...option };
     if (option.pos) {
       style.top = option.pos.y;
@@ -140,20 +162,9 @@ export class Box {
     }
     if (style.height < 0) delete style.height
     if (style.width < 0) delete style.width
-    return this.applyStyle(style);
+    this.applyStyle(style);
+    return this;
   }
-  setAttributes(attrs: { [key: string]: any }) {
-    for (let key in attrs) {
-      let val = attrs[key]
-      if (typeof val === "boolean") {
-        if (val) this.$dom.setAttribute(key, "")
-        else this.$dom.removeAttribute(key)
-      } else if (val instanceof Array)
-        this.$dom.setAttribute(key, val.join(" , "))
-      else this.$dom.setAttribute(key, `${val}`)
-    }
-  }
-  tree(func: (parent: Box) => any) { func(this); }
 }
 // 画面に自動でフィットするDOMの祖
 export class World extends Box {

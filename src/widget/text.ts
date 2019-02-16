@@ -1,5 +1,5 @@
 import { Color } from "../color";
-import { Box } from "../dom";
+import { DOM } from "../dom";
 import { library, icon } from '@fortawesome/fontawesome-svg-core'
 import * as FA from '@fortawesome/free-solid-svg-icons'
 export interface TextOption {
@@ -10,9 +10,9 @@ export interface TextOption {
   tag?: "span" | "code" | "pre" | "marquee"
   edge?: { color: Color, width: number }
 }
-export class Text extends Box {
-  constructor(parent: Box, text: string, option: TextOption = {}) {
-    super(parent, { tag: option.tag || "span", height: -1, width: -1 })
+export class Text extends DOM {
+  constructor(parent: DOM, text: string, option: TextOption = {}) {
+    super(parent, option.tag || "span")
     this.text = text;
     this.applyStyle({
       color: option.color,
@@ -31,12 +31,12 @@ export class Text extends Box {
     this.$dom.innerText = this.$text;
   }
 }
-type TextSequenceElem = string | [string, TextOption | string] | ((parent: Box) => Box);
-export class TextSequence extends Box {
-  private children: Box[] = [];
+type TextSequenceElem = string | [string, TextOption | string] | ((parent: DOM) => DOM);
+export class TextSequence extends DOM {
+  private children: DOM[] = [];
   private currentOption: TextOption;
-  constructor(parent: Box, texts: TextSequenceElem[]) {
-    super(parent, { tag: "span", width: -1, height: -1 });
+  constructor(parent: DOM, texts: TextSequenceElem[]) {
+    super(parent, "span");
     this.currentOption = {};
     this.add(texts)
   }
@@ -65,9 +65,9 @@ export interface FAIconOption {
   size?: number,
   color?: Color
 }
-export class FAIcon extends Box {
-  constructor(parent: Box, name: string, option?: FAIconOption) {
-    super(parent, { tag: "span" })
+export class FAIcon extends DOM {
+  constructor(parent: DOM, name: string, option?: FAIconOption) {
+    super(parent, "span")
     let fa = FA[name] // ex:faIgloo
     library.add(fa)
     this.$dom.appendChild(icon(fa).node[0]);
