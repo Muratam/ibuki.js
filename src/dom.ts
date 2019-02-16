@@ -45,7 +45,7 @@ export interface DOMOption {
   textAlign?: TextAlignType
   isButton?: boolean
 }
-export interface BoxOption extends DOMOption {
+export interface ContainerOption extends DOMOption {
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
   isScrollable?: boolean
@@ -53,7 +53,7 @@ export interface BoxOption extends DOMOption {
 export class DOM {
   public readonly $dom: HTMLElement = null;
   public readonly $DOMId: number;
-  public readonly $world: WorldBox;
+  public readonly $world: World;
   public readonly $parent: DOM; // 移ることがある？
   private $children: DOM[] = [];
   private $destroyed: boolean = false;
@@ -71,7 +71,7 @@ export class DOM {
       this.$world = parent.$world;
       this.$parent = parent;
       parent.$children.push(this)
-    } else if (this instanceof WorldBox) {
+    } else if (this instanceof World) {
       parent.appendChild(this.$dom);
       this.$world = this;
       this.$parent = this;
@@ -141,39 +141,35 @@ export class DOM {
     delete style.tag
     return style
   }
+  parseContainerOption(parent: Container, option: ContainerOption): CSS.AnyStyle {
+    let result: CSS.AnyStyle = { ...option }
+    result.width = result.width || parent.width
+    result.height = result.height || parent.height
+    if (result.isScrollable) {
+      result.overflow = "scroll"
+      delete result.isScrollable
+    } else result.overflow = "hidden"
+    return result;
+  }
   tree(func: (parent: DOM) => any) { func(this); }
 }
 // 固定の width / height を持つ DOM
 // 指定しなければ親と同じになる
 // DOM の子にはなれない
-export class Box extends DOM {
+export class Container extends DOM {
   public width: number = 0;
   public height: number = 0;
-  protected $boxOption: BoxOption;
-  constructor(parent: Box | HTMLElement, option: BoxOption = {}) {
+  constructor(parent: Container | HTMLElement, option: ContainerOption = {}) {
     super(parent, option)
-    if (!(parent instanceof HTMLElement) && parent.width && parent.height)
-      this.applyBoxOption({ width: parent.width, height: parent.height, ...option });
-    else this.applyBoxOption(option);
+    let style = this.parseContainerOption((parent instanceof HTMLElement) ? this : parent, option)
+    this.applyStyle(style)
+    this.width = style.width
+    this.height = style.height
   }
-  applyBoxOption(option: BoxOption): Box {
-    this.$boxOption = option;
-    if (this.$parent instanceof Box) {
-      this.width = option.width || this.width || this.$parent.width;
-      this.height = option.height || this.height || this.$parent.height;
-    } else {
-      this.width = option.width || this.width;
-      this.height = option.height || this.height;
-    }
-    this.applyStyle(this.parseDOMOption(option));
-    if (option.isScrollable) this.applyStyle({ overflow: "scroll" })
-    else this.applyStyle({ overflow: "hidden" })
-    return this;
-  }
-  tree(func: (parent: Box) => any) { func(this); }
+  tree(func: (parent: Container) => any) { func(this); }
 }
 // 画面に自動でフィットするDOMの祖
-export class WorldBox extends Box {
+export class World extends Container {
   alwaysFullScreen: boolean = false
   constructor(width: number = 1280, height: number = 720, alwaysFullScreen: boolean = false) {
     super(document.body, { width: width, height: height })

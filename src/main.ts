@@ -1,18 +1,19 @@
 import * as CSS from "./style";
 import { Color, ColorScheme, LinearGradient } from "./color";
-import { WorldBox, Box } from "./dom";
+import { World, Container } from "./dom";
 import { Text, FAIcon, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
 import { FlexBox, Table } from "./widget/container"
 import { Root, range, DataStore, Updator } from "./root"
 import { KeyBoard } from "./keyboard"
+import { ProgressBar, MeterBar, IFrame, Image } from "./widget/media";
+import * as _ from "lodash";
 // TODO: animation / tween / effect / widgets / on*
 //     : ColorScheme / vividjs / katex / markdown / tips
 //     : operation(click/button(?)) / scene / graph(tree/chart) / solver / click(hover) help
 //     : bootstrap / webgl(?) / live2d / slider
 //     : a / canvas /  input.value(want Proxy)
 //     : table はみだし
-import * as _ from "lodash";
 
 
 namespace Ibuki {
@@ -20,8 +21,8 @@ namespace Ibuki {
     heightPercent: number,
     colorScheme?: ColorScheme
   }
-  export class ConversationGameWidget extends Box {
-    constructor(parent: Box, option: ConversationGameWidgetOption) {
+  export class ConversationGameWidget extends Container {
+    constructor(parent: Container, option: ConversationGameWidgetOption) {
       let height = Math.floor(parent.height * option.heightPercent)
       super(parent, {
         height: height,
@@ -36,8 +37,8 @@ namespace WorldExample {
     let store: DataStore = {}
     store.n1 = Root.perFrame(10)
     store.k1 = new Root("")
-    let world = new WorldBox()
-    new Box(world, {
+    let world = new World()
+    new Container(world, {
       background: Color.parse("#fce"),
       width: world.width * 0.5,
       height: world.height * 0.5,
@@ -88,7 +89,25 @@ namespace WorldExample {
       ["iikanji", store.l1, "year"],
       ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
     ])
-    KeyBoard.onKeyDown(key => { store.k1.set(key) })
+    store.i1 = new Root(0)
+    let i1 = 0
+    KeyBoard.onKeyDown(key => {
+      store.k1.set(key)
+      if (key === "d") store.i1.set(i1++)
+      if (key === "a") store.i1.set(i1--)
+      i1 = Math.max(0, Math.min(100, i1))
+    })
+    new Container(world, {
+      fit: { y: "bottom", x: "center" },
+      height: world.height * 0.2,
+      background: new LinearGradient(180, ["#fab", "#afb"])
+    }).tree(p => {
+      new ProgressBar(p, store.i1, {}, 100)
+      new Text(p, store.i1.compute(x => x + "%"))
+      new MeterBar(p, store.i1, { min: 0, max: 100, low: 22, high: 66, optimum: 80 })
+      // new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html" })
+      new Image(p, { src: "https://sagisawa.0am.jp/me.jpg" })
+    })
   }
   textSeqWorld();
   // new ConversationGameWidget(world, { heightPercent: 0.35 })//.text = "Hello World!";

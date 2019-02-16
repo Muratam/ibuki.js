@@ -1,4 +1,4 @@
-import { Box, BoxOption, DOM, DOMOption } from "../dom";
+import { Container, ContainerOption, DOM, DOMOption } from "../dom";
 import { Text, TextSeed } from "./text"
 import { Root, HasRootValueWidgetInterface } from "../root"
 export type InputType =
@@ -81,7 +81,7 @@ export class Input extends DOM implements HasRootValueWidgetInterface<string> {
   }
 }
 
-export interface FormOption extends BoxOption {
+export interface FormOption {
   // TODO: with submit(button?)
   action?: string
   method?: "get" | "post"
@@ -90,16 +90,16 @@ export interface FormOption extends BoxOption {
   name?: string
   target?: "_blank" | "_self" | "_parent" | "_top" | string
 }
-export class Form extends Box {
-  constructor(parent: Box, formOption: FormOption = {}, boxOption: BoxOption = {}) {
-    super(parent, { tag: "form", ...boxOption })
+export class Form extends Container {
+  constructor(parent: Container, formOption: FormOption = {}, containerOption: ContainerOption = {}) {
+    super(parent, { tag: "form", ...containerOption })
     this.setAttributes(formOption)
   }
 }
-export class FieldSet extends Box {
+export class FieldSet extends Container {
   // 間に fieldset / legend[] を生やす
-  constructor(parent: Box, boxOption: BoxOption = {}, legend: TextSeed) {
-    super(parent, { ...boxOption, tag: "fieldset" })
+  constructor(parent: Container, option: ContainerOption = {}, legend: TextSeed) {
+    super(parent, { ...option, tag: "fieldset" })
     Text.bloom(new DOM(this, "legend"), legend)
   }
 }
