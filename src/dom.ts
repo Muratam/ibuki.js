@@ -282,7 +282,7 @@ export class Box extends DOM {
   }
   private alreadyTransitionEventListenerRegisted = false
   private transitionFinished = true
-  private transitonQueue: TransitionQueueElement[] = []
+  private transitionQueue: TransitionQueueElement[] = []
   parseBoxOptionOnCurrentState(option: BoxOption): CSS.AnyStyle {
     return this.parseBoxOption(this.$parent, { ...this.currentTransform, ...option })
   }
@@ -290,7 +290,7 @@ export class Box extends DOM {
   // force をはずすと過去の登録したアニメーションは残る.
   // WARN: 全く同じ状態を経由すると transitionend は発火しない！
   to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, force = true) {
-    if (force) this.transitonQueue = []
+    if (force) this.transitionQueue = []
     this.applyOption(option);
     let style = this.parseBoxOptionOnCurrentState(option)
     let transition = CSS.parse(style);
@@ -304,8 +304,8 @@ export class Box extends DOM {
     if (!this.alreadyTransitionEventListenerRegisted) {
       this.$dom.addEventListener("transitionend", e => {
         this.transitionFinished = true
-        if (this.transitonQueue.length === 0) return;
-        let q = this.transitonQueue.shift()
+        if (this.transitionQueue.length === 0) return;
+        let q = this.transitionQueue.shift()
         this.to(q.option, q.duration, q.timingFunction, q.delay, false)
       })
     }
@@ -318,7 +318,12 @@ export class Box extends DOM {
       this.to(option, duration, timingFunction, delay, false)
       return
     }
-    this.transitonQueue.push({ option, duration, timingFunction, delay, })
+    let newElem = { option, duration, timingFunction, delay, }
+    if (this.transitionQueue.length > 0) {
+      let h1 = hash(this.transitionQueue[this.transitionQueue.length - 1]);
+      console.assert(h1 !== hash(newElem), "same transition is illegal")
+    }
+    this.transitionQueue.push(newElem)
     return this
   }
 }

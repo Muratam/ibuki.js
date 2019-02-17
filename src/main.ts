@@ -23,9 +23,6 @@ import { type } from "os";
 //      : isButtonを hover 時におこなう関数に変えたい. + click  +hover
 //      : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるとゲーム以外にも使える？
 //      : Scene<T extends DataStore> / input-assign
-
-// BUG  : transition : 複数回が途中からよばれない / 位置がおかしい
-
 class ThreeLoopView extends Box {
   private count = 0
   private boxes: Box[] = []
@@ -154,9 +151,7 @@ function threeBoxSampleScene(scene: Scene) {
           }, 1)
       if (clickCount % 2 === 0)
         this.to({ fit: { x: "left", y: "bottom" } }, 1)
-    }).update(function () {
-      console.log(this.currentTransform.pos)
-    })
+    }).update(function () { })
   }
 
   let loopView = new ThreeLoopView(scene, { height: scene.height * 0.7 }).add([
