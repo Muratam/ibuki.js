@@ -36,7 +36,7 @@ export interface InputOption extends DOMOption {
   label?: TextSeed// 間にlabelを生やす
 }
 export class Input extends DOM implements HasRootValueWidgetInterface<string> {
-  public readonly value: Root<string>
+  private value: Root<string>
   public readonly $dom: HTMLInputElement
   constructor(parent: DOM, inputOption: InputOption = {}) {
     if (inputOption.label) {

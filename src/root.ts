@@ -58,14 +58,9 @@ export class Root<T extends Primitive> {
     return result;
   }
 }
-export interface DataStore {
-  [key: string]: Root<any>
-}
-export interface HasValueWidgetInterface<T extends Primitive> {
-  value: T
-}
+export interface DataStore { [key: string]: Root<any> }
+export interface HasValueWidgetInterface<T extends Primitive> { value: T }
 export interface HasRootValueWidgetInterface<T extends Primitive> {
-  readonly value: Root<T>
   assign: (dst: Root<T>) => void
 }
 export function* range(a: number = null, b: number = null): IterableIterator<number> {

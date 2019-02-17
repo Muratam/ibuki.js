@@ -38,7 +38,9 @@ export type Event =
   "mouseout" | "mouseover" | "mouseup" |
   "mousemove" | "mousedown" | "mouseup"
 export type TextAlignType = "left" | "right" | "center" | "justify" | "justify-all" | "match-parent"
-export type TagSeed = string | ((p: DOM) => DOM) // そのタグで作成するか関数適用
+export type Seed<T> = ((p: T) => T)
+export type SeedWithOption<T, O> = ((parent: T, option: O) => T)
+export type TagSeed = string | Seed<DOM> // そのタグで作成するか関数適用
 // 固定のサイズのBoxで全てを表現
 export interface DOMOption {
   // そのコンテナ内部でfloatするときの位置(後続のDOMに影響を与えたい場合はnull)
@@ -64,6 +66,7 @@ export interface BoxOption extends DOMOption {
   isScrollable?: boolean
 }
 export interface ContainerOption extends BoxOption { }
+// 一番の基本要素,各々がちょうど一つのdomに対応する.
 export class DOM {
   public readonly $dom: HTMLElement = null;
   public readonly $DOMId: number;
@@ -147,13 +150,14 @@ export class DOM {
   }
   parseBoxOption(parent: Container | HTMLElement, option: BoxOption): CSS.AnyStyle {
     let result: CSS.AnyStyle = { ...option }
-    let parentWidth = parent instanceof Container ? parent.width : parent.scrollWidth
-    let parentHeight = parent instanceof Container ? parent.height : parent.scrollHeight
-    let parentScale = parent instanceof Container ? parent.scale : 1.0
+    let parentWidth = parent instanceof Container ? parent.width : result.width;
+    let parentHeight = parent instanceof Container ? parent.height : result.height;
     result.width = typeof result.width === "number" ? result.width : parentWidth
     result.height = typeof result.height === "number" ? result.height : parentHeight
-    let scale = (result.scale || 1.0) * parentScale
+    result.scale = result.scale || 1.0
+
     result.position = "absolute";
+    // pos と fit が設定されていれば,fit が優先される.
     if (option.pos) {
       result.top = option.pos.y;
       result.left = option.pos.x;
@@ -161,16 +165,16 @@ export class DOM {
     }
     if (option.fit) {
       if (option.fit.x === "right") {
-        result.left = parentWidth - result.width * scale
+        result.left = parentWidth - result.width * result.scale
       } else if (option.fit.x === "center") {
-        result.left = parentWidth / 2 - result.width * scale / 2
+        result.left = parentWidth / 2 - result.width * result.scale / 2
       } else {
         result.left = 0
       }
       if (option.fit.y === "bottom") {
-        result.top = parentHeight - result.height * scale
+        result.top = parentHeight - result.height * result.scale
       } else if (option.fit.y === "center") {
-        result.top = parentHeight / 2 - result.height * scale / 2
+        result.top = parentHeight / 2 - result.height * result.scale / 2
       } else {
         result.top = 0
       }
@@ -180,10 +184,9 @@ export class DOM {
       result.overflow = "scroll"
       delete result.isScrollable
     } else result.overflow = "hidden"
-    result.scale = scale
     result = {
       ...result,
-      ...CSS.transform({ scale: scale, origin: "0px 0px" })
+      ...CSS.transform({ scale: result.scale, origin: "0px 0px" })
     }
     return this.parseDOMOption(result);
   }
@@ -203,26 +206,23 @@ export interface RepeatAnimationOption {
   direction?: "normal" | "alternate"
   fillMode?: "none" | "formards" | "backwards" | "both"
 }
-interface AnimationFrameOption extends BoxOption {
-  percent?: number
-}
+interface AnimationFrameOption extends BoxOption { percent?: number }
 
 // 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
 export class Box extends DOM {
-  width: number = 0;
-  height: number = 0;
+  // 全てローカル値
+  width: number = null;
+  height: number = null;
   left: number = 0;
   top: number = 0;
-  scale: number = 1;
+  scale: number = 1; // WARN: transform-scale は scale のはず？
   isScrollable: boolean = false;
   public readonly $parent: Container;
   private alreadyRegistedAnimationIteration = false
   constructor(parent: Container | HTMLElement, option: BoxOption = {}) {
     super(parent, option)
-    let style = this.parseBoxOption(parent, option)
-    this.applyStyle(style)
-    this.updateTransform(style)
+    this.applyOption(option)
     if (option.draggable) this.registDrag()
   }
   registDrag() {
@@ -253,31 +253,37 @@ export class Box extends DOM {
     document.body.addEventListener("mouseleave", dragEnd)
     // document.body.addEventListener("touchleave", dragEnd)
   }
-  updateTransform(style: CSS.AnyStyle) {
+  applyOption(option: BoxOption) {
+    // option を読み込み,自身に(上書きができれば)適応
+    let style = this.parseBoxOptionOnCurrentState(option)
     this.isScrollable = style.isScrollable || style.overflow === "scroll" || false
-    this.width = style.width
-    this.height = style.height
-    this.left = style.left
-    this.top = style.top
-    this.scale = style.scale
+    this.width = style.width || this.width || this.$parent.width
+    this.height = style.height || this.height || this.$parent.height
+    this.scale = style.scale || this.scale || 1.0
+    this.left = style.left || this.left || 0
+    this.top = style.top || this.top || 0
+    this.applyStyle(style)
   }
-  private alreadyTransitionEventListenerRegisted = false
-  private transitionFinished = true
-  private transitonQueue: TransitionQueueElement[] = []
-  parseBoxOptionOnCurrentState(option: BoxOption): CSS.AnyStyle {
-    return this.parseBoxOption(this.$parent, {
+  get currentTransform(): BoxOption {
+    return {
       width: this.width,
       height: this.height,
       scale: this.scale,
       isScrollable: this.isScrollable,
       pos: { x: this.top, y: this.left },
-      ...option
-    })
+    }
+  }
+  private alreadyTransitionEventListenerRegisted = false
+  private transitionFinished = true
+  private transitonQueue: TransitionQueueElement[] = []
+  parseBoxOptionOnCurrentState(option: BoxOption): CSS.AnyStyle {
+    return this.parseBoxOption(this.$parent, { ...this.currentTransform, ...option })
   }
   // すぐに値を変更する(with transition)
   // force をはずすと過去の登録したアニメーションは残る.
   to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, force = true) {
     if (force) this.transitonQueue = []
+    this.applyOption(option);
     let style = this.parseBoxOptionOnCurrentState(option)
     let transition = CSS.parse(style);
     let results: string[] = []
@@ -285,7 +291,6 @@ export class Box extends DOM {
       results.push(`${key} ${duration}s ${timingFunction} ${delay}s `)
       this.$dom.style[key] = transition[key]
     }
-    this.updateTransform(style);
     this.$dom.style.transition = results.join(",")
     this.transitionFinished = false
     if (!this.alreadyTransitionEventListenerRegisted) {
@@ -311,7 +316,7 @@ export class Box extends DOM {
   static __animationMaxId: number = 0
   static __hashes: { [key: string]: string } = {}
   repeat(option: RepeatAnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
-    // WARN: もっとkeyframeを増やしたければ VA_ARGS的な感じでやる
+    // WARN: もっとkeyframeを増やしたければ VA_ARGS的な感じでできそう
     let src = b !== null ? a : {};
     let srcPercent = b !== null ? a.percent || "0%" : "0%"
     let dst = b !== null ? b : a;

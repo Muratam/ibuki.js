@@ -1,6 +1,6 @@
 import * as CSS from "./style";
 import { Color, ColorScheme, LinearGradient } from "./color";
-import { World, Container, Box, BoxOption } from "./dom";
+import { World, Container, Box, BoxOption, Seed, SeedWithOption, ContainerOption } from "./dom";
 import { Text, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
 import { FlexBox, Table } from "./widget/container"
@@ -9,44 +9,55 @@ import { KeyBoard } from "./keyboard"
 import { ProgressBar, MeterBar, IFrame, Image } from "./widget/media";
 import { FAIcon } from "./widget/external"
 
-// TODO: scene(destroy?) / effect / colorscheme bug
-// ext : vividjs / katex / markdown / live2d / graph(tree/chart) / svgjs / code
-//     : tips / click(hover) / media(image size bug(反映の形式を考慮))
-//     : bootstrap / webgl(?) / canvas / drag and drop / vue.js / react.js / jquery
-//     : a-href / table はみだし
-//     : コメント流れる
-//     : {scale / width / height } tree - flow
-// colorSchemeLib は色を決めるのに使う
-// isButton を hover時におこなう関数に変えたい.
-// width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるといいかんじっぽい？
+// fun  : scene(destroy?) / effect / move
+// ext  : vividjs / katex / markdown / live2d / graph(tree/chart) / svgjs / code
+//      : tips / bootstrap / vue.js / react.js / jquery / niconicocomment
+// bug  : media(image size bug(反映の形式を考慮))
+//      : {scale / width / height } tree - flow
+//      : colorScheme / table はみだし
+// impl : webgl(?) / canvas / drag and drop / a-href
+//      : colorSchemeLib
+//      : isButtonを hover 時におこなう関数に変えたい. + click  +hover
+//      : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるとゲーム以外にも使える？
 
-namespace Ibuki {
-  // export interface ConversationGameWidgetOption {
-  //   heightPercent: number,
-  //   colorScheme?: ColorScheme
-  // }
-  // export class ConversationGameWidget extends Container {
-  //   constructor(parent: Container, option: ConversationGameWidgetOption) {
-  //     let height = Math.floor(parent.height * option.heightPercent)
-  //     super(parent, {
-  //       height: height,
-  //       pos: { y: parent.height - height, x: 0 },
-  //       background: new LinearGradient("left", ["#8ab", "#000"])
-  //     });
-  //   }
-  // }
-  // new ConversationGameWidget(world, { heightPercent: 0.35 })//.text = "Hello World!";
-  //  {
-  //   let box = new Ibuki.DOM(world, {
-  //     border: { color: Color.parse("#0a0"), width: 10, style: "solid", radius: 10 },
-  //     // padding: 10,
-  //     // margin: 20,
-  //     height: 100,
-  //   });
-  //   box.$dom.innerText = "aaaaaa";
-  // }
-}
 namespace WorldExample {
+  // 中に要素を入れる場合はどんな形であれ Containerでないとだめ
+  class ThreeLoopView extends Container {
+    private count = 0
+    private boxes: Box[] = []
+    public readonly topThree: BoxOption[] = [{
+      scale: 0.2,
+      fit: { x: "right", y: "center" },
+      zIndex: 1
+    }, {
+      scale: 0.5,
+      fit: { x: "center", y: "center" },
+      zIndex: 2
+    }, {
+      scale: 0.2,
+      fit: { x: "left", y: "center" },
+      zIndex: 1
+    }, {
+      scale: 0.1,
+      fit: { x: "center", y: "center" },
+      zIndex: 0
+    },]
+    constructor(parent: Container, option: ContainerOption = {}) { super(parent, option) }
+    add(seed: SeedWithOption<Box, BoxOption>) {
+      let option = this.boxes.length < 3 ? this.topThree[this.boxes.length] : this.topThree[3]
+      this.boxes.push(seed(this, option))
+    }
+    turn(n: number) {
+      let pre = this.count;
+      this.count = (this.count + n + this.boxes.length) % this.boxes.length;
+      if (pre === this.count) return;
+      for (let i = 0; i < this.boxes.length; i++) {
+        let index = (i + this.count) % this.boxes.length
+        let option = index < 3 ? this.topThree[index] : this.topThree[3]
+        this.boxes[i].to(option)
+      }
+    }
+  }
   function createElem1(parent: Container, option: BoxOption, store: DataStore): Box {
     return new FlexBox(parent, {
       ...option,
@@ -116,7 +127,6 @@ namespace WorldExample {
         src: "https://www.openstreetmap.org/export/embed.html",
         width: p.width * 0.7, fit: { y: "top", x: "right" },
       }).repeat({ duration: 1 }, { width: p.width * 0.8, fit: { y: "top", x: "right" } });
-      new Image(p, { src: "https://sagisawa.0am.jp/me.jpg" })
     }).on("click", function () {
       clickCount++;
       if (clickCount % 2 === 1)
@@ -133,48 +143,30 @@ namespace WorldExample {
     })
   }
   function threeBoxWorld() {
-    // store:TODO:登録した順番で変わる可能性が高いのでマージをしたい(createElemの順番で変更されないように)
     let store: DataStore = {
       sec: Root.perFrame(10),
       pressedKey: new Root(""),
       posX: new Root(0),
       inputted: new Root(""),
     }
-    // position
-    let boxes: BoxOption[] = [{
-      scale: 0.2,
-      fit: { x: "right", y: "center" },
-      zIndex: 1
-    }, {
-      scale: 0.5,
-      fit: { x: "center", y: "center" },
-      zIndex: 10
-    }, {
-      scale: 0.2,
-      fit: { x: "left", y: "center" },
-      zIndex: 1
-    }]
-    // create world
     let world = new World()
-    let treeView = new Container(world, { height: world.height * 0.5 })
-
-    let e1 = createElem3(treeView, boxes[0], store)
-    let e2 = createElem2(treeView, boxes[1], store)
-    let e3 = createElem1(treeView, boxes[2], store)
+    let loopView = new ThreeLoopView(world, { height: world.height * 0.7 })
+    loopView.add((p, o) => createElem3(p, o, store))
+    loopView.add((p, o) => createElem2(p, o, store))
+    loopView.add((p, o) => createElem1(p, o, store))
+    loopView.add((p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }))
+    loopView.add((p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }))
+    loopView.add((p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }))
     let bottom = createElem4(world, {}, store)
-    // keyboard test
-    let i1 = 0
     KeyBoard.onKeyDown(key => {
       store.pressedKey.set(key)
-      let leftKey = "ArrowLeft"
-      let rightKey = "ArrowRight"
-      if (key === rightKey) store.posX.set(i1++)
-      if (key === leftKey) store.posX.set(i1--)
-      i1 = Math.max(0, Math.min(100, i1))
-      if (key !== rightKey && key !== leftKey) return;
-      e1.to(boxes[(i1 + 0) % 3])
-      e2.to(boxes[(i1 + 1) % 3])
-      e3.to(boxes[(i1 + 2) % 3])
+      if (key === "ArrowRight") {
+        store.posX.set((x: number) => x + 1)
+        loopView.turn(1)
+      } else if (key === "ArrowLeft") {
+        store.posX.set((x: number) => x - 1)
+        loopView.turn(-1)
+      }
     })
   }
   threeBoxWorld();
