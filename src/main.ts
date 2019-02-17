@@ -67,12 +67,13 @@ namespace WorldExample {
         p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
         [store.k1, "#000"],
       ])
-    ).startAnimation({
-      duration: 1, iterationCount: "infinite", direction: "alternate"
-    }, {
-        width: world.width * 0.8,
-        scale: 0.5,
-      });
+    )
+    // .startAnimation({
+    //   duration: 1, iterationCount: "infinite", direction: "alternate"
+    // }, {
+    //     width: world.width * 0.8,
+    //     scale: 0.5,
+    //   });
     let clickCount = 0;
     new FlexBox(world, {
       flexDirection: "column",
@@ -89,8 +90,8 @@ namespace WorldExample {
       new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, store.l1.to(t => t + "yade"), p.width * 0.5, 20) })
     }).on("click", function () {
       clickCount++;
-      if (clickCount === 1) this.to({ fit: { x: "right", y: "center" } }, 5)
-      if (clickCount === 2) this.to({ fit: { x: "left", y: "center" } }, 5)
+      if (clickCount === 1) this.to({ fit: { x: "right", y: "top" } }, 5)
+      if (clickCount === 2) this.to({ fit: { x: "left", y: "top" } }, 5)
     });
     new Table(world, {
       colorScheme: new ColorScheme("#fce", "#034"),

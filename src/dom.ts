@@ -156,92 +156,116 @@ export class DOM {
         result.left = parentWidth - result.width * scale
       } else if (option.fit.x === "center") {
         result.left = parentWidth / 2 - result.width * scale / 2
+      } else {
+        result.left = 0
       }
       if (option.fit.y === "bottom") {
         result.top = parentHeight - result.height * scale
       } else if (option.fit.y === "center") {
         result.top = parentHeight / 2 - result.height * scale / 2
+      } else {
+        result.top = 0
       }
+      console.log(result);
       delete result.fit
     }
     if (result.isScrollable) {
       result.overflow = "scroll"
       delete result.isScrollable
     } else result.overflow = "hidden"
-    if (result.scale) {
-      result = {
-        ...result,
-        ...CSS.transform({ scale: scale, origin: "0px 0px" })
-      }
-    } else { result.scale = scale }
+    result.scale = scale
+    result = {
+      ...result,
+      ...CSS.transform({ scale: scale, origin: "0px 0px" })
+    }
     return this.parseDOMOption(result);
   }
 }
 type TimingFunction = "ease" | "linear" | "ease-in" | "ease-out" | "ease-in-out"
-export interface AnimationOption {
-  duration?: number // s
-  timingFunction?: TimingFunction // cubic-bezier?
-  delay?: number // s
-  iterationCount?: number | "infinite"
-  direction?: "normal" | "alternate"
-  fillMode?: "none" | "formards" | "backwards" | "both"
-}
-// 固定のwidth / height を持つもの
-// 指定しなければ親と同じになる
-interface AnimationFrameOption extends BoxOption {
-  percent?: number
-}
+
 export class Box extends DOM {
-  // WARN: 以下の5属性は animation で 同期されない.要は初期値
-  public readonly width: number = 0;
-  public readonly height: number = 0;
-  public readonly left: number = 0;
-  public readonly top: number = 0;
-  public readonly scale: number = 1;
-  public readonly firstOption: BoxOption;
+  width: number = 0;
+  height: number = 0;
+  left: number = 0;
+  top: number = 0;
+  scale: number = 1;
   public readonly $parent: Container;
   private alreadyRegistedAnimationIteration = false
   constructor(parent: Container | HTMLElement, option: BoxOption = {}) {
     super(parent, option)
-    this.firstOption = option;
     let style = this.parseBoxOption(parent, option)
     this.applyStyle(style)
+    this.updateTransform(style)
+    if (option.draggable) this.registDrag()
+  }
+  registDrag() {
+    // WARN: いっぱい登録すると重そう / タッチ未対応
+    let x = 0;
+    let y = 0;
+    let dragState = 0
+    function dragStart(e: MouseEvent) {
+      // x = e.pageX - this.offsetLeft;
+      // y = e.pageY - this.offsetTop;
+
+      dragState++
+    }
+    let dragging = (e: MouseEvent) => {
+      if (dragState === 0) return;
+      console.log([e.pageX, e.pageY])
+      // this.left = e.pageX - x;
+      // this.top = e.pageY - y;
+    }
+    function dragEnd(e: MouseEvent) {
+      dragState = 0;
+    }
+    this.$dom.addEventListener("mousedown", dragStart)
+    // this.$dom.addEventListener("touchstart", dragStart)
+    document.body.addEventListener("mousemove", dragging)
+    // document.body.addEventListener("touchmove", dragging)
+    this.$dom.addEventListener("mouseup", dragEnd)
+    // this.$dom.addEventListener("touchend", dragEnd)
+    document.body.addEventListener("mouseleave", dragEnd)
+    // document.body.addEventListener("touchleave", dragEnd)
+  }
+  updateTransform(style: CSS.AnyStyle) {
     this.width = style.width
     this.height = style.height
     this.left = style.left
     this.top = style.top
     this.scale = style.scale
-    if (option.draggable) {
-      // WARN: いっぱい登録すると重そう / タッチ未対応
-      let x = 0;
-      let y = 0;
-      let dragState = 0
-      function dragStart(e: MouseEvent) {
-        // x = e.pageX - this.offsetLeft;
-        // y = e.pageY - this.offsetTop;
-
-        dragState++
-      }
-      let dragging = (e: MouseEvent) => {
-        if (dragState === 0) return;
-        console.log([e.pageX, e.pageY])
-        // this.left = e.pageX - x;
-        // this.top = e.pageY - y;
-      }
-      function dragEnd(e: MouseEvent) {
-        dragState = 0;
-      }
-      this.$dom.addEventListener("mousedown", dragStart)
-      // this.$dom.addEventListener("touchstart", dragStart)
-      document.body.addEventListener("mousemove", dragging)
-      // document.body.addEventListener("touchmove", dragging)
-      this.$dom.addEventListener("mouseup", dragEnd)
-      // this.$dom.addEventListener("touchend", dragEnd)
-      document.body.addEventListener("mouseleave", dragEnd)
-      // document.body.addEventListener("touchleave", dragEnd)
+  }
+  to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0) {
+    let style = this.parseBoxOption(this.$parent, {
+      width: this.width,
+      height: this.height,
+      scale: this.scale,
+      pos: { x: this.top, y: this.left },
+      ...option
+    })
+    let transition = CSS.parse(style);
+    let results: string[] = []
+    for (let key in transition) {
+      results.push(`${key} ${duration}s ${timingFunction} ${delay}s `)
+      this.$dom.style[key] = transition[key]
     }
+    this.updateTransform(style);
+    this.$dom.style.transition = results.join(",")
   }
   // 実は transition のほうがやりやすいのでは？
+  /*
+  export interface AnimationOption {
+    duration?: number // s
+    timingFunction?: TimingFunction // cubic-bezier?
+    delay?: number // s
+    iterationCount?: number | "infinite"
+    direction?: "normal" | "alternate"
+    fillMode?: "none" | "formards" | "backwards" | "both"
+  }
+  // 固定のwidth / height を持つもの
+  // 指定しなければ親と同じになる
+  interface AnimationFrameOption extends BoxOption {
+    percent?: number
+  }
   static __animationMaxId: number = 0
   static __hashes: { [key: string]: string } = {}
   startAnimation(option: AnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
@@ -282,6 +306,7 @@ export class Box extends DOM {
       fillMode: "both"
     }, option)
   }
+  */
 }
 // HTMLElement
 // DOMを子として持てる
