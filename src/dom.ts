@@ -1,7 +1,7 @@
 import { Color, Colors, ColorScheme } from "./color";
 import * as CSS from "./style";
 import * as hash from "object-hash";
-import { MayRoot, Root } from "./root";
+import { MayStore, Store, Primitive } from "./store";
 import { Updater, KeyBoard, GlobalCSS } from "./static"
 export interface Vec2 {
   x: number
@@ -70,12 +70,11 @@ export class DOM {
   public readonly $DOMId: number;
   $scene: Scene;
   public readonly $parent: DOM = null; // 移ることがある？
-  public get store(): DataStore { return this.$scene.$store }
   public update(fun: () => IterableIterator<boolean>) {
     this.$scene.$updater.regist(fun)
     return this
   }
-  public perFrame(step: number = 1, n: number = Infinity): Root<number> {
+  public perFrame(step: number = 1, n: number = Infinity): Store<number> {
     return this.$scene.$updater.perFrame(step, n)
   }
   private $children: DOM[] = [];
@@ -353,17 +352,25 @@ repeat(option: RepeatAnimationOption, a: AnimationFrameOption, b: AnimationFrame
 }
 */
 
-export interface DataStore { [key: string]: Root<any> }
 export class Scene extends Box {
   public readonly $updater = new Updater()
   public readonly $keyboard = new KeyBoard()
   public readonly $css = new GlobalCSS()
-  public readonly $store: DataStore = {}
+  public readonly $parent: Ibuki
   constructor(parent: Ibuki) {
     super(parent)
     this.$scene = this
   }
-  destroy() { this.$dom.remove(); }
+  destroy() {
+    this.$dom.remove();
+    this.$updater.destroy();
+    this.$css.destroy();
+    this.$keyboard.destroy();
+  }
+  gotoNextScene(seed: (scene: Scene) => any) {
+    this.destroy()
+    this.$parent.play(seed)
+  }
 }
 // 画面に自動でフィットするDOM/Sceneの全ての祖
 export class Ibuki extends Box {

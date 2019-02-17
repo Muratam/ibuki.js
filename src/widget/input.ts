@@ -1,6 +1,6 @@
 import { Box, BoxOption, DOM, DOMOption } from "../dom";
 import { Text, TextSeed } from "./text"
-import { Root, HasRootValueWidgetInterface } from "../root"
+import { Store, HasStoreValueWidgetInterface } from "../store"
 export type InputType =
   "password" | "search" | "text" | "textarea" | "select" |
   "date" | "email" | "tel" | "time" | "url" | "checkbox" | "radio" |
@@ -35,8 +35,8 @@ export interface InputOption extends DOMOption {
   list?: string[] | string // string[] の時は datalist が生える
   label?: TextSeed// 間にlabelを生やす
 }
-export class Input extends DOM implements HasRootValueWidgetInterface<string> {
-  private value: Root<string>
+export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
+  private value: Store<string>
   public readonly $dom: HTMLInputElement
   constructor(parent: DOM, inputOption: InputOption = {}) {
     if (inputOption.label) {
@@ -57,7 +57,7 @@ export class Input extends DOM implements HasRootValueWidgetInterface<string> {
         }
       }
     } else super(parent, "input");
-    this.value = new Root("")
+    this.value = new Store("")
     this.value.regist(r => this.$dom.setAttribute("value", r))
     this.$dom.addEventListener("change", () => {
       this.value.set(this.$dom.value)
@@ -67,7 +67,7 @@ export class Input extends DOM implements HasRootValueWidgetInterface<string> {
     })
     this.applyInputOption({ ...inputOption })
   }
-  public assign(dst: Root<string>) {
+  public assign(dst: Store<string>) {
     this.value.assign(dst)
     return this
   }

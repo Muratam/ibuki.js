@@ -1,5 +1,5 @@
 import * as CSS from "./style"
-import { Root } from "./root"
+import { Store } from "./store"
 // static っぽい機能を使う時はまとめて destroy できるように scene にわけたい
 
 export class GlobalCSS {
@@ -16,8 +16,9 @@ export class GlobalCSS {
     this.doms.push(dom)
     document.head.appendChild(dom)
   }
-  // TODO:
-  destroy() { }
+  destroy() {
+    for (let dom of this.doms) dom.remove();
+  }
 }
 const keyIDs = {
   'U+0008': 'BackSpace',
@@ -115,26 +116,34 @@ export class KeyBoard {
   private keyDowns: CallBack[] = [];
   private keyPresses: CallBack[] = [];
   private keyUps: CallBack[] = [];
+  private keyPress: (e: KeyboardEvent) => any
+  private keyDown: (e: KeyboardEvent) => any
+  private keyUp: (e: KeyboardEvent) => any
   onKeyDown(fun: CallBack) { this.keyDowns.push(fun) }
   onKeyPress(fun: CallBack) { this.keyPresses.push(fun) }
   onKeyUp(fun: CallBack) { this.keyUps.push(fun) }
   constructor() {
-    document.addEventListener('keypress', e => {
-      for (let k of this.keyPresses) k(e.key)
-    })
-    document.addEventListener('keydown', e => {
-      for (let k of this.keyDowns) k(e.key)
-    })
-    document.addEventListener('keyup', e => {
-      for (let k of this.keyUps) k(e.key)
-    })
+    this.keyPress = e => { for (let k of this.keyPresses) k(e.key) }
+    this.keyDown = e => { for (let k of this.keyDowns) k(e.key) }
+    this.keyUp = e => { for (let k of this.keyUps) k(e.key) }
+    document.addEventListener('keypress', this.keyPress)
+    document.addEventListener('keydown', this.keyDown)
+    document.addEventListener('keyup', this.keyUp)
   }
-
+  destroy() {
+    document.removeEventListener("keypress", this.keyPress)
+    document.removeEventListener("keydown", this.keyDown)
+    document.removeEventListener("keyup", this.keyUp)
+    this.keyDowns = []
+    this.keyPresses = []
+    this.keyUps = []
+  }
 }
 // 毎フレーム呼んでくれる
 export class Updater {
   private maxIndex: number = -1;
   private updateList: IterableIterator<boolean>[] = [];
+  private mRequestAnimationFrame: number;
   get registedNum(): number { return this.maxIndex }
   regist(fun: () => IterableIterator<boolean>) {
     this.maxIndex++;
@@ -151,8 +160,8 @@ export class Updater {
     requestAnimationFrame(this.applyUpdateList.bind(this));
   }
   // 正確な時間を測るのには不向き
-  perFrame(step: number = 1, n: number = Infinity): Root<number> {
-    let result = new Root<number>(0)
+  perFrame(step: number = 1, n: number = Infinity): Store<number> {
+    let result = new Store<number>(0)
     this.regist(
       function* () {
         let i = 0
@@ -165,5 +174,11 @@ export class Updater {
     )
     return result;
   }
-  constructor() { requestAnimationFrame(this.applyUpdateList.bind(this)); }
+  destroy() {
+    this.updateList = []
+    cancelAnimationFrame(this.mRequestAnimationFrame)
+  }
+  constructor() {
+    this.mRequestAnimationFrame = requestAnimationFrame(this.applyUpdateList.bind(this));
+  }
 }

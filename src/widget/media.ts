@@ -1,9 +1,9 @@
 import { DOM, DOMOption, BoxOption, Box } from "../dom";
-import { Root, MayRoot, assign } from "../root";
+import { Store, MayStore, assign } from "../store";
 // MEDIA :: audio / img / video
 export class ProgressBar extends DOM {
   public readonly $dom: HTMLProgressElement
-  constructor(parent: DOM, progress: MayRoot<number>, option: DOMOption = {}, max: number = 1) {
+  constructor(parent: DOM, progress: MayStore<number>, option: DOMOption = {}, max: number = 1) {
     super(parent, { ...option, tag: "progress" })
     assign(progress, x => this.$dom.value = x)
     this.$dom.max = max;
@@ -18,7 +18,7 @@ export interface MeterBarOption extends DOMOption {
 }
 export class MeterBar extends DOM {
   public readonly $dom: HTMLMeterElement
-  constructor(parent: DOM, value: MayRoot<number>, option: MeterBarOption = {}) {
+  constructor(parent: DOM, value: MayStore<number>, option: MeterBarOption = {}) {
     super(parent, { ...option, tag: "meter" })
     assign(value, x => this.$dom.value = x)
     if (option.min) this.$dom.min = option.min

@@ -1,7 +1,6 @@
 import { Color } from "../color";
 import { DOM, DOMOption } from "../dom";
-import { MayRoot, assign } from "../root"
-import { HasValueWidgetInterface, Root } from "../root";
+import { MayStore, assign, HasValueWidgetInterface, Store } from "../store";
 export interface TextOption extends DOMOption {
   size?: number
   fontName?: string
@@ -10,7 +9,7 @@ export interface TextOption extends DOMOption {
   tag?: "span" | "code" | "pre" | "marquee" | "div"
   edge?: { color: Color, width: number }
 }
-export type TextSeed = MayRoot<string> | ((p: DOM) => DOM) // そのtextで作成するか関数適応
+export type TextSeed = MayStore<string> | ((p: DOM) => DOM) // そのtextで作成するか関数適応
 export class Text extends DOM implements HasValueWidgetInterface<string> {
   private $text: string;
   get value(): string { return this.$text; }
@@ -18,7 +17,7 @@ export class Text extends DOM implements HasValueWidgetInterface<string> {
     this.$text = val.replace(" ", '\u00a0');
     this.$dom.innerText = this.$text;
   }
-  constructor(parent: DOM, text: MayRoot<string>, option: TextOption = {}) {
+  constructor(parent: DOM, text: MayStore<string>, option: TextOption = {}) {
     super(parent, option.tag || "span")
     assign(text, t => this.value = t)
     this.applyStyle({
@@ -33,17 +32,17 @@ export class Text extends DOM implements HasValueWidgetInterface<string> {
   }
   static bloom(parent: DOM, seed: TextSeed): DOM {
     if (typeof seed === "string") return new Text(parent, seed)
-    if (seed instanceof Root) return new Text(parent, seed)
+    if (seed instanceof Store) return new Text(parent, seed)
     return seed(parent)
   }
 }
 export class FixedSizeText extends Text {
-  constructor(parent: DOM, text: MayRoot<string>, width: number, height: number, textOption: TextOption = {}) {
+  constructor(parent: DOM, text: MayStore<string>, width: number, height: number, textOption: TextOption = {}) {
     super(parent, text, { tag: "div", ...textOption })
     this.applyStyle({ width: width, height: height, display: "inline-block" })
   }
 }
-type TextSequenceElem = [MayRoot<string>, TextOption | string] | TextSeed;
+type TextSequenceElem = [MayStore<string>, TextOption | string] | TextSeed;
 export class TextSequence extends DOM {
   private currentOption: TextOption;
   constructor(parent: DOM, texts: TextSequenceElem[]) {
@@ -54,7 +53,7 @@ export class TextSequence extends DOM {
   add(texts: TextSequenceElem[]) {
     for (let elem of texts) {
       if (typeof elem === "function") elem(this)
-      else if (typeof elem === "string" || elem instanceof Root) new Text(this, elem, this.currentOption)
+      else if (typeof elem === "string" || elem instanceof Store) new Text(this, elem, this.currentOption)
       else {
         let [text, option] = elem;
         if (typeof option === "string")
