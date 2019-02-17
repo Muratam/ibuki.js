@@ -67,6 +67,10 @@ export class Input extends DOM implements HasRootValueWidgetInterface<string> {
     })
     this.applyInputOption({ ...inputOption })
   }
+  public assign(dst: Root<string>) {
+    this.value.assign(dst)
+    return this
+  }
   private applyInputOption(option: InputOption) {
     if (typeof option.autocomplete === "boolean")
       option.autocomplete = option.autocomplete ? "on" : "off"

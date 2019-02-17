@@ -31,15 +31,10 @@ export class Root<T extends Primitive> {
     return a;
   }
 
-  merge(target: Root<T>): Root<T> {
-    let result = new Root<T>(this.data);
-    for (let r of this.registed) result.regist(r)
-    for (let r of target.registed) result.regist(r)
+  assign(dst: Root<T>) {
+    for (let r of this.registed) dst.regist(r)
     this.registed = [];
-    target.registed = [];
-    this.regist((now: T) => { result.set(now) })
-    target.regist((now: T) => { result.set(now) })
-    return result;
+    this.regist((now: T) => { dst.set(now) })
   }
   to<S extends Primitive>(func: (t: T) => S): Root<S> {
     let currentComputed = func(this.data);
@@ -71,6 +66,7 @@ export interface HasValueWidgetInterface<T extends Primitive> {
 }
 export interface HasRootValueWidgetInterface<T extends Primitive> {
   readonly value: Root<T>
+  assign: (dst: Root<T>) => void
 }
 export function* range(a: number = null, b: number = null): IterableIterator<number> {
   let i = b === null ? 0 : a === null ? Infinity : a;

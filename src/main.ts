@@ -12,12 +12,13 @@ import { FAIcon } from "./widget/external"
 // TODO: scene(destroy?) / effect / colorscheme bug
 // ext : vividjs / katex / markdown / live2d / graph(tree/chart) / svgjs / code
 //     : tips / click(hover) / media(image size bug(反映の形式を考慮))
-//     : bootstrap / webgl(?) / canvas / drag and drop
+//     : bootstrap / webgl(?) / canvas / drag and drop / vue.js / react.js / jquery
 //     : a-href / table はみだし
 //     : コメント流れる
 //     : {scale / width / height } tree - flow
 // colorSchemeLib は色を決めるのに使う
 // isButton を hover時におこなう関数に変えたい.
+// width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるといいかんじっぽい？
 
 namespace Ibuki {
   // export interface ConversationGameWidgetOption {
@@ -56,7 +57,7 @@ namespace WorldExample {
       fontSize: 100,
       isScrollable: true
     }).tree(p => {
-      store.inputted = new Input(p, { type: "text", size: 10, label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.5, 20) }).value;
+      new Input(p, { type: "text", size: 10, label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.5, 20) }).assign(store.inputted)
       new Input(p, { type: "select", options: ["C#", "C++", "js"], label: p2 => new FixedSizeText(p2, "language : ", p.width * 0.5, 20) })
       new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, store.inputted.to(t => t + "yade"), p.width * 0.5, 20) })
     });
@@ -157,9 +158,9 @@ namespace WorldExample {
     let world = new World()
     let treeView = new Container(world, { height: world.height * 0.5 })
 
-    let e1 = createElem1(treeView, boxes[0], store)
+    let e1 = createElem3(treeView, boxes[0], store)
     let e2 = createElem2(treeView, boxes[1], store)
-    let e3 = createElem3(treeView, boxes[2], store)
+    let e3 = createElem1(treeView, boxes[2], store)
     let bottom = createElem4(world, {}, store)
     // keyboard test
     let i1 = 0
