@@ -39,7 +39,7 @@ namespace WorldExample {
   function textSeqWorld() {
     let store: DataStore = {}
     store.n1 = Root.perFrame(10)
-    store.k1 = new Root("")
+    store.k1 = new Root<string>("")
     let world = new World()
     let center = new Container(world, {
       // border: { width: 10 },

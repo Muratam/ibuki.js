@@ -1,22 +1,24 @@
 import { DOM } from "./dom"
 // 自分が変更すると自分に関わったものを全て変更させる
-type RootRegistClass<T> =
+type Primitive = string | number | boolean
+type RootRegistClass<T extends Primitive> =
   ((root: T) => any) | HasValueWidgetInterface<T>
-export type MayRoot<T> = Root<T> | T
-export function assign<T>(may: MayRoot<T>, func: ((t: T) => any)) {
+export type MayRoot<T extends Primitive> = Root<T> | T
+export function assign<T extends Primitive>(may: MayRoot<T>, func: ((t: T) => any)) {
   if (may instanceof Root) may.regist(func)
   else func(may)
 }
-export class Root<T> {
+export class Root<T extends Primitive> {
   private data: T;
   private registed: ((root: T) => any)[] = []
   constructor(initialValue: T) {
     this.data = initialValue;
   }
-  set(val: T) {
-    if (this.data === val) return;
-    this.data = val;
-    for (let r of this.registed) r(val)
+  set(val: T | ((now: T) => T)) {
+    let v = typeof val === "function" ? val(this.data) : val;
+    if (this.data === v) return;
+    this.data = v;
+    for (let r of this.registed) r(v)
   }
   regist(a: RootRegistClass<T>) {
     if (typeof a === "function") {
@@ -28,7 +30,7 @@ export class Root<T> {
     this.regist(a)
     return a;
   }
-  compute<S>(func: (t: T) => S): Root<S> {
+  compute<S extends Primitive>(func: (t: T) => S): Root<S> {
     let currentComputed = func(this.data);
     let result = new Root<S>(currentComputed);
     this.regist(t => { result.set(func(t)) })
@@ -36,7 +38,7 @@ export class Root<T> {
   }
   // 正確な時間を測るのには不向き
   static perFrame(step: number = 1, n: number = Infinity): Root<number> {
-    let result = new Root(0)
+    let result = new Root<number>(0)
     Updator.regist(
       function* () {
         let i = 0
@@ -50,11 +52,13 @@ export class Root<T> {
     return result;
   }
 }
-export interface DataStore { [key: string]: Root<any> }
-export interface HasValueWidgetInterface<T> {
+export interface DataStore {
+  [key: string]: Root<any>
+}
+export interface HasValueWidgetInterface<T extends Primitive> {
   value: T
 }
-export interface HasRootValueWidgetInterface<T> {
+export interface HasRootValueWidgetInterface<T extends Primitive> {
   readonly value: Root<T>
 }
 export function* range(a: number = null, b: number = null): IterableIterator<number> {
