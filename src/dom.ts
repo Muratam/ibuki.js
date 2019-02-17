@@ -131,7 +131,16 @@ export class DOM {
       let val = normalized[key]
       if (key === "transform") {
         let pre = this.$dom.style[key] || ""
-        this.$dom.style[key] = pre + " " + val
+        let pres = (pre + " " + val).split(" ")
+        let dict = {}
+        for (let p of pres) {
+          let [key, val] = p.split("(")
+          if (key === "") continue
+          dict[key] = "(" + val
+        }
+        let str = ""
+        for (let k in dict) str += ` ${k}${dict[k]} `
+        this.$dom.style[key] = str
       } else this.$dom.style[key] = val;
     }
     return this;
@@ -238,10 +247,9 @@ export class Box extends DOM {
   constructor(parent: Box | HTMLElement, option: BoxOption = {}) {
     super(parent, option)
     this.applyOption(option)
-    if (option.draggable) this.registDrag()
   }
   registDrag() {
-    // WARN: いっぱい登録すると重そう / タッチ未対応
+    // WARN: いっぱい登録すると重そう / タッチ未対応 / regist <-> remove できるようにしたい
     let x = 0;
     let y = 0;
     let dragState = 0
@@ -287,6 +295,8 @@ export class Box extends DOM {
     apply("left", 0)
     apply("top", 0)
     this.applyStyle(style)
+    if (option.draggable) this.registDrag()
+    return this
   }
   get currentTransform(): BoxOption {
     return {

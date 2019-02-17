@@ -8,12 +8,13 @@ import { toStore, Store, HasStoreValueWidgetInterface, assign } from "./store"
 import { ProgressBar, MeterBar, IFrame, Image } from "./widget/media";
 import { FAIcon } from "./widget/external"
 import { type } from "os";
-// speed: 間にBoxを挟むと悪くない感じに動いてくれるが,遅い...(でも後に回したいから放置)
+// todo : 間にBoxを挟むと悪くない感じに動いてくれるが,遅い...(でも後に回したいから放置)
+//      : animation と transition が競合した場合,不整合なことが起きるかもしれない(けどそこまで変わらないといえば変わらない)
 // fun  : effect / move parent
 //      : big inputbox(selectbox) / progress bar
 // ext  : vividjs / katex / markdown / live2d / graph(tree/chart) / svgjs / code
 //      : tips / bootstrap / vue.js / react.js / jquery / niconicocomment
-// bug  : media(image size bug(style/attrs)) / rotation bug
+// bug  : media(image size bug(style/attrs)) / rotation bug / resize bug
 // impl : webgl(?) / canvas / drag and drop / a-href
 //      : colorSchemeLib
 //      : isButtonを hover 時におこなう関数に変えたい. + click  +hover
@@ -59,9 +60,11 @@ class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> 
       return this
     }
     let option = this.boxes.length < this.tops.length - 1 ? this.tops[this.boxes.length] : this.tops[this.tops.length - 1]
-    let box = new Box(this, { ...option, ...this.childrenInitialOption })
-    seed(box)
+    let box = seed(this).applyOption({ ...option, ...this.childrenInitialOption })
     this.boxes.push(box)
+    // let box = new Box(this, { ...option, ...this.childrenInitialOption })
+    // seed(box)
+    // this.boxes.push(box)
     return this
   }
   turn(n: number) {
@@ -71,7 +74,7 @@ class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> 
     for (let i = 0; i < this.boxes.length; i++) {
       let index = (i + this.$count) % this.boxes.length
       let option = index < this.tops.length - 1 ? this.tops[index] : this.tops[3]
-      this.boxes[i].to(option)
+      this.boxes[i].to({ ...option, ...this.childrenInitialOption })
     }
     this.count.set(this.$count)
     return this
