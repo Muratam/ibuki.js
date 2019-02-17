@@ -1,10 +1,10 @@
 import { library, icon } from '@fortawesome/fontawesome-svg-core'
 import * as FA from '@fortawesome/free-solid-svg-icons'
-import { Color } from "../color";
+import { Color, ColorScheme } from "../color";
 import { DOM, DOMOption } from "../dom";
 export interface FAIconOption extends DOMOption {
   size?: number,
-  color?: Color
+  color?: Color | ColorScheme
 }
 export class FAIcon extends DOM {
   constructor(parent: DOM, name: string, option?: FAIconOption) {

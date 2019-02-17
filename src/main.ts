@@ -4,34 +4,36 @@ import { World, Container } from "./dom";
 import { Text, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
 import { FlexBox, Table } from "./widget/container"
-import { Root, range, DataStore, Updator } from "./root"
+import { Root, DataStore, Updator } from "./root"
 import { KeyBoard } from "./keyboard"
 import { ProgressBar, MeterBar, IFrame, Image } from "./widget/media";
 import { FAIcon } from "./widget/external"
 import * as _ from "lodash";
 
-// TODO: animation / tween / scene / effect
-// ext : vividjs / katex / markdown / live2d / graph(tree/chart)
-//     : ColorScheme / tips / click(hover)
+// TODO: scene(destroy?) / effect
+// ext : vividjs / katex / markdown / live2d / graph(tree/chart) / svgjs / code
+//     : ColorScheme(@DOMOption) / tips / click(hover)
 //     : bootstrap / webgl(?) / canvas
-//     : a / table はみだし
-
+//     : a-href / table はみだし
+//     : コメント流れる
+// colorSchemeLib は色を決めるのに使う
+// colorScheme(delete <- DOM.Color/backgoundColor) -> animation
 
 namespace Ibuki {
-  export interface ConversationGameWidgetOption {
-    heightPercent: number,
-    colorScheme?: ColorScheme
-  }
-  export class ConversationGameWidget extends Container {
-    constructor(parent: Container, option: ConversationGameWidgetOption) {
-      let height = Math.floor(parent.height * option.heightPercent)
-      super(parent, {
-        height: height,
-        pos: { y: parent.height - height, x: 0 },
-        background: new LinearGradient("left", ["#8ab", "#000"])
-      });
-    }
-  }
+  // export interface ConversationGameWidgetOption {
+  //   heightPercent: number,
+  //   colorScheme?: ColorScheme
+  // }
+  // export class ConversationGameWidget extends Container {
+  //   constructor(parent: Container, option: ConversationGameWidgetOption) {
+  //     let height = Math.floor(parent.height * option.heightPercent)
+  //     super(parent, {
+  //       height: height,
+  //       pos: { y: parent.height - height, x: 0 },
+  //       background: new LinearGradient("left", ["#8ab", "#000"])
+  //     });
+  //   }
+  // }
 }
 namespace WorldExample {
   function textSeqWorld() {
@@ -40,7 +42,8 @@ namespace WorldExample {
     store.k1 = new Root("")
     let world = new World()
     let center = new Container(world, {
-      background: Color.parse("#fce"),
+      // border: { width: 10 },
+      colorScheme: new ColorScheme("#fce", "#876"),
       isButton: true,
       scale: 0.5,
       fontSize: 100,
@@ -55,11 +58,16 @@ namespace WorldExample {
         p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
         [store.k1, "#000"],
       ])
-    );
+    ).startAnimation({
+      duration: 1, iterationCount: "infinite", direction: "alternate"
+    }, {
+        width: world.width * 0.8,
+        scale: 0.5,
+      });
     new FlexBox(world, {
       flexDirection: "column",
       alignItems: "flex-start",
-      background: Color.parse("#fab"),
+      colorScheme: new ColorScheme("#fce", "#034"),
       scale: 0.2,
       fontSize: 100,
       draggable: true,
@@ -69,23 +77,24 @@ namespace WorldExample {
       store.l1 = new Input(p, { type: "text", size: 10, label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.5, 20) }).value
       new Input(p, { type: "select", options: ["C#", "C++", "js"], label: p2 => new FixedSizeText(p2, "language : ", p.width * 0.5, 20) })
       new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, store.l1.compute(t => t + "yade"), p.width * 0.5, 20) })
-    }).on("click", () => { console.log(1); });
+    }).on("click", function () {
+    });
     new Table(world, {
-      background: Color.parse("#fce"),
+      colorScheme: new ColorScheme("#fce", "#034"),
       scale: 0.2,
       fontSize: 100,
       fit: { x: "left", y: "center" },
       isScrollable: true,
     }, (x, y) => {
-      if (y % 2 === 0) return { background: Color.parse("#fff") }
-      return { background: Color.parse("#888") }
+      if (y % 2 === 0) return { colorScheme: new ColorScheme("#fce", "#034") }
+      return { colorScheme: new ColorScheme("#fce", "#034") }
     }).addContents([
       ["iikanji", store.l1, "year"],
-      ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
-      ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
-      ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
-      ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
-      ["iikanji", p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }), "year"],
+      ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
+      ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
+      ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
+      ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
+      ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
       ["iikanji", store.l1, "year"],
     ])
     store.i1 = new Root(0)
@@ -99,12 +108,15 @@ namespace WorldExample {
     new Container(world, {
       fit: { y: "bottom", x: "center" },
       height: world.height * 0.2,
-      background: new LinearGradient(180, ["#fab", "#afb"])
+      colorScheme: new ColorScheme("#fce", "#034"),
     }).tree(p => {
       new ProgressBar(p, store.i1, {}, 100)
       new Text(p, store.i1.compute(x => x + "%"))
       new MeterBar(p, store.i1, { min: 0, max: 100, low: 22, high: 66, optimum: 80 })
-      // new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html" })
+      new IFrame(p, {
+        src: "https://www.openstreetmap.org/export/embed.html",
+        width: p.width * 0.7, fit: { y: "top", x: "right" },
+      })
       new Image(p, { src: "https://sagisawa.0am.jp/me.jpg" })
     })
   }

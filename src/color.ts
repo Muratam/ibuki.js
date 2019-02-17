@@ -31,7 +31,7 @@ export type DirectionDegree = number | "bottom" | "top" | "right" | "left"
 export class LinearGradient {
   public readonly directionDegree: number;
   public readonly colors: Color[];
-  constructor(directionDegree: DirectionDegree, colors: (string | Color)[]) {
+  constructor(colors: (string | Color)[], directionDegree: DirectionDegree = 0) {
     if (typeof directionDegree === "string")
       this.directionDegree = { bottom: 180, top: 0, right: 90, left: 270 }[directionDegree];
     else
@@ -45,9 +45,23 @@ export class LinearGradient {
       })`;
   }
 }
-export interface ColorScheme {
-  baseColor?: Color // 70%
-  mainColor?: Color // 25%
-  accentColor?: Color // 5%
-  palette?: Color[] // others
+type Colors = Color | LinearGradient | string
+export class ColorScheme {
+  baseColor?: Color | LinearGradient // 70%
+  mainColor?: Color | LinearGradient// 25%
+  accentColor?: Color | LinearGradient// 5%
+  static parse(color: Colors): Color | LinearGradient {
+    if (color instanceof Color) return color
+    if (color instanceof LinearGradient) return color
+    let colors = color.split("-")
+    if (colors.length === 1) return Color.parse(color)
+    return new LinearGradient(colors.map(x => Color.parse(x)))
+  }
+  constructor(baseColor: Colors = "#fff", mainColor: Colors = "#000", accentColor: Colors = "") {
+    this.baseColor = ColorScheme.parse(baseColor)
+    this.mainColor = ColorScheme.parse(mainColor)
+    if (accentColor === "") this.accentColor = this.baseColor
+    else this.accentColor = ColorScheme.parse(accentColor)
+  }
+  toCSS(): string { return this.baseColor.toCSS() }
 }

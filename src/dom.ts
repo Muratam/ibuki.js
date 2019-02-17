@@ -1,4 +1,4 @@
-import { Color, LinearGradient } from "./color";
+import { Color, LinearGradient, ColorScheme } from "./color";
 import * as CSS from "./style";
 import { MayRoot } from "./root";
 
@@ -12,11 +12,13 @@ export interface Rect {
   left?: number
   right?: number
 }
+type BorderStyle = "none" | "hidden" | "solid" | "double" |
+  "groove" | "ridge" | "inset" | "outset" | "dashed" | "dotted"
 export interface BorderContentType {
   color?: Color,
   width?: number,
   radius?: number,
-  style: "none" | "hidden" | "solid" | "double" | "groove" | "ridge" | "inset" | "outset" | "dashed" | "dotted"
+  style: BorderStyle
 }
 export interface Border {
   top?: BorderContentType
@@ -38,16 +40,18 @@ export interface DOMOption {
   // そのコンテナ内部でfloatするときの位置(後続のDOMに影響を与えたい場合はnull)
   tag?: string
   fontSize?: number
-  background?: Color | LinearGradient
+  colorScheme?: ColorScheme
   margin?: Rect | number
   padding?: Rect | number
+  opacity?: number
   border?: Border | BorderContentType
   textAlign?: TextAlignType
   isButton?: boolean
 }
+export type FitType = { x: "left" | "center" | "right", y: "top" | "center" | "bottom" }
 export interface BoxOption extends DOMOption {
   pos?: Vec2
-  fit?: { x: "left" | "center" | "right", y: "top" | "center" | "bottom" }
+  fit?: FitType
   draggable?: boolean // ドラッグできるか？
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
@@ -59,7 +63,7 @@ export class DOM {
   public readonly $dom: HTMLElement = null;
   public readonly $DOMId: number;
   public readonly $world: World;
-  public readonly $parent: DOM; // 移ることがある？
+  public readonly $parent: DOM = null; // 移ることがある？
   private $children: DOM[] = [];
   private $destroyed: boolean = false;
   public get destroyed(): boolean { return this.$destroyed; }
@@ -79,7 +83,7 @@ export class DOM {
     } else if (this instanceof World) {
       parent.appendChild(this.$dom);
       this.$world = this;
-      this.$parent = this;
+      // world has no parent
     } else console.assert(false, "now root Box need to be WorldBox class")
     if (typeof option !== "string") this.applyStyle(this.parseDOMOption(option))
   }
@@ -87,16 +91,20 @@ export class DOM {
     if (typeof seed === "string") return new DOM(this, seed)
     return seed(this)
   }
-  on(name: Event, callback: () => void, bind = false): DOM {
-    if (bind) this.$dom.addEventListener(name, callback.bind(this.$dom))
+  on(name: Event, callback: (this: this) => void, bind = true) {
+    if (bind) this.$dom.addEventListener(name, callback.bind(this))
     else this.$dom.addEventListener(name, callback)
-    return this
+    return this;
   }
   destroy() {
     this.$dom.remove();
     this.$destroyed = true;
   }
-  applyStyle(style: { [key: string]: any }): DOM {
+  applyStyle(style: { [key: string]: any }) {
+    if (style.isButton) {
+      this.on("mouseover", () => { this.$dom.style.cursor = "pointer" })
+      this.on("mouseout", () => { this.$dom.style.cursor = "default" })
+    }
     let normalized = CSS.parse(style);
     for (let key in normalized) {
       let val = normalized[key]
@@ -104,7 +112,8 @@ export class DOM {
     }
     return this;
   }
-  setAttributes(attrs: { [key: string]: any }): DOM {
+  tree(func: (parent: this) => any) { func(this); return this; }
+  setAttributes(attrs: { [key: string]: any }) {
     for (let key in attrs) {
       let val = attrs[key]
       if (typeof val === "boolean") {
@@ -118,10 +127,11 @@ export class DOM {
   }
   parseDOMOption(option: DOMOption): CSS.AnyStyle {
     let style: CSS.AnyStyle = { ...option };
-    if (option.isButton) {
-      this.on("mouseover", () => { this.$dom.style.cursor = "pointer" })
-      this.on("mouseout", () => { this.$dom.style.cursor = "default" })
-      delete style.isButton
+    if (option.colorScheme) {
+      style.backgroundColor = option.colorScheme.baseColor
+      style.color = option.colorScheme.mainColor
+      style.borderColor = option.colorScheme.accentColor
+      delete style.colorScheme
     }
     delete style.tag
     return style
@@ -131,12 +141,10 @@ export class DOM {
     let parentWidth = parent instanceof Container ? parent.width : parent.scrollWidth
     let parentHeight = parent instanceof Container ? parent.height : parent.scrollHeight
     let parentScale = parent instanceof Container ? parent.scale : 1.0
-    result.width = result.width || parentWidth
-    result.height = result.height || parentHeight
+    result.width = typeof result.width === "number" ? result.width : parentWidth
+    result.height = typeof result.height === "number" ? result.height : parentHeight
     let scale = (result.scale || 1.0) * parentScale
     result.position = "absolute";
-    result.top = 0
-    result.left = 0
     if (option.pos) {
       result.top = option.pos.y;
       result.left = option.pos.x;
@@ -165,26 +173,41 @@ export class DOM {
         ...CSS.transform({ scale: scale, origin: "0px 0px" })
       }
     } else { result.scale = scale }
-    return result;
+    return this.parseDOMOption(result);
   }
+}
+type TimingFunction = "ease" | "linear" | "ease-in" | "ease-out" | "ease-in-out"
+export interface AnimationOption {
+  duration?: number // s
+  timingFunction?: TimingFunction // cubic-bezier?
+  delay?: number // s
+  iterationCount?: number | "infinite"
+  direction?: "normal" | "alternate"
 }
 // 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
+interface AnimationFrameOption extends BoxOption {
+  percent?: number
+}
 export class Box extends DOM {
-  private $width: number = 0;
-  private $height: number = 0;
-  private $left: number = 0;
-  private $top: number = 0;
-  private $scale: number = 1;
+  // WARN: 以下の5属性は animation で 同期されない.要は初期値
+  public readonly width: number = 0;
+  public readonly height: number = 0;
+  public readonly left: number = 0;
+  public readonly top: number = 0;
+  public readonly scale: number = 1;
+  public readonly firstOption: BoxOption;
+  public readonly $parent: Container;
   constructor(parent: Container | HTMLElement, option: BoxOption = {}) {
     super(parent, option)
+    this.firstOption = option;
     let style = this.parseBoxOption(parent, option)
     this.applyStyle(style)
-    this.$width = style.width
-    this.$height = style.height
-    this.$left = style.left
-    this.$top = style.top
-    this.$scale = style.scale
+    this.width = style.width
+    this.height = style.height
+    this.left = style.left
+    this.top = style.top
+    this.scale = style.scale
     if (option.draggable) {
       // WARN: いっぱい登録すると重そう / タッチ未対応
       let x = 0;
@@ -199,8 +222,8 @@ export class Box extends DOM {
       let dragging = (e: MouseEvent) => {
         if (dragState === 0) return;
         console.log([e.pageX, e.pageY])
-        this.left = e.pageX - x;
-        this.top = e.pageY - y;
+        // this.left = e.pageX - x;
+        // this.top = e.pageY - y;
       }
       function dragEnd(e: MouseEvent) {
         dragState = 0;
@@ -215,32 +238,32 @@ export class Box extends DOM {
       // document.body.addEventListener("touchleave", dragEnd)
     }
   }
-  get top(): number { return this.$top }
-  set top(val: number) {
-    this.$top = val;
-    this.applyStyle({ top: val })
+  static __animationMaxId: number = 0
+  startAnimation(option: AnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
+    // WARN: もっとkeyframeを増やしたければ VA_ARGS的な感じでやる
+    let src = b !== null ? a : {};
+    let srcPercent = b !== null ? a.percent || "0%" : "0%"
+    let dst = b !== null ? b : a;
+    let dstPercent = dst.percent || "100%"
+    let name = `ibuki-animation-${Box.__animationMaxId++}`;
+    let srcCSS = CSS.flatten(CSS.parse(this.parseBoxOption(this.$parent, src)));
+    let dstCSS = CSS.flatten(CSS.parse(this.parseBoxOption(this.$parent, dst)));
+    CSS.Global.regist(`@keyframes ${name} {
+      ${srcPercent} {${srcCSS}}
+      ${dstPercent} {${dstCSS}}
+    }`)
+    let animation: { [key: string]: string } = { name: name }
+    for (let key in option) {
+      let val = option[key];
+      if (typeof val === "number") animation[key] = val + "s"
+      else animation[key] = val
+    }
+    this.applyStyle({ animation: animation })
+    return this
   }
-  get left(): number { return this.$left }
-  set left(val: number) {
-    this.$left = val;
-    this.applyStyle({ left: val })
+  to(option: BoxOption, duration: number = 1, timingFunction: TimingFunction = "ease") {
+    return this.startAnimation({ duration: duration, timingFunction: timingFunction }, option)
   }
-  get width(): number { return this.$width }
-  set width(val: number) {
-    this.$width = val;
-    this.applyStyle({ width: val })
-  }
-  get height(): number { return this.$height }
-  set height(val: number) {
-    this.$height = val;
-    this.applyStyle({ height: val })
-  }
-  get scale(): number { return this.$scale }
-  set scale(val: number) {
-    this.$scale = val;
-    this.applyStyle(CSS.transform({ scale: val, origin: "0px 0px" }))
-  }
-  // tree(func: (parent: Box) => any): Box { func(this); return this; }
 }
 // HTMLElement
 // DOMを子として持てる
@@ -248,7 +271,6 @@ export class Container extends Box {
   constructor(parent: Container | HTMLElement, option: ContainerOption = {}) {
     super(parent, option)
   }
-  tree(func: (parent: Container) => any): Container { func(this); return this; }
 }
 // 画面に自動でフィットするDOMの祖
 export class World extends Container {
