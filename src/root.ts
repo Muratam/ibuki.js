@@ -30,6 +30,17 @@ export class Root<T extends Primitive> {
     this.regist(a)
     return a;
   }
+
+  merge(target: Root<T>): Root<T> {
+    let result = new Root<T>(this.data);
+    for (let r of this.registed) result.regist(r)
+    for (let r of target.registed) result.regist(r)
+    this.registed = [];
+    target.registed = [];
+    this.regist((now: T) => { result.set(now) })
+    target.regist((now: T) => { result.set(now) })
+    return result;
+  }
   to<S extends Primitive>(func: (t: T) => S): Root<S> {
     let currentComputed = func(this.data);
     let result = new Root<S>(currentComputed);

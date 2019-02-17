@@ -12,8 +12,10 @@ export function parse(style: AnyStyle): Style {
     if (val === null || val === undefined || val === false) continue
     isOK = true;
     let rightKey = key.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
-    if (typeof val === "number") result[rightKey] = `${Math.floor(val)}px`
-    else if (typeof val === "string") result[rightKey] = val
+    if (typeof val === "number") {
+      if (rightKey === "z-index") result[rightKey] = `${Math.floor(val)}`
+      else result[rightKey] = `${Math.floor(val)}px`
+    } else if (typeof val === "string") result[rightKey] = val
     else if (val.toCSS) result[rightKey] = val.toCSS()
     else {
       let parsed = parse(val)

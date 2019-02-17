@@ -45,7 +45,7 @@ export class LinearGradient {
       })`;
   }
 }
-type Colors = Color | LinearGradient | string
+export type Colors = Color | LinearGradient | string | ColorScheme
 export class ColorScheme {
   baseColor?: Color | LinearGradient // 70%
   mainColor?: Color | LinearGradient// 25%
@@ -53,9 +53,19 @@ export class ColorScheme {
   static parse(color: Colors): Color | LinearGradient {
     if (color instanceof Color) return color
     if (color instanceof LinearGradient) return color
-    let colors = color.split("-")
-    if (colors.length === 1) return Color.parse(color)
+    if (color instanceof ColorScheme) return color.baseColor
+    return this.parseString(color)
+  }
+  static parseString(str: string): Color | LinearGradient {
+    let colors = str.split("-")
+    if (colors.length === 1) return Color.parse(str)
     return new LinearGradient(colors.map(x => Color.parse(x)))
+  }
+  static parseToColorScheme(color: Colors): ColorScheme {
+    if (color instanceof ColorScheme) return color
+    if (color instanceof LinearGradient) return new ColorScheme(color)
+    if (color instanceof Color) return new ColorScheme(color)
+    return new ColorScheme(color)
   }
   constructor(baseColor: Colors = "#fff", mainColor: Colors = "#000", accentColor: Colors = "") {
     this.baseColor = ColorScheme.parse(baseColor)

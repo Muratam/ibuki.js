@@ -1,6 +1,8 @@
-import { Color, LinearGradient, ColorScheme } from "./color";
+import { Color, Colors, ColorScheme } from "./color";
 import * as CSS from "./style";
 import * as hash from "object-hash";
+import { KeyBoard } from "./keyboard"
+
 import { MayRoot, Updator } from "./root";
 
 export interface Vec2 {
@@ -32,6 +34,7 @@ export type Event =
   "load" | "dragdrop" |
   "click" | "dblclick" |
   "keyup" | "keydown" | "keypress" |
+  "keyupall" | "keydownall" | "keypressall" |
   "mouseout" | "mouseover" | "mouseup" |
   "mousemove" | "mousedown" | "mouseup"
 export type TextAlignType = "left" | "right" | "center" | "justify" | "justify-all" | "match-parent"
@@ -41,13 +44,14 @@ export interface DOMOption {
   // そのコンテナ内部でfloatするときの位置(後続のDOMに影響を与えたい場合はnull)
   tag?: string
   fontSize?: number
-  colorScheme?: ColorScheme
+  colorScheme?: Colors
   margin?: Rect | number
   padding?: Rect | number
   opacity?: number
   border?: Border | BorderContentType
   textAlign?: TextAlignType
   isButton?: boolean
+  zIndex?: number | "auto"
 }
 export type FitType = { x: "left" | "center" | "right", y: "top" | "center" | "bottom" }
 export interface BoxOption extends DOMOption {
@@ -93,8 +97,11 @@ export class DOM {
     return seed(this)
   }
   on(name: Event, callback: (this: this) => void, bind = true) {
-    if (bind) this.$dom.addEventListener(name, callback.bind(this))
-    else this.$dom.addEventListener(name, callback)
+    let c = bind ? callback.bind(this) : callback
+    if (name === "keydownall") KeyBoard.onKeyDown(c)
+    else if (name === "keyupall") KeyBoard.onKeyUp(c)
+    else if (name === "keypressall") KeyBoard.onKeyPress(c)
+    else this.$dom.addEventListener(name, c)
     return this;
   }
   destroy() {
@@ -129,9 +136,10 @@ export class DOM {
   parseDOMOption(option: DOMOption): CSS.AnyStyle {
     let style: CSS.AnyStyle = { ...option };
     if (option.colorScheme) {
-      style.backgroundColor = option.colorScheme.baseColor
-      style.color = option.colorScheme.mainColor
-      style.borderColor = option.colorScheme.accentColor
+      let colorScheme = ColorScheme.parseToColorScheme(option.colorScheme)
+      style.backgroundColor = colorScheme.baseColor
+      style.color = colorScheme.mainColor
+      style.borderColor = colorScheme.accentColor
       delete style.colorScheme
     }
     delete style.tag
@@ -166,7 +174,6 @@ export class DOM {
       } else {
         result.top = 0
       }
-      console.log(result);
       delete result.fit
     }
     if (result.isScrollable) {
@@ -182,13 +189,33 @@ export class DOM {
   }
 }
 type TimingFunction = "ease" | "linear" | "ease-in" | "ease-out" | "ease-in-out"
+interface TransitionQueueElement {
+  option: BoxOption
+  duration: number
+  timingFunction: TimingFunction
+  delay: number
+}
+export interface RepeatAnimationOption {
+  duration?: number // s
+  timingFunction?: TimingFunction // cubic-bezier?
+  delay?: number // s
+  iterationCount?: number | "infinite"
+  direction?: "normal" | "alternate"
+  fillMode?: "none" | "formards" | "backwards" | "both"
+}
+interface AnimationFrameOption extends BoxOption {
+  percent?: number
+}
 
+// 固定のwidth / height を持つもの
+// 指定しなければ親と同じになる
 export class Box extends DOM {
   width: number = 0;
   height: number = 0;
   left: number = 0;
   top: number = 0;
   scale: number = 1;
+  isScrollable: boolean = false;
   public readonly $parent: Container;
   private alreadyRegistedAnimationIteration = false
   constructor(parent: Container | HTMLElement, option: BoxOption = {}) {
@@ -211,7 +238,6 @@ export class Box extends DOM {
     }
     let dragging = (e: MouseEvent) => {
       if (dragState === 0) return;
-      console.log([e.pageX, e.pageY])
       // this.left = e.pageX - x;
       // this.top = e.pageY - y;
     }
@@ -228,20 +254,31 @@ export class Box extends DOM {
     // document.body.addEventListener("touchleave", dragEnd)
   }
   updateTransform(style: CSS.AnyStyle) {
+    this.isScrollable = style.isScrollable || style.overflow === "scroll" || false
     this.width = style.width
     this.height = style.height
     this.left = style.left
     this.top = style.top
     this.scale = style.scale
   }
-  to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0) {
-    let style = this.parseBoxOption(this.$parent, {
+  private alreadyTransitionEventListenerRegisted = false
+  private transitionFinished = true
+  private transitonQueue: TransitionQueueElement[] = []
+  parseBoxOptionOnCurrentState(option: BoxOption): CSS.AnyStyle {
+    return this.parseBoxOption(this.$parent, {
       width: this.width,
       height: this.height,
       scale: this.scale,
+      isScrollable: this.isScrollable,
       pos: { x: this.top, y: this.left },
       ...option
     })
+  }
+  // すぐに値を変更する(with transition)
+  // force をはずすと過去の登録したアニメーションは残る.
+  to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, force = true) {
+    if (force) this.transitonQueue = []
+    let style = this.parseBoxOptionOnCurrentState(option)
     let transition = CSS.parse(style);
     let results: string[] = []
     for (let key in transition) {
@@ -250,25 +287,30 @@ export class Box extends DOM {
     }
     this.updateTransform(style);
     this.$dom.style.transition = results.join(",")
+    this.transitionFinished = false
+    if (!this.alreadyTransitionEventListenerRegisted) {
+      this.$dom.addEventListener("transitionend", e => {
+        this.transitionFinished = true
+        if (this.transitonQueue.length === 0) return;
+        let q = this.transitonQueue.shift()
+        this.to(q.option, q.duration, q.timingFunction, q.delay, false)
+      })
+    }
+    this.alreadyTransitionEventListenerRegisted = true
+    return this
   }
-  // 実は transition のほうがやりやすいのでは？
-  /*
-  export interface AnimationOption {
-    duration?: number // s
-    timingFunction?: TimingFunction // cubic-bezier?
-    delay?: number // s
-    iterationCount?: number | "infinite"
-    direction?: "normal" | "alternate"
-    fillMode?: "none" | "formards" | "backwards" | "both"
-  }
-  // 固定のwidth / height を持つもの
-  // 指定しなければ親と同じになる
-  interface AnimationFrameOption extends BoxOption {
-    percent?: number
+  // 現在の transition が 終わってから値を変更する
+  next(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0) {
+    if (this.transitionFinished) {
+      this.to(option, duration, timingFunction, delay, false)
+      return
+    }
+    this.transitonQueue.push({ option, duration, timingFunction, delay, })
+    return this
   }
   static __animationMaxId: number = 0
   static __hashes: { [key: string]: string } = {}
-  startAnimation(option: AnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
+  repeat(option: RepeatAnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
     // WARN: もっとkeyframeを増やしたければ VA_ARGS的な感じでやる
     let src = b !== null ? a : {};
     let srcPercent = b !== null ? a.percent || "0%" : "0%"
@@ -276,8 +318,8 @@ export class Box extends DOM {
     let dstPercent = dst.percent || "100%"
     let h = hash(src) + hash(dst)
     if (!Box.__hashes[h]) {
-      let srcCSS = CSS.flatten(CSS.parse(this.parseBoxOption(this.$parent, src)));
-      let dstCSS = CSS.flatten(CSS.parse(this.parseBoxOption(this.$parent, dst)));
+      let srcCSS = CSS.flatten(CSS.parse(this.parseBoxOptionOnCurrentState(src)));
+      let dstCSS = CSS.flatten(CSS.parse(this.parseBoxOptionOnCurrentState(dst)));
       var name = `ibuki-animation-${Box.__animationMaxId++}`;
       CSS.Global.regist(`@keyframes ${name} {
         ${srcPercent} {${srcCSS}}
@@ -285,10 +327,15 @@ export class Box extends DOM {
       }`)
       Box.__hashes[h] = name
     } else name = Box.__hashes[h]
-    let animation: { [key: string]: string } = { name: name }
+    let animation: CSS.Style = {
+      name: name,
+      iterationCount: "infinite",
+      direction: "alternate",
+      fillMode: "both"
+    }
     for (let key in option) {
       let val = option[key];
-      if (typeof val === "number") animation[key] = val + "s"
+      if (typeof val === "number") animation[key] = Math.floor(val * 1000) + "ms"
       else animation[key] = val
     }
     if (!this.alreadyRegistedAnimationIteration) {
@@ -298,15 +345,6 @@ export class Box extends DOM {
     this.applyStyle({ animation: animation })
     return this
   }
-  to(option: BoxOption, duration: number = 1, timingFunction: TimingFunction = "ease") {
-    return this.startAnimation({
-      duration: duration,
-      timingFunction: timingFunction,
-      iterationCount: 1,
-      fillMode: "both"
-    }, option)
-  }
-  */
 }
 // HTMLElement
 // DOMを子として持てる

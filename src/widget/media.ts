@@ -42,7 +42,6 @@ export interface ImageOption extends BoxOption {
 }
 export class Image extends Box {
   public readonly $dom: HTMLImageElement
-
   constructor(parent: Container, option: ImageOption) {
     // illegal size!
     super(parent, { ...option, tag: "img" })
