@@ -55,7 +55,7 @@ export interface DOMOption {
 }
 export type FitType = { x: "left" | "center" | "right", y: "top" | "center" | "bottom" }
 export interface BoxOption extends DOMOption {
-  pos?: Vec2
+  pos?: { left: number, top: number }
   fit?: FitType
   draggable?: boolean // ドラッグできるか？
   width?: number  // null なら親と同じ
@@ -70,8 +70,14 @@ export class DOM {
   public readonly $DOMId: number;
   $scene: Scene;
   public readonly $parent: DOM = null; // 移ることがある？
-  public update(fun: () => IterableIterator<boolean>) {
-    this.$scene.$updater.regist(fun)
+  public update(fun: (this: this) => boolean | void) {
+    let f = fun.bind(this);
+    this.$scene.$updater.regist(this.$scene.$updater.toGenerator(
+      () => {
+        let result = f();
+        if (typeof result === "boolean") return result;
+        return true
+      }))
     return this
   }
   public perFrame(step: number = 1, n: number = Infinity): Store<number> {
@@ -157,8 +163,8 @@ export class DOM {
     result.position = "absolute";
     // pos と fit が設定されていれば,fit が優先される.
     if (option.pos) {
-      result.top = option.pos.y;
-      result.left = option.pos.x;
+      result.top = option.pos.top;
+      result.left = option.pos.left;
       delete result.pos
     }
     if (option.fit) {
@@ -254,15 +260,15 @@ export class Box extends DOM {
   applyOption(option: BoxOption) {
     // option を読み込み,自身に(上書きができれば)適応
     let style = this.parseBoxOptionOnCurrentState(option)
-    console.log(style)
-    console.log(option)
-    console.log(this.currentTransform)
+    let apply = (key: string, init: number) => {
+      this[key] = typeof style[key] === "number" ? style[key] : this[key] || 0
+    }
     this.isScrollable = style.isScrollable || style.overflow === "scroll" || false
-    this.width = style.width || this.width || this.$parent.width
-    this.height = style.height || this.height || this.$parent.height
-    this.scale = style.scale || this.scale || 1.0
-    this.left = style.left || this.left || 0
-    this.top = style.top || this.top || 0
+    apply("width", this.$parent === null ? 72 : this.$parent.width)
+    apply("height", this.$parent === null ? 72 : this.$parent.height)
+    apply("scale", 1.0)
+    apply("left", 0)
+    apply("top", 0)
     this.applyStyle(style)
   }
   get currentTransform(): BoxOption {
@@ -271,7 +277,7 @@ export class Box extends DOM {
       height: this.height,
       scale: this.scale,
       isScrollable: this.isScrollable,
-      pos: { x: this.left, y: this.top },
+      pos: { left: this.left, top: this.top },
     }
   }
   private alreadyTransitionEventListenerRegisted = false
@@ -282,6 +288,7 @@ export class Box extends DOM {
   }
   // すぐに値を変更する(with transition)
   // force をはずすと過去の登録したアニメーションは残る.
+  // WARN: 全く同じ状態を経由すると transitionend は発火しない！
   to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, force = true) {
     if (force) this.transitonQueue = []
     this.applyOption(option);

@@ -139,12 +139,16 @@ export class KeyBoard {
     this.keyUps = []
   }
 }
+
 // 毎フレーム呼んでくれる
 export class Updater {
   private maxIndex: number = -1;
   private updateList: IterableIterator<boolean>[] = [];
   private mRequestAnimationFrame: number;
   get registedNum(): number { return this.maxIndex }
+  toGenerator(fun: () => boolean): () => IterableIterator<boolean> {
+    return function* () { while (true) yield fun() }
+  }
   regist(fun: () => IterableIterator<boolean>) {
     this.maxIndex++;
     if (this.maxIndex === this.updateList.length) this.updateList.push(fun());
