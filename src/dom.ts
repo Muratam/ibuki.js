@@ -1,7 +1,7 @@
 import { Color, LinearGradient, ColorScheme } from "./color";
 import * as CSS from "./style";
 import * as hash from "object-hash";
-import { MayRoot } from "./root";
+import { MayRoot, Updator } from "./root";
 
 export interface Vec2 {
   x: number
@@ -200,6 +200,7 @@ export class Box extends DOM {
   public readonly scale: number = 1;
   public readonly firstOption: BoxOption;
   public readonly $parent: Container;
+  private alreadyRegistedAnimationIteration = false
   constructor(parent: Container | HTMLElement, option: BoxOption = {}) {
     super(parent, option)
     this.firstOption = option;
@@ -240,6 +241,7 @@ export class Box extends DOM {
       // document.body.addEventListener("touchleave", dragEnd)
     }
   }
+  // 実は transition のほうがやりやすいのでは？
   static __animationMaxId: number = 0
   static __hashes: { [key: string]: string } = {}
   startAnimation(option: AnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
@@ -264,6 +266,10 @@ export class Box extends DOM {
       let val = option[key];
       if (typeof val === "number") animation[key] = val + "s"
       else animation[key] = val
+    }
+    if (!this.alreadyRegistedAnimationIteration) {
+      this.$dom.addEventListener("animationiteration", e => { })
+      this.alreadyRegistedAnimationIteration = true
     }
     this.applyStyle({ animation: animation })
     return this

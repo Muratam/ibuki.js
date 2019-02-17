@@ -71,6 +71,7 @@ export class Updator {
   private maxIndex: number = -1;
   private updateList: IterableIterator<boolean>[] = [];
   static $instance = new Updator();
+  get registedNum(): number { return this.maxIndex }
   registImpl(fun: () => IterableIterator<boolean>) {
     this.maxIndex++;
     if (this.maxIndex === this.updateList.length) this.updateList.push(fun());
@@ -81,7 +82,7 @@ export class Updator {
   }
   private applyUpdateList() {
     for (let i = 0; i < Math.min(this.maxIndex + 1, this.updateList.length); i++) {
-      if (this.updateList[i].next().value !== false) continue;
+      if (this.updateList[i].next().value === true) continue;
       this.updateList[i] = this.updateList[this.maxIndex];
       this.maxIndex--;
       i--;
