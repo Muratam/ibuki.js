@@ -254,6 +254,9 @@ export class Box extends DOM {
   applyOption(option: BoxOption) {
     // option を読み込み,自身に(上書きができれば)適応
     let style = this.parseBoxOptionOnCurrentState(option)
+    console.log(style)
+    console.log(option)
+    console.log(this.currentTransform)
     this.isScrollable = style.isScrollable || style.overflow === "scroll" || false
     this.width = style.width || this.width || this.$parent.width
     this.height = style.height || this.height || this.$parent.height
@@ -268,7 +271,7 @@ export class Box extends DOM {
       height: this.height,
       scale: this.scale,
       isScrollable: this.isScrollable,
-      pos: { x: this.top, y: this.left },
+      pos: { x: this.left, y: this.top },
     }
   }
   private alreadyTransitionEventListenerRegisted = false

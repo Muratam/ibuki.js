@@ -4,16 +4,20 @@ import { Box, BoxOption, SeedWithOption, Ibuki, Scene } from "./dom";
 import { Text, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
 import { FlexBox, Table } from "./widget/container"
-import { Store, toStore } from "./store"
+import { toStore } from "./store"
 import { ProgressBar, MeterBar, IFrame, Image } from "./widget/media";
 import { FAIcon } from "./widget/external"
-import { KeyBoard } from "./static";
-// fun  : effect / move
+import { type } from "os";
+// fun  : effect / move parent
+//      : big input / progress bar
 // ext  : vividjs / katex / markdown / live2d / graph(tree/chart) / svgjs / code
 //      : tips / bootstrap / vue.js / react.js / jquery / niconicocomment
-// bug  : media(image size bug(反映の形式を考慮))
-//      : {scale / width / height } tree - flow
-//      : colorScheme / table はみだし
+// bug  : media(image size bug(style/attrs))
+//      : animation size bug
+//      : table はみだし
+//      : repeatAnimation :: 相対的な位置 / 色 ... etc　を変えるためのもので相対値とする
+//      : -> top / left / scale / ... は変更しない
+//      : -> to / next はもっと絶対的に遷移する.
 // impl : webgl(?) / canvas / drag and drop / a-href
 //      : colorSchemeLib
 //      : isButtonを hover 時におこなう関数に変えたい. + click  +hover
@@ -41,9 +45,14 @@ class ThreeLoopView extends Box {
     zIndex: 0
   },]
   constructor(p: Box, option: BoxOption = {}) { super(p, option) }
-  add(seed: SeedWithOption<Box, BoxOption>) {
+  add(seed: SeedWithOption<Box, BoxOption> | SeedWithOption<Box, BoxOption>[]) {
+    if (seed instanceof Array) {
+      for (let s of seed) this.add(s)
+      return this
+    }
     let option = this.boxes.length < 3 ? this.topThree[this.boxes.length] : this.topThree[3]
     this.boxes.push(seed(this, option))
+    return this
   }
   turn(n: number) {
     let pre = this.count;
@@ -54,6 +63,7 @@ class ThreeLoopView extends Box {
       let option = index < 3 ? this.topThree[index] : this.topThree[3]
       this.boxes[i].to(option)
     }
+    return this
   }
 }
 
@@ -134,30 +144,29 @@ function threeBoxSampleScene(scene: Scene) {
       if (clickCount % 2 === 1)
         this
           .to({
-            fit: { x: "right", y: "center" },
+            fit: { x: "left", y: "center" },
           }, 0.5)
-          .next({ fit: { x: "right", y: "top" } }, 0.5)
+          .next({ fit: { x: "left", y: "top" } }, 0.5)
           .next({
-            colorScheme: "#000-#fff" // WARN:
+            colorScheme: new ColorScheme("#000", "#fff", "#888")
           }, 1)
       if (clickCount % 2 === 0)
-        this.to({ fit: { x: "right", y: "bottom" } }, 1)
+        this.to({ fit: { x: "left", y: "bottom" } }, 1)
     })
   }
 
-  let loopView = new ThreeLoopView(scene, { height: scene.height * 0.7 })
-  loopView.add(createElem3)
-  loopView.add(createElem2)
-  loopView.add(createElem1)
-  loopView.add((p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }))
-  loopView.add((p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }))
-  loopView.add((p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }))
-  loopView.add((p, o) => new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html", ...o, }))
-  loopView.add((p, o) => new IFrame(p, {
-    src: "https://www.openstreetmap.org/export/embed.html",
-    width: p.width * 0.7,
-    ...o,
-  }))
+  let loopView = new ThreeLoopView(scene, { height: scene.height * 0.7 }).add([
+    createElem3, createElem2, createElem1,
+    (p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }),
+    (p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }),
+    (p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }),
+    (p, o) => new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html", ...o, }),
+    (p, o) => new IFrame(p, {
+      src: "https://www.openstreetmap.org/export/embed.html",
+      width: p.width * 0.7,
+      ...o,
+    })
+  ])
   scene.on("keydownall", key => {
     store.pressedKey.set(key)
     if (key === "ArrowRight") {
