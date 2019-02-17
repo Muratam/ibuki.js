@@ -1,5 +1,6 @@
 import { Color, LinearGradient, ColorScheme } from "./color";
 import * as CSS from "./style";
+import * as hash from "object-hash";
 import { MayRoot } from "./root";
 
 export interface Vec2 {
@@ -183,6 +184,7 @@ export interface AnimationOption {
   delay?: number // s
   iterationCount?: number | "infinite"
   direction?: "normal" | "alternate"
+  fillMode?: "none" | "formards" | "backwards" | "both"
 }
 // 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
@@ -239,19 +241,24 @@ export class Box extends DOM {
     }
   }
   static __animationMaxId: number = 0
+  static __hashes: { [key: string]: string } = {}
   startAnimation(option: AnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
     // WARN: もっとkeyframeを増やしたければ VA_ARGS的な感じでやる
     let src = b !== null ? a : {};
     let srcPercent = b !== null ? a.percent || "0%" : "0%"
     let dst = b !== null ? b : a;
     let dstPercent = dst.percent || "100%"
-    let name = `ibuki-animation-${Box.__animationMaxId++}`;
-    let srcCSS = CSS.flatten(CSS.parse(this.parseBoxOption(this.$parent, src)));
-    let dstCSS = CSS.flatten(CSS.parse(this.parseBoxOption(this.$parent, dst)));
-    CSS.Global.regist(`@keyframes ${name} {
-      ${srcPercent} {${srcCSS}}
-      ${dstPercent} {${dstCSS}}
-    }`)
+    let h = hash(src) + hash(dst)
+    if (!Box.__hashes[h]) {
+      let srcCSS = CSS.flatten(CSS.parse(this.parseBoxOption(this.$parent, src)));
+      let dstCSS = CSS.flatten(CSS.parse(this.parseBoxOption(this.$parent, dst)));
+      var name = `ibuki-animation-${Box.__animationMaxId++}`;
+      CSS.Global.regist(`@keyframes ${name} {
+        ${srcPercent} {${srcCSS}}
+        ${dstPercent} {${dstCSS}}
+      }`)
+      Box.__hashes[h] = name
+    } else name = Box.__hashes[h]
     let animation: { [key: string]: string } = { name: name }
     for (let key in option) {
       let val = option[key];
@@ -262,7 +269,12 @@ export class Box extends DOM {
     return this
   }
   to(option: BoxOption, duration: number = 1, timingFunction: TimingFunction = "ease") {
-    return this.startAnimation({ duration: duration, timingFunction: timingFunction }, option)
+    return this.startAnimation({
+      duration: duration,
+      timingFunction: timingFunction,
+      iterationCount: 1,
+      fillMode: "both"
+    }, option)
   }
 }
 // HTMLElement

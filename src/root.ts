@@ -30,7 +30,7 @@ export class Root<T extends Primitive> {
     this.regist(a)
     return a;
   }
-  compute<S extends Primitive>(func: (t: T) => S): Root<S> {
+  to<S extends Primitive>(func: (t: T) => S): Root<S> {
     let currentComputed = func(this.data);
     let result = new Root<S>(currentComputed);
     this.regist(t => { result.set(func(t)) })

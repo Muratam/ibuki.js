@@ -17,7 +17,6 @@ import * as _ from "lodash";
 //     : a-href / table はみだし
 //     : コメント流れる
 // colorSchemeLib は色を決めるのに使う
-// colorScheme(delete <- DOM.Color/backgoundColor) -> animation
 
 namespace Ibuki {
   // export interface ConversationGameWidgetOption {
@@ -34,6 +33,16 @@ namespace Ibuki {
   //     });
   //   }
   // }
+  // new ConversationGameWidget(world, { heightPercent: 0.35 })//.text = "Hello World!";
+  //  {
+  //   let box = new Ibuki.DOM(world, {
+  //     border: { color: Color.parse("#0a0"), width: 10, style: "solid", radius: 10 },
+  //     // padding: 10,
+  //     // margin: 20,
+  //     height: 100,
+  //   });
+  //   box.$dom.innerText = "aaaaaa";
+  // }
 }
 namespace WorldExample {
   function textSeqWorld() {
@@ -44,16 +53,16 @@ namespace WorldExample {
     let center = new Container(world, {
       // border: { width: 10 },
       colorScheme: new ColorScheme("#fce", "#876"),
-      isButton: true,
       scale: 0.5,
       fontSize: 100,
       textAlign: "center",
       isScrollable: true,
+      draggable: true,
       fit: { x: "center", y: "center" }
     }).tree(p =>
       new TextSequence(p, [
         ["int main(){\n", { fontName: "Menlo" }],
-        [store.n1.compute(x => x + "\n"), "#0fb"],
+        [store.n1.to(x => x + "\n"), "#0fb"],
         ["  return;\n", "#ff0"],
         p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
         [store.k1, "#000"],
@@ -64,20 +73,24 @@ namespace WorldExample {
         width: world.width * 0.8,
         scale: 0.5,
       });
+    let clickCount = 0;
     new FlexBox(world, {
       flexDirection: "column",
       alignItems: "flex-start",
       colorScheme: new ColorScheme("#fce", "#034"),
       scale: 0.2,
+      isButton: true,
       fontSize: 100,
-      draggable: true,
       fit: { x: "right", y: "center" },
       isScrollable: true
     }).tree(p => {
       store.l1 = new Input(p, { type: "text", size: 10, label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.5, 20) }).value
       new Input(p, { type: "select", options: ["C#", "C++", "js"], label: p2 => new FixedSizeText(p2, "language : ", p.width * 0.5, 20) })
-      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, store.l1.compute(t => t + "yade"), p.width * 0.5, 20) })
+      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, store.l1.to(t => t + "yade"), p.width * 0.5, 20) })
     }).on("click", function () {
+      clickCount++;
+      if (clickCount === 1) this.to({ fit: { x: "right", y: "center" } }, 5)
+      if (clickCount === 2) this.to({ fit: { x: "left", y: "center" } }, 5)
     });
     new Table(world, {
       colorScheme: new ColorScheme("#fce", "#034"),
@@ -111,7 +124,7 @@ namespace WorldExample {
       colorScheme: new ColorScheme("#fce", "#034"),
     }).tree(p => {
       new ProgressBar(p, store.i1, {}, 100)
-      new Text(p, store.i1.compute(x => x + "%"))
+      new Text(p, store.i1.to(x => x + "%"))
       new MeterBar(p, store.i1, { min: 0, max: 100, low: 22, high: 66, optimum: 80 })
       new IFrame(p, {
         src: "https://www.openstreetmap.org/export/embed.html",
@@ -121,14 +134,4 @@ namespace WorldExample {
     })
   }
   textSeqWorld();
-  // new ConversationGameWidget(world, { heightPercent: 0.35 })//.text = "Hello World!";
-  //  {
-  //   let box = new Ibuki.DOM(world, {
-  //     border: { color: Color.parse("#0a0"), width: 10, style: "solid", radius: 10 },
-  //     // padding: 10,
-  //     // margin: 20,
-  //     height: 100,
-  //   });
-  //   box.$dom.innerText = "aaaaaa";
-  // }
 }
