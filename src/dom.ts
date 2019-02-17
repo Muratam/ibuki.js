@@ -1,10 +1,8 @@
 import { Color, Colors, ColorScheme } from "./color";
 import * as CSS from "./style";
 import * as hash from "object-hash";
-import { KeyBoard } from "./keyboard"
-
-import { MayRoot, Updator } from "./root";
-
+import { MayRoot, Root } from "./root";
+import { Updater, KeyBoard, GlobalCSS } from "./static"
 export interface Vec2 {
   x: number
   y: number
@@ -70,11 +68,17 @@ export interface ContainerOption extends BoxOption { }
 export class DOM {
   public readonly $dom: HTMLElement = null;
   public readonly $DOMId: number;
-  public readonly $world: World;
+  $scene: Scene;
   public readonly $parent: DOM = null; // 移ることがある？
+  public get store(): DataStore { return this.$scene.$store }
+  public update(fun: () => IterableIterator<boolean>) {
+    this.$scene.$updater.regist(fun)
+    return this
+  }
+  public perFrame(step: number = 1, n: number = Infinity): Root<number> {
+    return this.$scene.$updater.perFrame(step, n)
+  }
   private $children: DOM[] = [];
-  private $destroyed: boolean = false;
-  public get destroyed(): boolean { return this.$destroyed; }
   public get children() { return this.$children; }
   private static DOMMaxId: number = 0;
   public get id(): string { return this.$dom.id }
@@ -85,31 +89,26 @@ export class DOM {
     this.$dom.id = `ibuki-box-${this.$DOMId}`
     if (parent instanceof DOM) {
       parent.$dom.appendChild(this.$dom);
-      this.$world = parent.$world;
+      this.$scene = parent.$scene;
       this.$parent = parent;
       parent.$children.push(this)
-    } else if (this instanceof World) {
-      parent.appendChild(this.$dom);
-      this.$world = this;
-      // world has no parent
-    } else console.assert(false, "now root Box need to be WorldBox class")
+    } else if (this instanceof Ibuki) {
+      parent.appendChild(this.$dom)
+    } else console.assert(false, "now root Box need to be scene class")
+    if (this instanceof Scene) this.$scene = this;
     if (typeof option !== "string") this.applyStyle(this.parseDOMOption(option))
   }
   bloom(seed: TagSeed): DOM {
     if (typeof seed === "string") return new DOM(this, seed)
     return seed(this)
   }
-  on(name: Event, callback: (this: this) => void, bind = true) {
+  on(name: Event, callback: (this: this, key?: string) => void, bind = true) {
     let c = bind ? callback.bind(this) : callback
-    if (name === "keydownall") KeyBoard.onKeyDown(c)
-    else if (name === "keyupall") KeyBoard.onKeyUp(c)
-    else if (name === "keypressall") KeyBoard.onKeyPress(c)
+    if (name === "keydownall") this.$scene.$keyboard.onKeyDown(c)
+    else if (name === "keyupall") this.$scene.$keyboard.onKeyUp(c)
+    else if (name === "keypressall") this.$scene.$keyboard.onKeyPress(c)
     else this.$dom.addEventListener(name, c)
     return this;
-  }
-  destroy() {
-    this.$dom.remove();
-    this.$destroyed = true;
   }
   applyStyle(style: { [key: string]: any }) {
     if (style.isButton) {
@@ -148,10 +147,10 @@ export class DOM {
     delete style.tag
     return style
   }
-  parseBoxOption(parent: Container | HTMLElement, option: BoxOption): CSS.AnyStyle {
+  parseBoxOption(parent: Box | HTMLElement, option: BoxOption): CSS.AnyStyle {
     let result: CSS.AnyStyle = { ...option }
-    let parentWidth = parent instanceof Container ? parent.width : result.width;
-    let parentHeight = parent instanceof Container ? parent.height : result.height;
+    let parentWidth = parent instanceof Box ? parent.width : result.width;
+    let parentHeight = parent instanceof Box ? parent.height : result.height;
     result.width = typeof result.width === "number" ? result.width : parentWidth
     result.height = typeof result.height === "number" ? result.height : parentHeight
     result.scale = result.scale || 1.0
@@ -218,9 +217,9 @@ export class Box extends DOM {
   top: number = 0;
   scale: number = 1; // WARN: transform-scale は scale のはず？
   isScrollable: boolean = false;
-  public readonly $parent: Container;
+  public readonly $parent: Box;
   private alreadyRegistedAnimationIteration = false
-  constructor(parent: Container | HTMLElement, option: BoxOption = {}) {
+  constructor(parent: Box | HTMLElement, option: BoxOption = {}) {
     super(parent, option)
     this.applyOption(option)
     if (option.draggable) this.registDrag()
@@ -313,53 +312,61 @@ export class Box extends DOM {
     this.transitonQueue.push({ option, duration, timingFunction, delay, })
     return this
   }
-  static __animationMaxId: number = 0
-  static __hashes: { [key: string]: string } = {}
-  repeat(option: RepeatAnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
-    // WARN: もっとkeyframeを増やしたければ VA_ARGS的な感じでできそう
-    let src = b !== null ? a : {};
-    let srcPercent = b !== null ? a.percent || "0%" : "0%"
-    let dst = b !== null ? b : a;
-    let dstPercent = dst.percent || "100%"
-    let h = hash(src) + hash(dst)
-    if (!Box.__hashes[h]) {
-      let srcCSS = CSS.flatten(CSS.parse(this.parseBoxOptionOnCurrentState(src)));
-      let dstCSS = CSS.flatten(CSS.parse(this.parseBoxOptionOnCurrentState(dst)));
-      var name = `ibuki-animation-${Box.__animationMaxId++}`;
-      CSS.Global.regist(`@keyframes ${name} {
-        ${srcPercent} {${srcCSS}}
-        ${dstPercent} {${dstCSS}}
-      }`)
-      Box.__hashes[h] = name
-    } else name = Box.__hashes[h]
-    let animation: CSS.Style = {
-      name: name,
-      iterationCount: "infinite",
-      direction: "alternate",
-      fillMode: "both"
-    }
-    for (let key in option) {
-      let val = option[key];
-      if (typeof val === "number") animation[key] = Math.floor(val * 1000) + "ms"
-      else animation[key] = val
-    }
-    if (!this.alreadyRegistedAnimationIteration) {
-      this.$dom.addEventListener("animationiteration", e => { })
-      this.alreadyRegistedAnimationIteration = true
-    }
-    this.applyStyle({ animation: animation })
-    return this
-  }
 }
-// HTMLElement
-// DOMを子として持てる
-export class Container extends Box {
-  constructor(parent: Container | HTMLElement, option: ContainerOption = {}) {
-    super(parent, option)
+/* // アニメーションなんかバグってる
+static __animationMaxId: number = 0
+static __hashes: { [key: string]: string } = {}
+repeat(option: RepeatAnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
+  // WARN: もっとkeyframeを増やしたければ VA_ARGS的な感じでできそう
+  let src = b !== null ? a : {};
+  let srcPercent = b !== null ? a.percent || "0%" : "0%"
+  let dst = b !== null ? b : a;
+  let dstPercent = dst.percent || "100%"
+  let h = hash(src) + hash(dst)
+  if (!Box.__hashes[h]) {
+    let srcCSS = CSS.flatten(CSS.parse(this.parseBoxOptionOnCurrentState(src)));
+    let dstCSS = CSS.flatten(CSS.parse(this.parseBoxOptionOnCurrentState(dst)));
+    var name = `ibuki-animation-${Box.__animationMaxId++}`;
+    CSS.Global.regist(`@keyframes ${name} {
+      ${srcPercent} {${srcCSS}}
+      ${dstPercent} {${dstCSS}}
+    }`)
+    Box.__hashes[h] = name
+  } else name = Box.__hashes[h]
+  let animation: CSS.Style = {
+    name: name,
+    iterationCount: "infinite",
+    direction: "alternate",
+    fillMode: "both"
   }
+  for (let key in option) {
+    let val = option[key];
+    if (typeof val === "number") animation[key] = Math.floor(val * 1000) + "ms"
+    else animation[key] = val
+  }
+  if (!this.alreadyRegistedAnimationIteration) {
+    this.$dom.addEventListener("animationiteration", e => { })
+    this.alreadyRegistedAnimationIteration = true
+  }
+  this.applyStyle({ animation: animation })
+  return this
 }
-// 画面に自動でフィットするDOMの祖
-export class World extends Container {
+*/
+
+export interface DataStore { [key: string]: Root<any> }
+export class Scene extends Box {
+  public readonly $updater = new Updater()
+  public readonly $keyboard = new KeyBoard()
+  public readonly $css = new GlobalCSS()
+  public readonly $store: DataStore = {}
+  constructor(parent: Ibuki) {
+    super(parent)
+    this.$scene = this
+  }
+  destroy() { this.$dom.remove(); }
+}
+// 画面に自動でフィットするDOM/Sceneの全ての祖
+export class Ibuki extends Box {
   alwaysFullScreen: boolean = false
   constructor(width: number = 1280, height: number = 720, alwaysFullScreen: boolean = false) {
     super(document.body, { width: width, height: height })
@@ -369,7 +376,7 @@ export class World extends Container {
   }
   private initializeWorld() {
     let inheritFontSize = { fontFamily: "inherit", fontSize: "100%" }
-    CSS.Global.regist({
+    new GlobalCSS().regist({
       body: { margin: 0, padding: 0, overflow: "hidden", background: "#000" },
       "*": { "box-sizing": "border-box" },
       textarea: inheritFontSize,
@@ -402,5 +409,10 @@ export class World extends Container {
           ...CSS.transform({ scale: ratio, origin: "0px 0px" })
         },
     });
+  }
+  public play(seed: (scene: Scene) => any) {
+    let scene = new Scene(this)
+    seed(scene)
+    return this
   }
 }

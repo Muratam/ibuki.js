@@ -1,4 +1,4 @@
-import { DOM, DOMOption, BoxOption, Box, Container } from "../dom";
+import { DOM, DOMOption, BoxOption, Box } from "../dom";
 import { Root, MayRoot, assign } from "../root";
 // MEDIA :: audio / img / video
 export class ProgressBar extends DOM {
@@ -31,7 +31,7 @@ export class MeterBar extends DOM {
 export interface IFrameOption extends BoxOption { src: string }
 export class IFrame extends Box {
   public readonly $dom: HTMLIFrameElement
-  constructor(parent: Container, option: IFrameOption) {
+  constructor(parent: Box, option: IFrameOption) {
     super(parent, { ...option, tag: "iframe" })
     this.$dom.src = option.src;
   }
@@ -42,7 +42,7 @@ export interface ImageOption extends BoxOption {
 }
 export class Image extends Box {
   public readonly $dom: HTMLImageElement
-  constructor(parent: Container, option: ImageOption) {
+  constructor(parent: Box, option: ImageOption) {
     // illegal size!
     super(parent, { ...option, tag: "img" })
     let parsed = this.parseBoxOption(parent, option)

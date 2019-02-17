@@ -15,7 +15,6 @@ export class Text extends DOM implements HasValueWidgetInterface<string> {
   private $text: string;
   get value(): string { return this.$text; }
   set value(val: string) {
-    if (this.destroyed) return;
     this.$text = val.replace(" ", '\u00a0');
     this.$dom.innerText = this.$text;
   }
@@ -65,6 +64,5 @@ export class TextSequence extends DOM {
       }
     }
   }
-  clear() { for (let child of this.children) child.destroy(); }
 }
 

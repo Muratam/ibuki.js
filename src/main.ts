@@ -1,15 +1,13 @@
 import * as CSS from "./style";
-import { Color, ColorScheme, LinearGradient } from "./color";
-import { World, Container, Box, BoxOption, Seed, SeedWithOption, ContainerOption } from "./dom";
+import { Color, ColorScheme } from "./color";
+import { Box, BoxOption, SeedWithOption, Ibuki, Scene } from "./dom";
 import { Text, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
 import { FlexBox, Table } from "./widget/container"
-import { Root, DataStore, Updator } from "./root"
-import { KeyBoard } from "./keyboard"
+import { Root } from "./root"
 import { ProgressBar, MeterBar, IFrame, Image } from "./widget/media";
 import { FAIcon } from "./widget/external"
-
-// fun  : scene(destroy?) / effect / move
+// fun  : scene(destroy?::現在のstaticをシーンごとに生やすとdestroy可能) / effect / move
 // ext  : vividjs / katex / markdown / live2d / graph(tree/chart) / svgjs / code
 //      : tips / bootstrap / vue.js / react.js / jquery / niconicocomment
 // bug  : media(image size bug(反映の形式を考慮))
@@ -19,10 +17,12 @@ import { FAIcon } from "./widget/external"
 //      : colorSchemeLib
 //      : isButtonを hover 時におこなう関数に変えたい. + click  +hover
 //      : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるとゲーム以外にも使える？
+//      : Scene<T extends DataStore> / input-assign
+console.log(72)
 
-namespace WorldExample {
-  // 中に要素を入れる場合はどんな形であれ Containerでないとだめ
-  class ThreeLoopView extends Container {
+function threeBoxScene(scene: Scene) {
+
+  class ThreeLoopView extends Box {
     private count = 0
     private boxes: Box[] = []
     public readonly topThree: BoxOption[] = [{
@@ -42,7 +42,7 @@ namespace WorldExample {
       fit: { x: "center", y: "center" },
       zIndex: 0
     },]
-    constructor(parent: Container, option: ContainerOption = {}) { super(parent, option) }
+    constructor(p: Box, option: BoxOption = {}) { super(p, option) }
     add(seed: SeedWithOption<Box, BoxOption>) {
       let option = this.boxes.length < 3 ? this.topThree[this.boxes.length] : this.topThree[3]
       this.boxes.push(seed(this, option))
@@ -58,8 +58,9 @@ namespace WorldExample {
       }
     }
   }
-  function createElem1(parent: Container, option: BoxOption, store: DataStore): Box {
-    return new FlexBox(parent, {
+
+  function createElem1(p: Box, option: BoxOption): Box {
+    return new FlexBox(p, {
       ...option,
       flexDirection: "column",
       alignItems: "flex-start",
@@ -68,13 +69,13 @@ namespace WorldExample {
       fontSize: 100,
       isScrollable: true
     }).tree(p => {
-      new Input(p, { type: "text", size: 10, label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.5, 20) }).assign(store.inputted)
+      new Input(p, { type: "text", size: 10, label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.5, 20) }).assign(p.store.inputted)
       new Input(p, { type: "select", options: ["C#", "C++", "js"], label: p2 => new FixedSizeText(p2, "language : ", p.width * 0.5, 20) })
-      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, store.inputted.to(t => t + "yade"), p.width * 0.5, 20) })
+      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, p.store.inputted.to(t => t + "yade"), p.width * 0.5, 20) })
     });
   }
-  function createElem2(parent: Container, option: BoxOption, store: DataStore): Box {
-    return new Container(parent, {
+  function createElem2(p: Box, option: BoxOption): Box {
+    return new Box(p, {
       // border: { width: 10 },
       ...option,
       colorScheme: new ColorScheme("#fce", "#876"),
@@ -85,15 +86,15 @@ namespace WorldExample {
     }).tree(p =>
       new TextSequence(p, [
         ["int main(){\n", { fontName: "Menlo" }],
-        [store.sec.to(x => x + "\n"), "#0fb"],
+        [p.store.sec.to(x => x + "\n"), "#0fb"],
         ["  return;\n", "#ff0"],
         p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
-        [store.pressedKey, "#000"],
+        [p.store.pressedKey, "#000"],
       ])
     )
   }
-  function createElem3(parent: Container, option: BoxOption, store: DataStore): Box {
-    return new Table(parent, {
+  function createElem3(p: Box, option: BoxOption): Box {
+    return new Table(p, {
       ...option,
       colorScheme: new ColorScheme("#fce", "#034"),
       fontSize: 100,
@@ -102,31 +103,27 @@ namespace WorldExample {
       if (y % 2 === 0) return { colorScheme: new ColorScheme("#fce", "#034") }
       return { colorScheme: new ColorScheme("#fce", "#034") }
     }).addContents([
-      ["iikanji", store.inputted, "year"],
+      ["iikanji", p.store.inputted, "year"],
       ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
       ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
       ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
       ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
       ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
-      ["iikanji", store.inputted, "year"],
+      ["iikanji", p.store.inputted, "year"],
     ])
   }
-  function createElem4(parent: Container, option: BoxOption, store: DataStore): Box {
+  function createElem4(p: Box, option: BoxOption): Box {
     let clickCount = 0;
-    return new Container(parent, {
+    return new Box(p, {
       ...option,
       fit: { y: "bottom", x: "center" },
-      height: parent.height * 0.2,
+      height: p.height * 0.2,
       colorScheme: new ColorScheme("#fce", "#034"),
       isScrollable: true
     }).tree(p => {
-      new ProgressBar(p, store.posX, {}, 100)
-      new Text(p, store.posX.to(x => x + "%"))
-      new MeterBar(p, store.posX, { min: 0, max: 100, low: 22, high: 66, optimum: 80 })
-      new IFrame(p, {
-        src: "https://www.openstreetmap.org/export/embed.html",
-        width: p.width * 0.7, fit: { y: "top", x: "right" },
-      }).repeat({ duration: 1 }, { width: p.width * 0.8, fit: { y: "top", x: "right" } });
+      new ProgressBar(p, p.store.posX, {}, 100)
+      new Text(p, p.store.posX.to(x => x + "%"))
+      new MeterBar(p, p.store.posX, { min: 0, max: 100, low: 22, high: 66, optimum: 80 })
     }).on("click", function () {
       clickCount++;
       if (clickCount % 2 === 1)
@@ -142,32 +139,36 @@ namespace WorldExample {
         this.to({ fit: { x: "right", y: "bottom" } }, 1)
     })
   }
-  function threeBoxWorld() {
-    let store: DataStore = {
-      sec: Root.perFrame(10),
-      pressedKey: new Root(""),
-      posX: new Root(0),
-      inputted: new Root(""),
+
+  let loopView = new ThreeLoopView(scene, { height: scene.height * 0.7 })
+  scene.store.sec = scene.$updater.perFrame(10);
+  scene.store.pressedKey = new Root("");
+  scene.store.posX = new Root(0);
+  scene.store.inputted = new Root("");
+  loopView.add(createElem3)
+  loopView.add(createElem2)
+  loopView.add(createElem1)
+  loopView.add((p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }))
+  loopView.add((p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }))
+  loopView.add((p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }))
+  loopView.add((p, o) => new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html", ...o, }))
+  loopView.add((p, o) => new IFrame(p, {
+    src: "https://www.openstreetmap.org/export/embed.html",
+    width: p.width * 0.7,
+    ...o,
+  }))
+  scene.on("keydownall", key => {
+    scene.store.pressedKey.set(key)
+    if (key === "ArrowRight") {
+      scene.store.posX.set((x: number) => x + 1)
+      loopView.turn(1)
+    } else if (key === "ArrowLeft") {
+      scene.store.posX.set((x: number) => x - 1)
+      loopView.turn(-1)
     }
-    let world = new World()
-    let loopView = new ThreeLoopView(world, { height: world.height * 0.7 })
-    loopView.add((p, o) => createElem3(p, o, store))
-    loopView.add((p, o) => createElem2(p, o, store))
-    loopView.add((p, o) => createElem1(p, o, store))
-    loopView.add((p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }))
-    loopView.add((p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }))
-    loopView.add((p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }))
-    let bottom = createElem4(world, {}, store)
-    KeyBoard.onKeyDown(key => {
-      store.pressedKey.set(key)
-      if (key === "ArrowRight") {
-        store.posX.set((x: number) => x + 1)
-        loopView.turn(1)
-      } else if (key === "ArrowLeft") {
-        store.posX.set((x: number) => x - 1)
-        loopView.turn(-1)
-      }
-    })
-  }
-  threeBoxWorld();
+  })
+  let bottom = createElem4(scene, {})
+  //.repeat({ duration: 1 }, { width: p.width * 0.8 })) // TODO: BUG
+
 }
+let ibuki = new Ibuki().play(threeBoxScene)

@@ -38,18 +38,4 @@ export function transform(tr: { [key: string]: string | number }): Style {
   }
   return result
 }
-export class Global {
-  static doms: HTMLStyleElement[] = []
-  public static regist(styles: { [key: string]: AnyStyle } | string) {
-    let dom = document.createElement("style")
-    dom.type = "text/css"
-    let styleStr = typeof styles === "string" ? styles : "";
-    if (typeof styles !== "string") {
-      for (let key in styles) styleStr += `${key}{${flatten(parse(styles[key]))}}`
-    }
-    dom.innerHTML = styleStr
-    this.doms.push(dom)
-    document.head.appendChild(dom)
-  }
-}
 

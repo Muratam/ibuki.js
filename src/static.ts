@@ -1,3 +1,24 @@
+import * as CSS from "./style"
+import { Root } from "./root"
+// static っぽい機能を使う時はまとめて destroy できるように scene にわけたい
+
+export class GlobalCSS {
+  private doms: HTMLStyleElement[] = []
+  constructor() { }
+  regist(styles: { [key: string]: CSS.AnyStyle } | string) {
+    let dom = document.createElement("style")
+    dom.type = "text/css"
+    let styleStr = typeof styles === "string" ? styles : "";
+    if (typeof styles !== "string") {
+      for (let key in styles) styleStr += `${key}{${CSS.flatten(CSS.parse(styles[key]))}}`
+    }
+    dom.innerHTML = styleStr
+    this.doms.push(dom)
+    document.head.appendChild(dom)
+  }
+  // TODO:
+  destroy() { }
+}
 const keyIDs = {
   'U+0008': 'BackSpace',
   'U+0009': 'Tab',
@@ -91,19 +112,12 @@ const keyIDs = {
 };
 type CallBack = (key: string) => any
 export class KeyBoard {
-  static $instance = new KeyBoard();
   private keyDowns: CallBack[] = [];
   private keyPresses: CallBack[] = [];
   private keyUps: CallBack[] = [];
-  static onKeyDown(fun: CallBack) {
-    this.$instance.keyDowns.push(fun)
-  }
-  static onKeyPress(fun: CallBack) {
-    this.$instance.keyPresses.push(fun)
-  }
-  static onKeyUp(fun: CallBack) {
-    this.$instance.keyUps.push(fun)
-  }
+  onKeyDown(fun: CallBack) { this.keyDowns.push(fun) }
+  onKeyPress(fun: CallBack) { this.keyPresses.push(fun) }
+  onKeyUp(fun: CallBack) { this.keyUps.push(fun) }
   constructor() {
     document.addEventListener('keypress', e => {
       for (let k of this.keyPresses) k(e.key)
@@ -116,4 +130,40 @@ export class KeyBoard {
     })
   }
 
+}
+// 毎フレーム呼んでくれる
+export class Updater {
+  private maxIndex: number = -1;
+  private updateList: IterableIterator<boolean>[] = [];
+  get registedNum(): number { return this.maxIndex }
+  regist(fun: () => IterableIterator<boolean>) {
+    this.maxIndex++;
+    if (this.maxIndex === this.updateList.length) this.updateList.push(fun());
+    else this.updateList[this.maxIndex] = fun();
+  }
+  private applyUpdateList() {
+    for (let i = 0; i < Math.min(this.maxIndex + 1, this.updateList.length); i++) {
+      if (this.updateList[i].next().value === true) continue;
+      this.updateList[i] = this.updateList[this.maxIndex];
+      this.maxIndex--;
+      i--;
+    }
+    requestAnimationFrame(this.applyUpdateList.bind(this));
+  }
+  // 正確な時間を測るのには不向き
+  perFrame(step: number = 1, n: number = Infinity): Root<number> {
+    let result = new Root<number>(0)
+    this.regist(
+      function* () {
+        let i = 0
+        for (let i = 0, j = 0; i < n; i++) {
+          if (i % step === 0) result.set(j++)
+          yield true;
+        }
+        yield false;
+      }
+    )
+    return result;
+  }
+  constructor() { requestAnimationFrame(this.applyUpdateList.bind(this)); }
 }

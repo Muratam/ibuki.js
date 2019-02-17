@@ -1,6 +1,6 @@
-import { Container, ContainerOption, DOM, TextAlignType, DOMOption } from "../dom";
+import { Box, BoxOption, DOM, TextAlignType, DOMOption } from "../dom";
 import { TextSeed, Text } from "./text";
-export interface FlexBoxOption extends ContainerOption {
+export interface FlexBoxOption extends BoxOption {
   flexDirection?: "row" | "row-reverse" | "column" | "column-reverse"
   flexWrap?: "nowrap" | "wrap" | "wrap-reverse"
   alignItems?: "stretch" | "flex-start" | "flex-end" | "center" | "baseline"
@@ -8,24 +8,24 @@ export interface FlexBoxOption extends ContainerOption {
   alignContent?: "stretch" | "flex-start" | "flex-end" | "center" | "space-between" | "space-around"
   // 子要素には order / flex-grow / flex-shrink / flex-basis / align-self があるが
 }
-export class FlexBox extends Container {
-  constructor(parent: Container, option: FlexBoxOption) {
+export class FlexBox extends Box {
+  constructor(parent: Box, option: FlexBoxOption) {
     super(parent, option)
     this.applyStyle({ display: "flex" })
   }
 }
-export interface TableOption extends ContainerOption {
+export interface TableOption extends BoxOption {
   widthes?: number[]
   caption?: TextSeed
   captionSide?: "top" | "bottom" | "left" | "right"
   borderSpacing?: number
   borderCollapse?: "collapse" | "separate"
 }
-type ContainerOptionFunc = ((x: number, y: number) => ContainerOption)
-export class Table extends Container {
+type ContainerOptionFunc = ((x: number, y: number) => BoxOption)
+export class Table extends Box {
   private ySize: number = 0;
   private containerOptionFunc: ContainerOptionFunc
-  constructor(parent: Container, option: TableOption = {}, containerOptionFunc: ContainerOptionFunc = (x, y) => ({})) {
+  constructor(parent: Box, option: TableOption = {}, containerOptionFunc: ContainerOptionFunc = (x, y) => ({})) {
     // サイズが変わる？
     // super(new Container(parent, option), { ...option, tag: "table" })
     super(parent, { ...option, tag: "table" })
