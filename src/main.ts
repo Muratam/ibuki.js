@@ -1,67 +1,79 @@
 import * as CSS from "./style";
 import { Color, ColorScheme } from "./color";
-import { Box, BoxOption, SeedWithOption, Ibuki, Scene } from "./dom";
+import { Box, BoxOption, Seed, Ibuki, Scene } from "./dom";
 import { Text, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
 import { FlexBox, Table } from "./widget/container"
-import { toStore } from "./store"
+import { toStore, Store, HasStoreValueWidgetInterface, assign } from "./store"
 import { ProgressBar, MeterBar, IFrame, Image } from "./widget/media";
 import { FAIcon } from "./widget/external"
 import { type } from "os";
+// speed: 間にBoxを挟むと悪くない感じに動いてくれるが,遅い...(でも後に回したいから放置)
 // fun  : effect / move parent
-//      : big input / progress bar
+//      : big inputbox(selectbox) / progress bar
 // ext  : vividjs / katex / markdown / live2d / graph(tree/chart) / svgjs / code
 //      : tips / bootstrap / vue.js / react.js / jquery / niconicocomment
-// bug  : media(image size bug(style/attrs))
-//      : animation size bug
-//      : table はみだし
-//      : repeatAnimation :: 相対的な位置 / 色 ... etc　を変えるためのもので相対値とする
-//      : -> top / left / scale / ... は変更しない
-//      : -> to / next はもっと絶対的に遷移する.
+// bug  : media(image size bug(style/attrs)) / rotation bug
 // impl : webgl(?) / canvas / drag and drop / a-href
 //      : colorSchemeLib
 //      : isButtonを hover 時におこなう関数に変えたい. + click  +hover
 //      : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるとゲーム以外にも使える？
 //      : Scene<T extends DataStore> / input-assign
-class ThreeLoopView extends Box {
-  private count = 0
+class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> {
+  private count = new Store<number>(0)
+  private $count = 0
+  assign(dst: Store<number>) {
+    this.count.assign(dst)
+    return this
+  }
   private boxes: Box[] = []
-  public readonly topThree: BoxOption[] = [{
+  public readonly tops: BoxOption[] = [{
     scale: 0.2,
     fit: { x: "right", y: "center" },
-    zIndex: 1
+    zIndex: 1,
+    opacity: 1
   }, {
     scale: 0.5,
     fit: { x: "center", y: "center" },
-    zIndex: 2
+    zIndex: 2,
+    opacity: 1
   }, {
     scale: 0.2,
     fit: { x: "left", y: "center" },
-    zIndex: 1
+    zIndex: 1,
+    opacity: 1
   }, {
     scale: 0.1,
     fit: { x: "center", y: "center" },
-    zIndex: 0
+    zIndex: 0,
+    opacity: 0
   },]
-  constructor(p: Box, option: BoxOption = {}) { super(p, option) }
-  add(seed: SeedWithOption<Box, BoxOption> | SeedWithOption<Box, BoxOption>[]) {
+  private childrenInitialOption: BoxOption = {}
+  constructor(p: Box, option: BoxOption = {}, childrenInitialOption: BoxOption = {}) {
+    super(p, option)
+    this.childrenInitialOption = childrenInitialOption;
+  }
+  add(seed: Seed<Box> | Seed<Box>[]) {
     if (seed instanceof Array) {
       for (let s of seed) this.add(s)
       return this
     }
-    let option = this.boxes.length < 3 ? this.topThree[this.boxes.length] : this.topThree[3]
-    this.boxes.push(seed(this, option))
+    let option = this.boxes.length < this.tops.length - 1 ? this.tops[this.boxes.length] : this.tops[this.tops.length - 1]
+    let box = new Box(this, { ...option, ...this.childrenInitialOption })
+    seed(box)
+    this.boxes.push(box)
     return this
   }
   turn(n: number) {
-    let pre = this.count;
-    this.count = (this.count + n + this.boxes.length) % this.boxes.length;
-    if (pre === this.count) return;
+    let pre = this.$count;
+    this.$count = (this.$count + n + this.boxes.length) % this.boxes.length;
+    if (pre === this.$count) return;
     for (let i = 0; i < this.boxes.length; i++) {
-      let index = (i + this.count) % this.boxes.length
-      let option = index < 3 ? this.topThree[index] : this.topThree[3]
+      let index = (i + this.$count) % this.boxes.length
+      let option = index < this.tops.length - 1 ? this.tops[index] : this.tops[3]
       this.boxes[i].to(option)
     }
+    this.count.set(this.$count)
     return this
   }
 }
@@ -73,29 +85,20 @@ function threeBoxSampleScene(scene: Scene) {
     pressedKey: toStore(""),
     posX: toStore(0)
   }
-  function createElem1(p: Box, option: BoxOption): Box {
+  function createElem1(p: Box): Box {
     return new FlexBox(p, {
-      ...option,
       flexDirection: "column",
       alignItems: "flex-start",
-      colorScheme: new ColorScheme("#fce", "#034"),
       isButton: true,
-      fontSize: 100,
-      isScrollable: true
     }).tree(p => {
       new Input(p, { type: "text", size: 10, label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.5, 20) }).assign(store.inputted)
       new Input(p, { type: "select", options: ["C#", "C++", "js"], label: p2 => new FixedSizeText(p2, "language : ", p.width * 0.5, 20) })
       new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, store.inputted.to(t => t + "yade"), p.width * 0.5, 20) })
     });
   }
-  function createElem2(p: Box, option: BoxOption): Box {
+  function createElem2(p: Box): Box {
     return new Box(p, {
-      // border: { width: 10 },
-      ...option,
-      colorScheme: new ColorScheme("#fce", "#876"),
-      fontSize: 100,
       textAlign: "center",
-      isScrollable: true,
       draggable: true,
     }).tree(p =>
       new TextSequence(p, [
@@ -105,17 +108,12 @@ function threeBoxSampleScene(scene: Scene) {
         p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
         [store.pressedKey, "#000"],
       ])
-    )
+    ) // .to({ colorScheme: new ColorScheme("#000") }, 10)
   }
-  function createElem3(p: Box, option: BoxOption): Box {
-    return new Table(p, {
-      ...option,
-      colorScheme: new ColorScheme("#fce", "#034"),
-      fontSize: 100,
-      isScrollable: true,
-    }, (x, y) => {
+  function createElem3(p: Box): Box {
+    return new Table(p, {}, (x, y) => {
       if (y % 2 === 0) return { colorScheme: new ColorScheme("#fce", "#034") }
-      return { colorScheme: new ColorScheme("#fce", "#034") }
+      return {}
     }).addContents([
       ["iikanji", store.inputted, "year"],
       ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
@@ -132,8 +130,6 @@ function threeBoxSampleScene(scene: Scene) {
       ...option,
       fit: { y: "bottom", x: "center" },
       height: p.height * 0.2,
-      colorScheme: new ColorScheme("#fce", "#034"),
-      isScrollable: true
     }).tree(p => {
       new ProgressBar(p, store.posX, {}, 100)
       new Text(p, store.posX.to(x => x + "%"))
@@ -153,32 +149,45 @@ function threeBoxSampleScene(scene: Scene) {
         this.to({ fit: { x: "left", y: "bottom" } }, 1)
     }).update(function () { })
   }
-
-  let loopView = new ThreeLoopView(scene, { height: scene.height * 0.7 }).add([
-    createElem3, createElem2, createElem1,
-    (p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }),
-    (p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }),
-    (p, o) => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg", ...o }),
-    (p, o) => new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html", ...o, }),
-    (p, o) => new IFrame(p, {
-      src: "https://www.openstreetmap.org/export/embed.html",
-      width: p.width * 0.7,
-      ...o,
-    })
-  ])
+  let back = new Box(scene, {
+    colorScheme: new ColorScheme("#555")
+  })
+  let loopView = new ThreeLoopView(back, {
+    height: scene.height * 0.7
+  }, {
+      colorScheme: new ColorScheme("#222", "#cdf", "#89d"),
+      border: { width: 20, style: "solid", radius: 30 },
+      fontSize: 100,
+      padding: 30,
+      isScrollable: true,
+    }).add([
+      createElem3, createElem2, createElem1,
+      p => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg" }),
+      p => new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html" }),
+      p => new IFrame(p, {
+        src: "https://www.openstreetmap.org/export/embed.html",
+        width: p.width * 0.7,
+      })
+    ])
+  let wait = 0
+  scene.update(() => { wait--; })
   scene.on("keydownall", key => {
     store.pressedKey.set(key)
+    if (key === "d") scene.destroy()
+    if (wait > 0) return;
     if (key === "ArrowRight") {
       store.posX.set((x: number) => x + 1)
       loopView.turn(1)
+      wait = 40
     } else if (key === "ArrowLeft") {
       store.posX.set((x: number) => x - 1)
       loopView.turn(-1)
-    } else if (key === "d") {
-      scene.destroy()
+      wait = 40
     }
   })
-  let bottom = createElem4(scene, {})
-    .repeat({ duration: 1 }, { width: scene.width * 0.8 })
+  let bottom = createElem4(back, {
+    colorScheme: new ColorScheme("#444", "#cdf", "#89d"),
+  }).repeat({ duration: 1 }, { width: scene.width * 0.8, left: scene.width * 0.1 })
+  scene.update(i => { if (i === 500) bottom.endRepeat() })
 }
 let ibuki = new Ibuki().play(threeBoxSampleScene)

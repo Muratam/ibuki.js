@@ -52,16 +52,20 @@ export interface DOMOption {
   textAlign?: TextAlignType
   isButton?: boolean
   zIndex?: number | "auto"
+  rotate?: number
 }
 export type FitType = { x: "left" | "center" | "right", y: "top" | "center" | "bottom" }
 export interface BoxOption extends DOMOption {
-  pos?: { left: number, top: number }
+  left?: number
+  top?: number
   fit?: FitType
   draggable?: boolean // ドラッグできるか？
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
   scale?: number  // | Vec2
   isScrollable?: boolean
+  display?: "none" | "block"
+  applyWidthHeightOnlyForAttributes?: boolean
 }
 export interface ContainerOption extends BoxOption { }
 // 一番の基本要素,各々がちょうど一つのdomに対応する.
@@ -70,11 +74,13 @@ export class DOM {
   public readonly $DOMId: number;
   $scene: Scene;
   public readonly $parent: DOM = null; // 移ることがある？
-  public update(fun: (this: this) => boolean | void) {
+  public update(fun: (this: this, i: number) => boolean | void) {
     let f = fun.bind(this);
+    let i = 0;
     this.$scene.$updater.regist(this.$scene.$updater.toGenerator(
       () => {
-        let result = f();
+        let result = f(i);
+        i++;
         if (typeof result === "boolean") return result;
         return true
       }))
@@ -123,7 +129,10 @@ export class DOM {
     let normalized = CSS.parse(style);
     for (let key in normalized) {
       let val = normalized[key]
-      this.$dom.style[key] = val;
+      if (key === "transform") {
+        let pre = this.$dom.style[key] || ""
+        this.$dom.style[key] = pre + " " + val
+      } else this.$dom.style[key] = val;
     }
     return this;
   }
@@ -150,6 +159,12 @@ export class DOM {
       delete style.colorScheme
     }
     delete style.tag
+    if (option.rotate) {
+      style = {
+        ...style,
+        ...CSS.transform({ rotate: style.rotate, origin: "0px 0px" })
+      }
+    }
     return style
   }
   parseBoxOption(parent: Box | HTMLElement, option: BoxOption): CSS.AnyStyle {
@@ -162,11 +177,6 @@ export class DOM {
 
     result.position = "absolute";
     // pos と fit が設定されていれば,fit が優先される.
-    if (option.pos) {
-      result.top = option.pos.top;
-      result.left = option.pos.left;
-      delete result.pos
-    }
     if (option.fit) {
       if (option.fit.x === "right") {
         result.left = parentWidth - result.width * result.scale
@@ -224,6 +234,7 @@ export class Box extends DOM {
   isScrollable: boolean = false;
   public readonly $parent: Box;
   private alreadyRegistedAnimationIteration = false
+  protected applyWidthHeightOnlyForAttributes = false
   constructor(parent: Box | HTMLElement, option: BoxOption = {}) {
     super(parent, option)
     this.applyOption(option)
@@ -260,12 +271,18 @@ export class Box extends DOM {
   applyOption(option: BoxOption) {
     // option を読み込み,自身に(上書きができれば)適応
     let style = this.parseBoxOptionOnCurrentState(option)
-    let apply = (key: string, init: number) => {
-      this[key] = typeof style[key] === "number" ? style[key] : this[key] || 0
+    let parse = (key: string, init: number): number =>
+      typeof style[key] === "number" ? style[key] : this[key] || init
+    let apply = (key: string, init: number) => this[key] = parse(key, init)
+    let applySize = (key: string, init: number) => {
+      let parsed = parse(key, init)
+      if (!this.applyWidthHeightOnlyForAttributes) return this[key] = parsed;
+      this.$dom.setAttribute(key, parsed + "px")
     }
+    this.applyWidthHeightOnlyForAttributes = this.applyWidthHeightOnlyForAttributes || style.applyWidthHeightOnlyForAttributes === true
     this.isScrollable = style.isScrollable || style.overflow === "scroll" || false
-    apply("width", this.$parent === null ? 72 : this.$parent.width)
-    apply("height", this.$parent === null ? 72 : this.$parent.height)
+    applySize("width", this.$parent === null ? 72 : this.$parent.width)
+    applySize("height", this.$parent === null ? 72 : this.$parent.height)
     apply("scale", 1.0)
     apply("left", 0)
     apply("top", 0)
@@ -277,7 +294,8 @@ export class Box extends DOM {
       height: this.height,
       scale: this.scale,
       isScrollable: this.isScrollable,
-      pos: { left: this.left, top: this.top },
+      left: this.left,
+      top: this.top,
     }
   }
   private alreadyTransitionEventListenerRegisted = false
@@ -329,16 +347,37 @@ export class Box extends DOM {
   }
   static __animationMaxId: number = 0
   static __hashes: { [key: string]: string } = {} // シーンを破棄しても残りそうだが多くないしいいかな？
+  private applyPercentages: { [key: string]: number } = {}
+  endRepeat() {
+    this.$dom.style.animationName = ""
+  }
   repeat(option: RepeatAnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
+    // 1: number+px / color は全て percentage として処理(よく考えたら同じ値をどうしても参照してしまうので無理では？)
+    //  : top,left:translate(tx,ty), width/height/scale: scale() // rotate欲しい
+    // 2: 中間オブジェクトを挟んで処理(位置は行けるとして色/borderが無理？)
+    // p -> this -> [children]
+    // p -> mid -> this -> [children]
+    // p -> this -> mid -> children (thisのいい感じの機能が使えなくなるので無理)
+    // 現在はとりあえず top と left :: translate()だけ
     // もっとkeyframeを増やしたければ VA_ARGS的な感じでできそう
     let src = b !== null ? a : {};
     let srcPercent = b !== null ? a.percent || "0%" : "0%"
     let dst = b !== null ? b : a;
     let dstPercent = dst.percent || "100%"
     let h = hash(src) + hash(dst)
+    function parse(op: AnimationFrameOption): CSS.Style {
+      // CSS.parse(this.parseBoxOptionOnCurrentState(op)) は現在の状態に依存してしまう
+      let result: CSS.AnyStyle = { ...op }
+      let top = result.top || 0
+      let left = result.left || 0
+      delete result.top
+      delete result.left
+      result.transform = `translate(${left}px,${top}px)`
+      return CSS.parse(result);
+    }
     if (!Box.__hashes[h]) {
-      let srcCSS = CSS.flatten(CSS.parse(this.parseBoxOptionOnCurrentState(src)));
-      let dstCSS = CSS.flatten(CSS.parse(this.parseBoxOptionOnCurrentState(dst)));
+      let srcCSS = CSS.flatten(parse(src));
+      let dstCSS = CSS.flatten(parse(dst));
       var name = `ibuki-animation-${Box.__animationMaxId++}`;
       this.$scene.$css.regist(`@keyframes ${name} {
         ${srcPercent} {${srcCSS}}
@@ -427,7 +466,10 @@ export class Ibuki extends Box {
           left: Math.max(0, (pWidth - this.width * ratio) / 2),
           width: this.width,
           height: this.height,
-          ...CSS.transform({ scale: ratio, origin: "0px 0px" })
+          ...CSS.transform({
+            scale: ratio,
+            origin: "0px 0px" //`${Math.floor(this.width / 2)}px ${Math.floor(this.height / 2)}px`
+          })
         },
     });
   }

@@ -43,26 +43,26 @@ export interface ImageOption extends BoxOption {
 export class Image extends Box {
   public readonly $dom: HTMLImageElement
   constructor(parent: Box, option: ImageOption) {
-    // illegal size!
-    super(parent, { ...option, tag: "img" })
-    let parsed = this.parseBoxOption(parent, option)
-    this.$dom.src = parsed.src;
-    this.$dom.style.removeProperty("width")
-    this.$dom.style.removeProperty("height")
-    if (!option.forceSize) {
-      this.$dom.onload = () => {
-        // 小さい方に合わせる
-        let baseWidth = this.$dom.naturalWidth;
-        let baseHeight = this.$dom.naturalHeight;
-        if (parsed.width / baseWidth > parsed.height / baseHeight) {
-          this.$dom.height = this.$dom.width * baseHeight / baseWidth
-        } else {
-          this.$dom.width = this.$dom.height * baseWidth / baseHeight
-        }
-      }
-    } else {
-      this.$dom.width = parsed.width;
-      this.$dom.height = parsed.height;
-    }
+    super(parent, { ...option, tag: "img", applyWidthHeightOnlyForAttributes: true })
+    this.$dom.src = option.src;
+    // WARN: illegal size!
+    // let parsed = this.parseBoxOption(parent, option)
+    // this.$dom.style.removeProperty("width")
+    // this.$dom.style.removeProperty("height")
+    // if (!option.forceSize) {
+    //   this.$dom.onload = () => {
+    //     // 小さい方に合わせる
+    //     let baseWidth = this.$dom.naturalWidth;
+    //     let baseHeight = this.$dom.naturalHeight;
+    //     if (parsed.width / baseWidth > parsed.height / baseHeight) {
+    //       this.$dom.height = this.$dom.width * baseHeight / baseWidth
+    //     } else {
+    //       this.$dom.width = this.$dom.height * baseWidth / baseHeight
+    //     }
+    //   }
+    // } else {
+    //   this.$dom.width = parsed.width;
+    //   this.$dom.height = parsed.height;
+    // }
   }
 }
