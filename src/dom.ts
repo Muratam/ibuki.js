@@ -288,7 +288,6 @@ export class Box extends DOM {
   }
   // すぐに値を変更する(with transition)
   // force をはずすと過去の登録したアニメーションは残る.
-  // WARN: 全く同じ状態を経由すると transitionend は発火しない！
   to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, force = true) {
     if (force) this.transitionQueue = []
     this.applyOption(option);
@@ -320,52 +319,52 @@ export class Box extends DOM {
     }
     let newElem = { option, duration, timingFunction, delay, }
     if (this.transitionQueue.length > 0) {
-      let h1 = hash(this.transitionQueue[this.transitionQueue.length - 1]);
+      // 全く同じ状態を経由すると transitionend は発火しない
+      // 偶然にもそうなってしまった場合はドンマイ？
+      let h1 = hash(this.transitionQueue[this.transitionQueue.length - 1])
       console.assert(h1 !== hash(newElem), "same transition is illegal")
     }
     this.transitionQueue.push(newElem)
     return this
   }
+  static __animationMaxId: number = 0
+  static __hashes: { [key: string]: string } = {} // シーンを破棄しても残りそうだが多くないしいいかな？
+  repeat(option: RepeatAnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
+    // もっとkeyframeを増やしたければ VA_ARGS的な感じでできそう
+    let src = b !== null ? a : {};
+    let srcPercent = b !== null ? a.percent || "0%" : "0%"
+    let dst = b !== null ? b : a;
+    let dstPercent = dst.percent || "100%"
+    let h = hash(src) + hash(dst)
+    if (!Box.__hashes[h]) {
+      let srcCSS = CSS.flatten(CSS.parse(this.parseBoxOptionOnCurrentState(src)));
+      let dstCSS = CSS.flatten(CSS.parse(this.parseBoxOptionOnCurrentState(dst)));
+      var name = `ibuki-animation-${Box.__animationMaxId++}`;
+      this.$scene.$css.regist(`@keyframes ${name} {
+        ${srcPercent} {${srcCSS}}
+        ${dstPercent} {${dstCSS}}
+      }`)
+      Box.__hashes[h] = name
+    } else name = Box.__hashes[h]
+    let animation: CSS.Style = {
+      name: name,
+      iterationCount: "infinite",
+      direction: "alternate",
+      fillMode: "both"
+    }
+    for (let key in option) {
+      let val = option[key];
+      if (typeof val === "number") animation[key] = Math.floor(val * 1000) + "ms"
+      else animation[key] = val
+    }
+    if (!this.alreadyRegistedAnimationIteration) {
+      this.$dom.addEventListener("animationiteration", e => { })
+      this.alreadyRegistedAnimationIteration = true
+    }
+    this.applyStyle({ animation: animation })
+    return this
+  }
 }
-/* // アニメーションなんかバグってる
-static __animationMaxId: number = 0
-static __hashes: { [key: string]: string } = {}
-repeat(option: RepeatAnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
-  // WARN: もっとkeyframeを増やしたければ VA_ARGS的な感じでできそう
-  let src = b !== null ? a : {};
-  let srcPercent = b !== null ? a.percent || "0%" : "0%"
-  let dst = b !== null ? b : a;
-  let dstPercent = dst.percent || "100%"
-  let h = hash(src) + hash(dst)
-  if (!Box.__hashes[h]) {
-    let srcCSS = CSS.flatten(CSS.parse(this.parseBoxOptionOnCurrentState(src)));
-    let dstCSS = CSS.flatten(CSS.parse(this.parseBoxOptionOnCurrentState(dst)));
-    var name = `ibuki-animation-${Box.__animationMaxId++}`;
-    CSS.Global.regist(`@keyframes ${name} {
-      ${srcPercent} {${srcCSS}}
-      ${dstPercent} {${dstCSS}}
-    }`)
-    Box.__hashes[h] = name
-  } else name = Box.__hashes[h]
-  let animation: CSS.Style = {
-    name: name,
-    iterationCount: "infinite",
-    direction: "alternate",
-    fillMode: "both"
-  }
-  for (let key in option) {
-    let val = option[key];
-    if (typeof val === "number") animation[key] = Math.floor(val * 1000) + "ms"
-    else animation[key] = val
-  }
-  if (!this.alreadyRegistedAnimationIteration) {
-    this.$dom.addEventListener("animationiteration", e => { })
-    this.alreadyRegistedAnimationIteration = true
-  }
-  this.applyStyle({ animation: animation })
-  return this
-}
-*/
 
 export class Scene extends Box {
   public readonly $updater = new Updater()

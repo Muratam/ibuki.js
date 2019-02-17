@@ -179,7 +179,6 @@ function threeBoxSampleScene(scene: Scene) {
     }
   })
   let bottom = createElem4(scene, {})
-  //.repeat({ duration: 1 }, { width: p.width * 0.8 })) // TODO: BUG
-
+    .repeat({ duration: 1 }, { width: scene.width * 0.8 })
 }
 let ibuki = new Ibuki().play(threeBoxSampleScene)
