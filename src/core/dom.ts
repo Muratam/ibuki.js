@@ -195,6 +195,16 @@ export class Box extends DOM {
   left: number = 0;
   top: number = 0;
   scale: number = 1;
+  public get contentWidth(): number {
+    return this.width
+      - (Box.pickNum(this.$dom.style.borderRightWidth) || 0)
+      - (Box.pickNum(this.$dom.style.paddingRight) || 0) * 2
+  }
+  public get contentHeight(): number {
+    return this.height
+      - (Box.pickNum(this.$dom.style.borderBottomWidth) || 0)
+      - (Box.pickNum(this.$dom.style.paddingBottom) || 0) * 2
+  }
   public readonly $parent: Box;
   constructor(parent: Box, option: BoxOption = {}) {
     super(parent, Box.copyDeletedTransformValues(option))
@@ -259,16 +269,17 @@ export class Box extends DOM {
     let result: CSS.AnyStyle = { ...transform, ...option }
     if (option.fit) {
       if (option.fit.x === "right") {
-        result.left = this.$parent.width - result.width * result.scale
+        console.log([this.$parent.contentWidth, this.$parent.width])
+        result.left = this.$parent.contentWidth - result.width * result.scale
       } else if (option.fit.x === "center") {
-        result.left = this.$parent.width / 2 - result.width * result.scale / 2
+        result.left = this.$parent.contentWidth / 2 - result.width * result.scale / 2
       } else {
         result.left = 0
       }
       if (option.fit.y === "bottom") {
-        result.top = this.$parent.height - result.height * result.scale
+        result.top = this.$parent.contentHeight - result.height * result.scale
       } else if (option.fit.y === "center") {
-        result.top = this.$parent.height / 2 - result.height * result.scale / 2
+        result.top = this.$parent.contentHeight / 2 - result.height * result.scale / 2
       } else {
         result.top = 0
       }
@@ -495,7 +506,7 @@ export class World extends Box {
       body: { margin: 0, padding: 0, overflow: "hidden", background: "#000" },
       "*": {
         "box-sizing": "border-box",
-        contain: "content",
+        // contain: "content",
       },
       textarea: inheritFontSize,
       input: inheritFontSize,
