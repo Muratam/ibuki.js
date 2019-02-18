@@ -15,7 +15,7 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
     zIndex: 1,
     opacity: 1
   }, {
-    scale: 0.5,
+    scale: 0.4,
     fit: { x: "center", y: "center" },
     zIndex: 2,
     opacity: 1
@@ -45,13 +45,12 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
       return this
     }
     let option = this.boxes.length < this.tops.length - 1 ? this.tops[this.boxes.length] : this.tops[this.tops.length - 1]
-    console.log("BOX")
     let box = new Box(this, {
       height: this.height * 1.8,
       ...option,
       ...this.childrenInitialOption,
       isScrollable: true,
-    }).repeatAtHover({ scale: 0.95 }, 0.5)
+    }).repeatAtHover({ scale: 0.95, rotate: 100 }, 0.5)
     seed(box)
     this.boxes.push(box)
     return this

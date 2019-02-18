@@ -60,6 +60,7 @@ export interface BoxOption extends DOMOption {
   draggable?: boolean // ドラッグできるか？
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
+  rotate?: number
   scale?: number  // | Vec2
   display?: "none" | "block"
   applyWidthHeightOnlyForAttributes?: boolean
@@ -238,8 +239,8 @@ export class Box extends DOM {
     let style = this.parseBoxOptionOnCurrentTransform(option)
     this.applyTransformValues(style)
     // this.percentages を style にだけ適応する
-    for (let k in { ...style }) {
-      if (typeof style[k] !== "number") continue
+    for (let k in { ...style, ...this.percentages }) {
+      if (typeof style[k] !== "number" && typeof this.percentages[k] !== "number") continue
       // WARN: color の乗算 階層オブジェクト(border:{})には未対応
       // transform 系は既にapplyTransfromValuesで適応されている
       if (k == "left") {
@@ -247,12 +248,14 @@ export class Box extends DOM {
       } else if (k === "top") {
         style.transform.top = (this.percentages[k] || 0) * this.height + this[k]
       } else if (k === "scale") {
-        style.transform.scale = (this.percentages[k] || 1) * this[k]
+        style.transform[k] = (this.percentages[k] || 1) * this[k]
+      } else if (k === "rotate") {
+        style.transform[k] = (this.percentages[k] || 0) + (style[k] || 0)
       } else if (k === "width" || k == "height") {
         style[k] = (this.percentages[k] || 1) * this[k]
       } else {
-        this.realStyles[k] = style[k]
-        style[k] = (this.percentages[k] || 1) * style[k]
+        this.realStyles[k] = style[k] || 0
+        style[k] = (this.percentages[k] || 1) * (style[k] || 0)
       }
     }
     Box.deleteTransformValues(style) // transform にて変換したので(二重になるし)削除
@@ -271,25 +274,30 @@ export class Box extends DOM {
     let transform = this.currentTransform;
     let result: CSS.AnyStyle = { ...transform, ...option }
     if (option.fit) {
+
       if (option.fit.x === "right") {
-        result.left = this.$parent.contentWidth - result.width * result.scale
+        result.left = this.$parent.contentWidth - result.width * 2 * result.scale
       } else if (option.fit.x === "center") {
-        result.left = this.$parent.contentWidth / 2 - result.width * result.scale / 2
+        result.left = this.$parent.contentWidth / 2 - result.width * 2 * result.scale / 2
       } else {
-        result.left = 0
+        result.left = -result.width / 2
       }
       if (option.fit.y === "bottom") {
-        result.top = this.$parent.contentHeight - result.height * result.scale
+        result.top = this.$parent.contentHeight - result.height * 2 * result.scale
       } else if (option.fit.y === "center") {
-        result.top = this.$parent.contentHeight / 2 - result.height * result.scale / 2
+        result.top = this.$parent.contentHeight / 2 - result.height * 2 * result.scale / 2
       } else {
-        result.top = 0
+        result.top = -result.height * result.scale / 2
       }
       delete result.fit
     }
     result.position = "absolute" // 無いと後続の要素の位置がバグる
-    result["transform-origin"] = "0px 0px"
-    result.transform = new TransfromCSS(result.left, result.top, result.scale)
+    result["transform-origin"] = `center center` // これができると rotation / scaleがいい感じになる
+    if (this.$parent) {
+      // if (typeof result.left === "number") result.left /= 2 //this.$parent.width / 2
+      // if (typeof result.top === "number") result.top /= 2//this.$parent.height / 2
+    }
+    result.transform = new TransfromCSS(result.left, result.top, result.scale, result.rotate)
     return this.parseDOMOption(result);
   }
   applyTransformValues(style: CSS.AnyStyle) {
