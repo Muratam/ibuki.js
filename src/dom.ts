@@ -3,6 +3,7 @@ import * as CSS from "./style";
 import * as hash from "object-hash";
 import { MayStore, Store, Primitive } from "./store";
 import { Updater, KeyBoard, GlobalCSS, KeysType } from "./static"
+import { timingSafeEqual } from "crypto";
 export interface Vec2 {
   x: number
   y: number
@@ -187,6 +188,13 @@ class TransfromCSS implements CSS.CanTranslateCSS {
     return `translate(${Math.floor(this.left)}px,${Math.floor(this.top)}px) rotate(${Math.floor(this.rotate)}deg) scale(${this.scale})`
   }
 }
+class Callback {
+  private callback: () => any = () => { }
+  used = false
+  constructor() { }
+  regist(callback: () => any) { this.callback = callback; }
+  call() { this.callback(); this.used = true }
+}
 export class Box extends DOM {
   // 全てローカル値. transform:
   width: number = undefined;
@@ -337,55 +345,61 @@ export class Box extends DOM {
   }
 
   // すぐに値を変更する(with transition)
-  // force をはずすと過去の登録したアニメーションは残る.
-  // constructな最初のフレームでは無効
-  private alreadyTransitionEventListenerRegisted = false
-  private transitionFinished = true
-  private transitionQueue: TransitionQueueElement[] = []
-  to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, force = true, interrupt = false) {
+  // TODO: delete callbacks
+  private callBacks: { [key: number]: () => any } = {}
+  private transitionMaxId = 0
+  to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, id: number = null) {
     if (this.frame === 0) {
+      // 構築された最初のフレームでは無効なので
       this.$scene.reserveExecuteNextFrame(() => {
-        this.to(option, duration, timingFunction, delay, force)
+        this.to(option, duration, timingFunction, delay)
       })
       return
     }
-    if (force) this.transitionQueue = []
     let style = this.applyOptionOnCurrentState(option)
     let transition = CSS.parse(style);
     let results: string[] = []
     for (let key in transition) {
+      this.$dom.style[key] = transition[key]
       // if (style[key] === this[key]) continue // WARN: すでに適応されてしまっているので効かないとはいえ,減らしたほうがよい？
       if (typeof style[key] === "string" && key !== "transform") continue
       results.push(`${key} ${duration}s ${timingFunction} ${delay}s `)
-      this.$dom.style[key] = transition[key]
     }
     this.$dom.style.transition = results.join(",")
-    if (!interrupt) this.transitionFinished = false
-    if (!this.alreadyTransitionEventListenerRegisted) {
-      this.$dom.addEventListener("transitionend", e => {
-        this.transitionFinished = true
-        if (this.transitionQueue.length === 0) return;
-        let q = this.transitionQueue.shift()
-        this.to(q.option, q.duration, q.timingFunction, q.delay, false)
-      })
+    if (id === null) {
+      this.transitionMaxId++;
+      id = this.transitionMaxId;
     }
-    this.alreadyTransitionEventListenerRegisted = true
+    let i = 0;
+    this.$scene.$updater.regist(() => {
+      if (i === Math.max(0, Math.floor(duration * 60))) {
+        if (this.callBacks[id]) {
+          this.callBacks[id]()
+          delete this.callBacks[id]
+        }
+        return false;
+      }
+      i++;
+      return true;
+    })
     return this
   }
-  // 現在の transition が 終わってから値を変更する
+  // 最後に登録した to / next が 終わってから発火する
   next(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0) {
-    if (this.transitionFinished) {
-      this.to(option, duration, timingFunction, delay, false)
-      return
+    if (this.frame === 0) {
+      // 構築された最初のフレームでは無効なので
+      this.$scene.reserveExecuteNextFrame(() => {
+        this.next(option, duration, timingFunction, delay)
+      })
+      return this
     }
-    let newElem = { option, duration, timingFunction, delay, }
-    if (this.transitionQueue.length > 0) {
-      // 全く同じ状態を経由すると transitionend は発火しない
-      // 偶然にもそうなってしまった場合はドンマイ？
-      let h1 = hash(this.transitionQueue[this.transitionQueue.length - 1])
-      console.assert(h1 !== hash(newElem), "same transition is illegal")
-    }
-    this.transitionQueue.push(newElem)
+    this.transitionMaxId++;
+    let id = this.transitionMaxId
+    if (!this.callBacks[id - 1]) {
+      this.callBacks[id - 1] = () => {
+        this.to(option, duration, timingFunction, delay, id)
+      }
+    } else console.assert("illegal transition maxid")
     return this
   }
   private repeatStopped = false
@@ -403,11 +417,14 @@ export class Box extends DOM {
     // percentage
     let per = Math.floor(duration * 60) || 1 // WARN: 60FPS ?
     let isBase = false
+    let itcnt = 0;
     this.update(i => {
       if (this.repeatStopped) return;
       if (i % per !== 0) return;
       this.percentages = Box.filterPercentageBoxOption(isBase ? base : dst)
-      this.to({}, duration, timingFunction, delay, false, true)
+      this.to({}, duration, timingFunction, delay)
+      itcnt++;
+      if (itcnt === iterationCount) return false;
       isBase = !isBase;
     })
     return this

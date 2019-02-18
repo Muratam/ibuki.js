@@ -16,10 +16,6 @@ import { FAIcon } from "./widget/external"
 //      : colorSchemeLib
 //      : isButtonを hover 時におこなう関数に変えたい. + click  +hover
 //      : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるとゲーム以外にも使える？
-//      : Scene<T extends DataStore> / input-assign
-
-
-//      : 全て transformで行う
 
 class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> {
   private count = new Store<number>(0)
@@ -200,6 +196,6 @@ function threeBoxSampleScene(scene: Scene) {
   })
   let bottom = createElem4(back, {
     colorScheme: new ColorScheme("#444", "#cdf", "#89d"),
-  }).repeat({ left: 0.1, width: 0.9, height: 0.9, scale: 0.5 }, {}, 0.5)
+  }).repeat({ top: -0.1, height: 0.9 }, {}, 0.5)
 }
 let ibuki = new Ibuki().play(threeBoxSampleScene)
