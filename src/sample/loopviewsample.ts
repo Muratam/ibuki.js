@@ -6,6 +6,7 @@ import { FlexBox, Table } from "../html/container"
 import { toStore, DataStore } from "../core/store"
 import { ProgressBar, MeterBar, IFrame, Image } from "../html/media";
 import { FAIcon } from "../widget/external/faicon"
+import { MarkDown } from "../widget/external/markdown"
 import { ThreeLoopView } from "../widget/loopview"
 
 function helloBox(p: Box, store: DataStore): Box {
@@ -123,9 +124,19 @@ function iframeTest(p: Box, store: DataStore): Box {
     new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html", height: p.height * 0.7 })
   });
 }
+function markdownTest(p: Box, store: DataStore): Box {
+  return new Box(p, {
+    padding: 80,
+  }).tree(p => {
+    new Text(p, "realtime markdown")
+    let text = new Input(p, { type: "textarea" }).value
+    new MarkDown(p, text)
+  });
+}
 
 
 function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
+  // TODO: show FPS
   return new Box(p, {
     fit: { x: "center", y: "bottom" },
     height: p.height * 0.3,
@@ -164,6 +175,7 @@ export function threeBoxSampleScene(scene: Scene) {
     p => informationBox(p, store),
     p => flexBoxInputTest(p, store),
     p => flexBoxMediaTest(p, store),
+    p => markdownTest(p, store),
     p => tableTest(p, store),
     p => iframeTest(p, store),
   ])
