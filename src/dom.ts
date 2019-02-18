@@ -73,13 +73,17 @@ export class DOM {
   protected $createdFrame: number
   public get frame(): number { return this.$scene.$createdFrame - this.$createdFrame; }
   public readonly $parent: DOM = null; // 移ることがある？
-  public update(fun: (this: this, i: number) => boolean | void) {
+  public update(fun: (this: this, i: number) => boolean | void | number) {
     let f = fun.bind(this);
     let i = 0;
     this.$scene.$updater.regist(() => {
       let result = f(i);
       i++;
       if (typeof result === "boolean") return result;
+      if (typeof result === "number") {
+        i = result
+        return true
+      }
       return true
     })
     return this
@@ -393,6 +397,10 @@ export class Box extends DOM {
   }
   private stopped: { [key: number]: boolean } = {}
   endRepeat(id: number) { this.stopped[id] = true }
+  restartRepeat(id: number) {
+    console.assert(this.stopped[id] !== undefined, "illegal resume animation")
+    this.stopped[id] = false
+  }
   private playMaxId = 0
   repeat(dst: BoxOption, base: BoxOption = {}, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity, allowEndDstState = false): number {
     // percentage
@@ -403,28 +411,30 @@ export class Box extends DOM {
     this.playMaxId++
     this.update(i => {
       if (this.stopped[id]) {
-        if (allowEndDstState || !isBase) return;
+        if (allowEndDstState || !isBase) return 0;
       }
       if (i % per !== 0) return;
       this.percentages = Box.filterPercentageBoxOption(isBase ? base : dst)
       this.to({}, duration, timingFunction, delay)
-      console.log([i, isBase])
       itcnt++;
-      if (itcnt === iterationCount) return false;
       isBase = !isBase;
+      if (itcnt === iterationCount) {
+        this.endRepeat(id)
+        itcnt = 0
+        return 0
+      }
     })
     return id
   }
   repeatAtHover(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
-    let id = -1;
+    let id = null;
     let iii = 0
     this.on("mouseover", () => {
       this.$dom.style.cursor = "pointer"
-      console.log("mouseover" + iii++)
-      id = this.repeat(option, {}, duration, timingFunction, delay, iterationCount)
+      if (id !== null) this.restartRepeat(id)
+      else id = this.repeat(option, {}, duration, timingFunction, delay, iterationCount)
     })
     this.on("mouseout", () => {
-      console.log("mouseout" + iii++)
       this.$dom.style.cursor = "default"
       this.endRepeat(id)
     })

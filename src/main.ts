@@ -14,8 +14,9 @@ import { FAIcon } from "./widget/external"
 // bug  : media(image size bug(style/attrs)) / rotate
 // impl : webgl(?) / canvas / drag and drop / a-href
 //      : colorSchemeLib
-//      : isButtonを hover 時におこなう関数に変えたい. + click  +hover
+//      :
 // ???? : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるとゲーム以外にも使える？(height可変はむずいのでは？)
+
 
 class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> {
   private count = new Store<number>(0)
