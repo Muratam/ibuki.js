@@ -1,4 +1,4 @@
-import { Box, BoxOption, DOM, TextAlignType, DOMOption } from "../dom";
+import { Box, BoxOption, DOM, TextAlignType, DOMOption } from "../core/dom";
 import { TextSeed, Text } from "./text";
 export interface FlexBoxOption extends BoxOption {
   flexDirection?: "row" | "row-reverse" | "column" | "column-reverse"

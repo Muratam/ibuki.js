@@ -1,6 +1,6 @@
-import { Box, BoxOption, DOM, DOMOption } from "../dom";
+import { Box, BoxOption, DOM, DOMOption } from "../core/dom";
 import { Text, TextSeed } from "./text"
-import { Store, HasStoreValueWidgetInterface } from "../store"
+import { Store, HasStoreValueWidgetInterface } from "../core/store"
 export type InputType =
   "password" | "search" | "text" | "textarea" | "select" |
   "date" | "email" | "tel" | "time" | "url" | "checkbox" | "radio" |

@@ -1,10 +1,10 @@
-import * as CSS from "./style";
-import { Color, ColorScheme } from "./color";
-import { Box, BoxOption, Seed, World, Scene } from "./dom";
+import * as CSS from "./core/style";
+import { Color, ColorScheme } from "./core/color";
+import { Box, BoxOption, Seed, World, Scene } from "./core/dom";
 import { Text, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
 import { FlexBox, Table } from "./widget/container"
-import { toStore, Store, DataStore, HasStoreValueWidgetInterface } from "./store"
+import { toStore, Store, DataStore, HasStoreValueWidgetInterface } from "./core/store"
 import { ProgressBar, MeterBar, IFrame, Image } from "./widget/media";
 import { FAIcon } from "./widget/external"
 // fun  : effect
@@ -14,7 +14,6 @@ import { FAIcon } from "./widget/external"
 // bug  : media(image size bug(style/attrs)) / rotate
 // impl : webgl(?) / canvas / drag and drop / a-href
 //      : colorSchemeLib
-//      :
 // ???? : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるとゲーム以外にも使える？(height可変はむずいのでは？)
 
 

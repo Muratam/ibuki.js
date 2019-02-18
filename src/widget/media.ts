@@ -1,5 +1,5 @@
-import { DOM, DOMOption, BoxOption, Box } from "../dom";
-import { Store, MayStore, assign } from "../store";
+import { DOM, DOMOption, BoxOption, Box } from "../core/dom";
+import { Store, MayStore, assign } from "../core/store";
 // MEDIA :: audio / img / video
 export class ProgressBar extends DOM {
   public readonly $dom: HTMLProgressElement

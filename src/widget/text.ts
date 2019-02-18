@@ -1,6 +1,6 @@
-import { Color } from "../color";
-import { DOM, DOMOption } from "../dom";
-import { MayStore, assign, HasValueWidgetInterface, Store } from "../store";
+import { Color } from "../core/color";
+import { DOM, DOMOption } from "../core/dom";
+import { MayStore, assign, HasValueWidgetInterface, Store } from "../core/store";
 export interface TextOption extends DOMOption {
   size?: number
   fontName?: string
