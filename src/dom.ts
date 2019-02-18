@@ -373,8 +373,10 @@ export class Box extends DOM {
     for (let k in base) {
       if (typeof base[k] !== "number") {
         option[k] = base[k]
-      } else if (k === "left" || k === "top") {
-        option[k] = base[k] + transform[k]
+      } else if (k == "left") {
+        option.left = base.left * transform.width + transform.left
+      } else if (k === "top") {
+        option.top = base.top * transform.height + transform.top
       } else if (k === "width" || k == "height" || k == "scale") {
         option[k] = base[k] * transform[k]
       } else if (now[k] === undefined || pickNum(now[k]) === null) {
