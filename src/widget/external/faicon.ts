@@ -1,7 +1,7 @@
 import { library, icon } from '@fortawesome/fontawesome-svg-core'
 import * as FA from '@fortawesome/free-solid-svg-icons'
-import { Color, ColorScheme } from "../core/color";
-import { DOM, DOMOption } from "../core/dom";
+import { Color, ColorScheme } from "../../core/color";
+import { DOM, DOMOption } from "../../core/dom";
 export interface FAIconOption extends DOMOption {
   size?: number,
   color?: Color | ColorScheme

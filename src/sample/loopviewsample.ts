@@ -1,82 +1,14 @@
 import { Color, ColorScheme } from "../core/color";
-import { Box, BoxOption, Seed, World, Scene } from "../core/dom";
-import { Text, TextSequence, FixedSizeText } from "../widget/text";
-import { Input } from "../widget/input"
-import { FlexBox, Table } from "../widget/container"
-import { toStore, Store, DataStore, HasStoreValueWidgetInterface } from "../core/store"
-import { ProgressBar, MeterBar, IFrame, Image } from "../widget/media";
-import { FAIcon } from "../widget/external"
+import { Box, BoxOption, Scene } from "../core/dom";
+import { Text, TextSequence, FixedSizeText } from "../html/text";
+import { Input } from "../html/input"
+import { FlexBox, Table } from "../html/container"
+import { toStore, DataStore } from "../core/store"
+import { ProgressBar, MeterBar, IFrame, Image } from "../html/media";
+import { FAIcon } from "../widget/external/faicon"
+import { ThreeLoopView } from "../widget/loopview"
 
-export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> {
-  private count = new Store<number>(0)
-  private $count = 0
-  assign(dst: Store<number>) {
-    this.count.assign(dst)
-    return this
-  }
-  private boxes: Box[] = []
-  public readonly tops: BoxOption[] = [{
-    scale: 0.2,
-    fit: { x: "right", y: "center" },
-    zIndex: 1,
-    opacity: 1
-  }, {
-    scale: 0.5,
-    fit: { x: "center", y: "center" },
-    zIndex: 2,
-    opacity: 1
-  }, {
-    scale: 0.2,
-    fit: { x: "left", y: "center" },
-    zIndex: 1,
-    opacity: 1
-  }, {
-    scale: 0.1,
-    fit: { x: "center", y: "center" },
-    zIndex: 0,
-    opacity: 0
-  },]
-  private childrenInitialOption: BoxOption = {}
-  constructor(p: Box, option: BoxOption = {}, childrenInitialOption: BoxOption = {}) {
-    super(p, {
-      padding: p.width * 0.05,
-      isScrollable: false,
-      ...option
-    })
-    this.childrenInitialOption = childrenInitialOption;
-  }
-  add(seed: Seed<Box> | Seed<Box>[]) {
-    if (seed instanceof Array) {
-      for (let s of seed) this.add(s)
-      return this
-    }
-    let option = this.boxes.length < this.tops.length - 1 ? this.tops[this.boxes.length] : this.tops[this.tops.length - 1]
-    // let box = seed(this).applyOption({ ...option, ...this.childrenInitialOption })
-    let box = new Box(this, {
-      height: this.height * 1.8,
-      ...option,
-      ...this.childrenInitialOption,
-    }).repeatAtHover({ top: -0.02, height: 0.98 }, 0.5)
-    seed(box)
-    this.boxes.push(box)
-    return this
-  }
-  turn(n: number) {
-    let pre = this.$count;
-    this.$count = (this.$count + n + this.boxes.length) % this.boxes.length;
-    if (pre === this.$count) return;
-    for (let i = 0; i < this.boxes.length; i++) {
-      let index = (i + this.$count) % this.boxes.length
-      let preIndex = (i + pre) % this.boxes.length
-      if (index >= this.tops.length - 1 && preIndex >= this.tops.length - 1) continue
-      let option = index < this.tops.length - 1 ? this.tops[index] : this.tops[this.tops.length - 1]
-      // this.boxes[i].to({ ...option, ...this.childrenInitialOption })
-      this.boxes[i].to(option)
-    }
-    this.count.set(this.$count)
-    return this
-  }
-}
+
 
 export function threeBoxSampleScene(scene: Scene, store: DataStore) {
   store.sec = scene.perFrame(10)

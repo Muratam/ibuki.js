@@ -3,15 +3,16 @@ export * from "./core/style";
 export * from "./core/color";
 export * from "./core/dom";
 export * from "./core/store";
+// html
+export * from "./html/text"
+export * from "./html/input"
+export * from "./html/container"
+export * from "./html/media"
 // widgets
-export * from "./widget/text"
-export * from "./widget/input"
-export * from "./widget/container"
-export * from "./widget/media"
-export * from "./widget/external"
-
+export * from "./widget/loopview"
+export * from "./widget/external/faicon"
 import { World } from "./core/dom"
-import { threeBoxSampleScene, threeLoopViewStore } from "./example/loopview"
+import { threeBoxSampleScene, threeLoopViewStore } from "./sample/loopviewsample"
 
 // fun  : effect
 //      : big inputbox(selectbox) / progress bar
