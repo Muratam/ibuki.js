@@ -2,7 +2,7 @@ import { Color, Colors, ColorScheme } from "./color";
 import * as CSS from "./style";
 import * as hash from "object-hash";
 import { MayStore, Store, Primitive } from "./store";
-import { Updater, KeyBoard, GlobalCSS } from "./static"
+import { Updater, KeyBoard, GlobalCSS, KeysType } from "./static"
 export interface Vec2 {
   x: number
   y: number
@@ -76,13 +76,12 @@ export class DOM {
   public update(fun: (this: this, i: number) => boolean | void) {
     let f = fun.bind(this);
     let i = 0;
-    this.$scene.$updater.regist(this.$scene.$updater.toGenerator(
-      () => {
-        let result = f(i);
-        i++;
-        if (typeof result === "boolean") return result;
-        return true
-      }))
+    this.$scene.$updater.regist(() => {
+      let result = f(i);
+      i++;
+      if (typeof result === "boolean") return result;
+      return true
+    })
     return this
   }
   public perFrame(step: number = 1, n: number = Infinity): Store<number> {
@@ -109,12 +108,18 @@ export class DOM {
     if (typeof seed === "string") return new DOM(this, seed)
     return seed(this)
   }
-  on(name: Event, callback: (this: this, key?: string) => void, bind = true) {
+  on(name: Event, callback: (this: this, key?: KeysType) => void, bind = true) {
     let c = bind ? callback.bind(this) : callback
     if (name === "keydownall") this.$scene.$keyboard.onKeyDown(c)
     else if (name === "keyupall") this.$scene.$keyboard.onKeyUp(c)
     else if (name === "keypressall") this.$scene.$keyboard.onKeyPress(c)
-    else this.$dom.addEventListener(name, c)
+    else this.$dom.addEventListener(name, e => {
+      // WARN: ↑と違って毎フレームに一回呼ばれるわけではない！同時に押されてもダメかも.
+      if (!e.key) return c()
+      let key = {}
+      key[e.key] = true
+      c(key)
+    })
     return this;
   }
   applyStyle(style: { [key: string]: any }) {
@@ -413,12 +418,15 @@ export class Box extends DOM {
 }
 
 export class Scene extends Box {
-  public readonly $updater = new Updater()
-  public readonly $keyboard = new KeyBoard()
-  public readonly $css = new GlobalCSS()
+  public readonly $updater: Updater;
+  public readonly $keyboard: KeyBoard;
+  public readonly $css: GlobalCSS;
   public readonly $parent: Ibuki
   constructor(parent: Ibuki) {
     super(parent)
+    this.$updater = new Updater();
+    this.$keyboard = new KeyBoard(this.$updater)
+    this.$css = new GlobalCSS();
     this.$scene = this
   }
   destroy() {

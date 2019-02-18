@@ -180,14 +180,20 @@ function threeBoxSampleScene(scene: Scene) {
   let wait = 0
   scene.update(() => { wait--; })
   scene.on("keydownall", key => {
-    store.pressedKey.set(key)
-    if (key === "d") { scene.destroy(); scene.gotoNextScene(threeBoxSampleScene) }
+    let last = ""
+    for (let k in key) last = k
+    if (last !== "") store.pressedKey.set(last)
+    if (key.d) {
+      scene.destroy();
+      scene.gotoNextScene(threeBoxSampleScene)
+      return;
+    }
     if (wait > 0) return;
-    if (key === "ArrowRight") {
+    if (key.ArrowRight) {
       store.posX.set((x: number) => x + 1)
       loopView.turn(1)
       wait = 40
-    } else if (key === "ArrowLeft") {
+    } else if (key.ArrowLeft) {
       store.posX.set((x: number) => x - 1)
       loopView.turn(-1)
       wait = 40

@@ -111,21 +111,34 @@ const keyIDs = {
   'U+3099': 'CombVoice',
   'U+309A': 'CombSVoice',
 };
-type CallBack = (key: string) => any
+export type KeysType = { [key: string]: boolean }
+export type KeyBoardCallBack = (key: KeysType) => any
 export class KeyBoard {
-  private keyDowns: CallBack[] = [];
-  private keyPresses: CallBack[] = [];
-  private keyUps: CallBack[] = [];
+  private keyDownCallBacks: KeyBoardCallBack[] = [];
+  private keyPressCallBacks: KeyBoardCallBack[] = [];
+  private keyUpCallBacks: KeyBoardCallBack[] = [];
   private keyPress: (e: KeyboardEvent) => any
   private keyDown: (e: KeyboardEvent) => any
   private keyUp: (e: KeyboardEvent) => any
-  onKeyDown(fun: CallBack) { this.keyDowns.push(fun) }
-  onKeyPress(fun: CallBack) { this.keyPresses.push(fun) }
-  onKeyUp(fun: CallBack) { this.keyUps.push(fun) }
-  constructor() {
-    this.keyPress = e => { for (let k of this.keyPresses) k(e.key) }
-    this.keyDown = e => { for (let k of this.keyDowns) k(e.key) }
-    this.keyUp = e => { for (let k of this.keyUps) k(e.key) }
+  onKeyDown(fun: KeyBoardCallBack) { this.keyDownCallBacks.push(fun) }
+  onKeyPress(fun: KeyBoardCallBack) { this.keyPressCallBacks.push(fun) }
+  onKeyUp(fun: KeyBoardCallBack) { this.keyUpCallBacks.push(fun) }
+  private keyDowns: KeysType = {}
+  private keyPresses: KeysType = {}
+  private keyUps: KeysType = {}
+  constructor(updater: Updater) {
+    updater.regist(() => {
+      for (let k of this.keyDownCallBacks) k(this.keyDowns)
+      for (let k of this.keyPressCallBacks) k(this.keyPresses)
+      for (let k of this.keyUpCallBacks) k(this.keyUps)
+      this.keyUps = {}
+      this.keyDowns = {}
+      this.keyPresses = {}
+      return true;
+    })
+    this.keyPress = e => { this.keyPresses[e.key] = true }
+    this.keyDown = e => { this.keyDowns[e.key] = true }
+    this.keyUp = e => { this.keyUps[e.key] = true }
     document.addEventListener('keypress', this.keyPress)
     document.addEventListener('keydown', this.keyDown)
     document.addEventListener('keyup', this.keyUp)
@@ -134,29 +147,32 @@ export class KeyBoard {
     document.removeEventListener("keypress", this.keyPress)
     document.removeEventListener("keydown", this.keyDown)
     document.removeEventListener("keyup", this.keyUp)
-    this.keyDowns = []
-    this.keyPresses = []
-    this.keyUps = []
+    this.keyDownCallBacks = []
+    this.keyPressCallBacks = []
+    this.keyUpCallBacks = []
+    this.keyUps = {}
+    this.keyDowns = {}
+    this.keyPresses = {}
   }
 }
 
 // 毎フレーム呼んでくれる
 export class Updater {
   private maxIndex: number = -1;
-  private updateList: IterableIterator<boolean>[] = [];
+  private updateList: (() => boolean)[] = [];
   private mRequestAnimationFrame: number;
   get registedNum(): number { return this.maxIndex }
   toGenerator(fun: () => boolean): () => IterableIterator<boolean> {
     return function* () { while (true) yield fun() }
   }
-  regist(fun: () => IterableIterator<boolean>) {
+  regist(fun: () => boolean) {
     this.maxIndex++;
-    if (this.maxIndex === this.updateList.length) this.updateList.push(fun());
-    else this.updateList[this.maxIndex] = fun();
+    if (this.maxIndex === this.updateList.length) this.updateList.push(fun);
+    else this.updateList[this.maxIndex] = fun;
   }
   private applyUpdateList() {
     for (let i = 0; i < Math.min(this.maxIndex + 1, this.updateList.length); i++) {
-      if (this.updateList[i].next().value === true) continue;
+      if (this.updateList[i]() === true) continue;
       this.updateList[i] = this.updateList[this.maxIndex];
       this.maxIndex--;
       i--;
@@ -166,16 +182,14 @@ export class Updater {
   // 正確な時間を測るのには不向き
   perFrame(step: number = 1, n: number = Infinity): Store<number> {
     let result = new Store<number>(0)
-    this.regist(
-      function* () {
-        let i = 0
-        for (let i = 0, j = 0; i < n; i++) {
-          if (i % step === 0) result.set(j++)
-          yield true;
-        }
-        yield false;
-      }
-    )
+    let i = 0
+    let j = 0
+    this.regist(() => {
+      if (i >= n) return false;
+      if (i % step === 0) result.set(j)
+      i++; j++;
+      return true
+    })
     return result;
   }
   destroy() {
