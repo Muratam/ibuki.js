@@ -52,6 +52,7 @@ export interface DOMOption {
   textAlign?: TextAlignType
   isButton?: boolean
   zIndex?: number | "auto"
+  isScrollable?: boolean
   rotate?: number
 }
 export type FitType = { x: "left" | "center" | "right", y: "top" | "center" | "bottom" }
@@ -63,7 +64,6 @@ export interface BoxOption extends DOMOption {
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
   scale?: number  // | Vec2
-  isScrollable?: boolean
   display?: "none" | "block"
   applyWidthHeightOnlyForAttributes?: boolean
 }
@@ -160,58 +160,26 @@ export class DOM {
   }
   parseDOMOption(option: DOMOption): CSS.AnyStyle {
     let style: CSS.AnyStyle = { ...option };
-    if (option.colorScheme) {
+    if (style.colorScheme) {
       let colorScheme = ColorScheme.parseToColorScheme(option.colorScheme)
       style.backgroundColor = colorScheme.baseColor
       style.color = colorScheme.mainColor
       style.borderColor = colorScheme.accentColor
       delete style.colorScheme
     }
+    if (style.isScrollable) {
+      style.overflow = "scroll"
+      delete style.isScrollable
+    } else style.overflow = "hidden"
     delete style.tag
-    if (option.rotate) {
+    if (style.rotate) {
       style = {
         ...style,
         ...CSS.transform({ rotate: style.rotate, origin: "0px 0px" })
       }
+      delete style.rotate
     }
     return style
-  }
-  parseBoxOption(parent: Box | HTMLElement, option: BoxOption): CSS.AnyStyle {
-    let result: CSS.AnyStyle = { ...option }
-    let parentWidth = parent instanceof Box ? parent.width : result.width;
-    let parentHeight = parent instanceof Box ? parent.height : result.height;
-    result.width = typeof result.width === "number" ? result.width : parentWidth
-    result.height = typeof result.height === "number" ? result.height : parentHeight
-    result.scale = result.scale || 1.0
-
-    result.position = "absolute";
-    // pos と fit が設定されていれば,fit が優先される.
-    if (option.fit) {
-      if (option.fit.x === "right") {
-        result.left = parentWidth - result.width * result.scale
-      } else if (option.fit.x === "center") {
-        result.left = parentWidth / 2 - result.width * result.scale / 2
-      } else {
-        result.left = 0
-      }
-      if (option.fit.y === "bottom") {
-        result.top = parentHeight - result.height * result.scale
-      } else if (option.fit.y === "center") {
-        result.top = parentHeight / 2 - result.height * result.scale / 2
-      } else {
-        result.top = 0
-      }
-      delete result.fit
-    }
-    if (result.isScrollable) {
-      result.overflow = "scroll"
-      delete result.isScrollable
-    } else result.overflow = "hidden"
-    result = {
-      ...result,
-      ...CSS.transform({ scale: result.scale, origin: "0px 0px" })
-    }
-    return this.parseDOMOption(result);
   }
 }
 type TimingFunction = "ease" | "linear" | "ease-in" | "ease-out" | "ease-in-out"
@@ -239,8 +207,7 @@ export class Box extends DOM {
   height: number = null;
   left: number = 0;
   top: number = 0;
-  scale: number = 1; // WARN: transform-scale は scale のはず？
-  isScrollable: boolean = false;
+  scale: number = 1;
   public readonly $parent: Box;
   private alreadyRegistedAnimationIteration = false
   protected applyWidthHeightOnlyForAttributes = false
@@ -288,7 +255,6 @@ export class Box extends DOM {
       this.$dom.setAttribute(key, parsed + "px")
     }
     this.applyWidthHeightOnlyForAttributes = this.applyWidthHeightOnlyForAttributes || style.applyWidthHeightOnlyForAttributes === true
-    this.isScrollable = style.isScrollable || style.overflow === "scroll" || false
     applySize("width", this.$parent === null ? 72 : this.$parent.width)
     applySize("height", this.$parent === null ? 72 : this.$parent.height)
     apply("scale", 1.0)
@@ -303,11 +269,43 @@ export class Box extends DOM {
       width: this.width,
       height: this.height,
       scale: this.scale,
-      isScrollable: this.isScrollable,
       left: this.left,
       top: this.top,
     }
   }
+  parseBoxOption(parent: Box | HTMLElement, option: BoxOption): CSS.AnyStyle {
+    let result: CSS.AnyStyle = { ...option }
+    let parentWidth = parent instanceof Box ? parent.width : result.width;
+    let parentHeight = parent instanceof Box ? parent.height : result.height;
+    result.width = typeof result.width === "number" ? result.width : parentWidth
+    result.height = typeof result.height === "number" ? result.height : parentHeight
+    result.scale = result.scale || 1.0
+    result.position = "absolute";
+    // pos と fit が設定されていれば,fit が優先される.
+    if (option.fit) {
+      if (option.fit.x === "right") {
+        result.left = parentWidth - result.width * result.scale
+      } else if (option.fit.x === "center") {
+        result.left = parentWidth / 2 - result.width * result.scale / 2
+      } else {
+        result.left = 0
+      }
+      if (option.fit.y === "bottom") {
+        result.top = parentHeight - result.height * result.scale
+      } else if (option.fit.y === "center") {
+        result.top = parentHeight / 2 - result.height * result.scale / 2
+      } else {
+        result.top = 0
+      }
+      delete result.fit
+    }
+    result = {
+      ...result,
+      ...CSS.transform({ scale: result.scale, origin: "0px 0px" })
+    }
+    return this.parseDOMOption(result);
+  }
+
   private alreadyTransitionEventListenerRegisted = false
   private transitionFinished = true
   private transitionQueue: TransitionQueueElement[] = []
