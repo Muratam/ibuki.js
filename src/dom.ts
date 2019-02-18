@@ -448,11 +448,12 @@ export class Ibuki extends Box {
     let inheritFontSize = { fontFamily: "inherit", fontSize: "100%" }
     new GlobalCSS().regist({
       body: { margin: 0, padding: 0, overflow: "hidden", background: "#000" },
-      "*": { "box-sizing": "border-box" },
+      "*": { "box-sizing": "border-box", contain: "content" },
       textarea: inheritFontSize,
       input: inheritFontSize,
       select: inheritFontSize,
       button: inheritFontSize,
+
     });
     window.addEventListener("resize", () => this.adjustWindow())
   }
