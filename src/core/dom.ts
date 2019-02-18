@@ -414,6 +414,10 @@ export class Box extends DOM {
     }
     return result
   }
+  toRelative(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0) {
+    this.percentages = Box.filterPercentageBoxOption(option)
+    this.to({}, duration, timingFunction, delay)
+  }
   private stopped: { [key: number]: boolean } = {}
   endRepeat(id: number) { this.stopped[id] = true }
   restartRepeat(id: number) {
@@ -421,7 +425,7 @@ export class Box extends DOM {
     this.stopped[id] = false
   }
   private playMaxId = 0
-  repeat(dst: BoxOption, base: BoxOption = {}, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity, allowEndDstState = false): number {
+  repeatRelative(dst: BoxOption, base: BoxOption = {}, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity, allowEndDstState = false): number {
     // percentage
     let per = Math.floor(duration * 60) || 1
     let isBase = false
@@ -433,8 +437,7 @@ export class Box extends DOM {
         if (allowEndDstState || !isBase) return 0;
       }
       if (i % per !== 0) return;
-      this.percentages = Box.filterPercentageBoxOption(isBase ? base : dst)
-      this.to({}, duration, timingFunction, delay)
+      this.toRelative(isBase ? base : dst)
       itcnt++;
       isBase = !isBase;
       if (itcnt === iterationCount) {
@@ -445,13 +448,12 @@ export class Box extends DOM {
     })
     return id
   }
-  repeatAtHover(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
+  repeatRelativeOnHover(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
     let id = null;
-    let iii = 0
     this.on("mouseover", () => {
       this.$dom.style.cursor = "pointer"
       if (id !== null) this.restartRepeat(id)
-      else id = this.repeat(option, {}, duration, timingFunction, delay, iterationCount)
+      else id = this.repeatRelative(option, {}, duration, timingFunction, delay, iterationCount)
     })
     this.on("mouseout", () => {
       this.$dom.style.cursor = "default"
@@ -459,7 +461,18 @@ export class Box extends DOM {
     })
     return this
   }
-
+  toRelativeOnHover(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
+    let id = null;
+    this.on("mouseover", () => {
+      this.$dom.style.cursor = "pointer"
+      this.toRelative(option, duration, timingFunction, delay)
+    })
+    this.on("mouseout", () => {
+      this.$dom.style.cursor = "default"
+      this.toRelative({}, duration, timingFunction, delay)
+    })
+    return this
+  }
 }
 
 export class Scene extends Box {

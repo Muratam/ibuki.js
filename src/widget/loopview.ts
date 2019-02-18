@@ -22,7 +22,7 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
       y: -this.height * 0.5,
       zIndex: 1,
     }, {
-      scale: 0.5,
+      scale: 0.48,
       fit: { x: "center", y: "center" },
       zIndex: 2,
     }, {
@@ -48,7 +48,7 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
       ...option,
       ...this.childrenInitialOption,
       isScrollable: true,
-    }).repeatAtHover({ scale: 0.95, rotate: 10 }, 0.5)
+    }).toRelativeOnHover({ scale: 1.02, rotate: 5 }, 0.5)
     seed(box)
     this.boxes.push(box)
     return this
