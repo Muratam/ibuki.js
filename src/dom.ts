@@ -50,9 +50,8 @@ export interface DOMOption {
   opacity?: number
   border?: Border | BorderContentType
   textAlign?: TextAlignType
-  isButton?: boolean
   zIndex?: number | "auto"
-  rotate?: number
+  isScrollable?: boolean
 }
 export type FitType = { x: "left" | "center" | "right", y: "top" | "center" | "bottom" }
 export interface BoxOption extends DOMOption {
@@ -63,8 +62,8 @@ export interface BoxOption extends DOMOption {
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
   scale?: number  // | Vec2
-  isScrollable?: boolean
   display?: "none" | "block"
+  isButton?: boolean
   applyWidthHeightOnlyForAttributes?: boolean
 }
 export interface ContainerOption extends BoxOption { }
@@ -93,20 +92,17 @@ export class DOM {
   public get children() { return this.$children; }
   private static DOMMaxId: number = 0;
   public get id(): string { return this.$dom.id }
-  constructor(parent: DOM | HTMLElement, option: string | DOMOption = "") {
+  constructor(parent: DOM, option: string | DOMOption = "") {
     this.$dom = document.createElement(
       (typeof option === "string" ? option : option.tag) || "div");
     this.$DOMId = DOM.DOMMaxId++
     this.$dom.id = `ibuki-box-${this.$DOMId}`
-    if (parent instanceof DOM) {
+    if (parent !== null) {
       parent.$dom.appendChild(this.$dom);
       this.$scene = parent.$scene;
       this.$parent = parent;
       parent.$children.push(this)
-    } else if (this instanceof Ibuki) {
-      parent.appendChild(this.$dom)
-    } else console.assert(false, "now root Box need to be scene class")
-    if (this instanceof Scene) this.$scene = this;
+    }
     if (typeof option !== "string") this.applyStyle(this.parseDOMOption(option))
   }
   bloom(seed: TagSeed): DOM {
@@ -122,27 +118,8 @@ export class DOM {
     return this;
   }
   applyStyle(style: { [key: string]: any }) {
-    if (style.isButton) {
-      this.on("mouseover", () => { this.$dom.style.cursor = "pointer" })
-      this.on("mouseout", () => { this.$dom.style.cursor = "default" })
-    }
     let normalized = CSS.parse(style);
-    for (let key in normalized) {
-      let val = normalized[key]
-      if (key === "transform") {
-        let pre = this.$dom.style[key] || ""
-        let pres = (pre + " " + val).split(" ")
-        let dict = {}
-        for (let p of pres) {
-          let [key, val] = p.split("(")
-          if (key === "") continue
-          dict[key] = "(" + val
-        }
-        let str = ""
-        for (let k in dict) str += ` ${k}${dict[k]} `
-        this.$dom.style[key] = str
-      } else this.$dom.style[key] = val;
-    }
+    for (let key in normalized) this.$dom.style[key] = normalized[key];
     return this;
   }
   tree(func: (parent: this) => any) { func(this); return this; }
@@ -160,58 +137,19 @@ export class DOM {
   }
   parseDOMOption(option: DOMOption): CSS.AnyStyle {
     let style: CSS.AnyStyle = { ...option };
-    if (option.colorScheme) {
+    if (style.colorScheme) {
       let colorScheme = ColorScheme.parseToColorScheme(option.colorScheme)
       style.backgroundColor = colorScheme.baseColor
       style.color = colorScheme.mainColor
       style.borderColor = colorScheme.accentColor
       delete style.colorScheme
     }
+    if (style.isScrollable) {
+      style.overflow = "scroll"
+      delete style.isScrollable
+    } else style.overflow = "hidden"
     delete style.tag
-    if (option.rotate) {
-      style = {
-        ...style,
-        ...CSS.transform({ rotate: style.rotate, origin: "0px 0px" })
-      }
-    }
     return style
-  }
-  parseBoxOption(parent: Box | HTMLElement, option: BoxOption): CSS.AnyStyle {
-    let result: CSS.AnyStyle = { ...option }
-    let parentWidth = parent instanceof Box ? parent.width : result.width;
-    let parentHeight = parent instanceof Box ? parent.height : result.height;
-    result.width = typeof result.width === "number" ? result.width : parentWidth
-    result.height = typeof result.height === "number" ? result.height : parentHeight
-    result.scale = result.scale || 1.0
-
-    result.position = "absolute";
-    // pos と fit が設定されていれば,fit が優先される.
-    if (option.fit) {
-      if (option.fit.x === "right") {
-        result.left = parentWidth - result.width * result.scale
-      } else if (option.fit.x === "center") {
-        result.left = parentWidth / 2 - result.width * result.scale / 2
-      } else {
-        result.left = 0
-      }
-      if (option.fit.y === "bottom") {
-        result.top = parentHeight - result.height * result.scale
-      } else if (option.fit.y === "center") {
-        result.top = parentHeight / 2 - result.height * result.scale / 2
-      } else {
-        result.top = 0
-      }
-      delete result.fit
-    }
-    if (result.isScrollable) {
-      result.overflow = "scroll"
-      delete result.isScrollable
-    } else result.overflow = "hidden"
-    result = {
-      ...result,
-      ...CSS.transform({ scale: result.scale, origin: "0px 0px" })
-    }
-    return this.parseDOMOption(result);
   }
 }
 type TimingFunction = "ease" | "linear" | "ease-in" | "ease-out" | "ease-in-out"
@@ -234,21 +172,111 @@ interface AnimationFrameOption extends BoxOption { percent?: number }
 // 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
 export class Box extends DOM {
-  // 全てローカル値
-  width: number = null;
-  height: number = null;
+  // 全てローカル値. transform:
+  width: number = undefined;
+  height: number = undefined;
   left: number = 0;
   top: number = 0;
-  scale: number = 1; // WARN: transform-scale は scale のはず？
-  isScrollable: boolean = false;
+  scale: number = 1;
+  // left/top は +(0) ,他は全て *(1) でこの倍率が掛けられる : animation用
+  protected rates: { [key: string]: number } = {}
+
   public readonly $parent: Box;
   private alreadyRegistedAnimationIteration = false
-  protected applyWidthHeightOnlyForAttributes = false
-  constructor(parent: Box | HTMLElement, option: BoxOption = {}) {
-    super(parent, option)
-    this.applyOption(option)
+  constructor(parent: Box, option: BoxOption = {}) {
+    super(parent, Box.copyDeletedTransformValues(option))
+    // 全ての transform 値を number に保証
+    if (parent !== null) {
+      this.width = parent.width
+      this.height = parent.height
+    } else {
+      this.width = option.width
+      this.height = option.height
+      console.assert(typeof this.width === "number" && typeof this.height === "number", "illegal initial ibuki")
+    }
+    this.applyOptionOnCurrentTransform(option)
   }
-  registDrag() {
+
+
+  get currentTransform(): BoxOption {
+    return {
+      width: this.width,
+      height: this.height,
+      scale: this.scale,
+      left: this.left,
+      top: this.top,
+    }
+  }
+  applyOptionOnCurrentTransform(option: BoxOption): CSS.AnyStyle {
+    // option を読み込み,自身に(上書きができれば)適応
+    let style = this.parseBoxOptionOnCurrentTransform(option)
+    this.applyTransformValues(style)
+    Box.deleteTransformValues(style)
+    this.applyStyle(style)
+    if (option.isButton) this.applyIsButton()
+    if (option.draggable) this.applyDraggable()
+    return style
+  }
+  parseBoxOptionOnCurrentTransform(option: BoxOption): CSS.AnyStyle {
+    let result: CSS.AnyStyle = { ...this.currentTransform, ...option }
+    if (option.fit) {
+      if (option.fit.x === "right") {
+        result.left = this.$parent.width - result.width * result.scale
+      } else if (option.fit.x === "center") {
+        result.left = this.$parent.width / 2 - result.width * result.scale / 2
+      } else {
+        result.left = 0
+      }
+      if (option.fit.y === "bottom") {
+        result.top = this.$parent.height - result.height * result.scale
+      } else if (option.fit.y === "center") {
+        result.top = this.$parent.height / 2 - result.height * result.scale / 2
+      } else {
+        result.top = 0
+      }
+      delete result.fit
+    }
+    result.position = "absolute" // 無いと後続の要素の位置がバグる
+    result["transform-origin"] = "0px 0px"
+    result.transform = `translate(${Math.floor(result.left)}px,${Math.floor(result.top)}px) rotate(0deg) scale(${result.scale})`
+    return this.parseDOMOption(result);
+  }
+  applyTransformValues(style: CSS.AnyStyle) {
+    let parse = (key: string, init: number): number =>
+      typeof style[key] === "number" ? style[key] : this[key] || init
+    let apply = (key: string, init: number) => this[key] = parse(key, init)
+    // let applySize = (key: string, init: number) => {
+    //   let parsed = parse(key, init)
+    //   if (!this.applyWidthHeightOnlyForAttributes) return this[key] = parsed;
+    //   this.$dom.setAttribute(key, parsed + "px")
+    // }
+    // protected applyWidthHeightOnlyForAttributes = false
+    // this.applyWidthHeightOnlyForAttributes = this.applyWidthHeightOnlyForAttributes || style.applyWidthHeightOnlyForAttributes === true
+    if (this.$parent !== null) {
+      apply("width", this.$parent.width)
+      apply("height", this.$parent.height)
+    }
+    apply("scale", 1.0)
+    apply("left", 0)
+    apply("top", 0)
+  }
+  static copyDeletedTransformValues(option: BoxOption): BoxOption {
+    let result = { ...option }
+    Box.deleteTransformValues(result)
+    return result
+  }
+  static deleteTransformValues(style: CSS.AnyStyle) {
+    delete style.top
+    delete style.left
+    delete style.scale
+  }
+
+  applyIsButton() {
+    // WARN: もうちょっとやりたい
+    this.on("mouseover", () => { this.$dom.style.cursor = "pointer" })
+    this.on("mouseout", () => { this.$dom.style.cursor = "default" })
+  }
+  applyDraggable() {
     // WARN: いっぱい登録すると重そう / タッチ未対応 / regist <-> remove できるようにしたい
     let x = 0;
     let y = 0;
@@ -276,53 +304,20 @@ export class Box extends DOM {
     document.body.addEventListener("mouseleave", dragEnd)
     // document.body.addEventListener("touchleave", dragEnd)
   }
-  applyOption(option: BoxOption) {
-    // option を読み込み,自身に(上書きができれば)適応
-    let style = this.parseBoxOptionOnCurrentState(option)
-    let parse = (key: string, init: number): number =>
-      typeof style[key] === "number" ? style[key] : this[key] || init
-    let apply = (key: string, init: number) => this[key] = parse(key, init)
-    let applySize = (key: string, init: number) => {
-      let parsed = parse(key, init)
-      if (!this.applyWidthHeightOnlyForAttributes) return this[key] = parsed;
-      this.$dom.setAttribute(key, parsed + "px")
-    }
-    this.applyWidthHeightOnlyForAttributes = this.applyWidthHeightOnlyForAttributes || style.applyWidthHeightOnlyForAttributes === true
-    this.isScrollable = style.isScrollable || style.overflow === "scroll" || false
-    applySize("width", this.$parent === null ? 72 : this.$parent.width)
-    applySize("height", this.$parent === null ? 72 : this.$parent.height)
-    apply("scale", 1.0)
-    apply("left", 0)
-    apply("top", 0)
-    this.applyStyle(style)
-    if (option.draggable) this.registDrag()
-    return this
-  }
-  get currentTransform(): BoxOption {
-    return {
-      width: this.width,
-      height: this.height,
-      scale: this.scale,
-      isScrollable: this.isScrollable,
-      left: this.left,
-      top: this.top,
-    }
-  }
+
+  // すぐに値を変更する(with transition)
+  // force をはずすと過去の登録したアニメーションは残る.
   private alreadyTransitionEventListenerRegisted = false
   private transitionFinished = true
   private transitionQueue: TransitionQueueElement[] = []
-  parseBoxOptionOnCurrentState(option: BoxOption): CSS.AnyStyle {
-    return this.parseBoxOption(this.$parent, { ...this.currentTransform, ...option })
-  }
-  // すぐに値を変更する(with transition)
-  // force をはずすと過去の登録したアニメーションは残る.
   to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, force = true) {
     if (force) this.transitionQueue = []
-    this.applyOption(option);
-    let style = this.parseBoxOptionOnCurrentState(option)
+    let style = this.applyOptionOnCurrentTransform(option)
     let transition = CSS.parse(style);
     let results: string[] = []
     for (let key in transition) {
+      if (style[key] === this[key]) continue
+      if (typeof style[key] === "string" && key !== "transform") continue
       results.push(`${key} ${duration}s ${timingFunction} ${delay}s `)
       this.$dom.style[key] = transition[key]
     }
@@ -362,6 +357,7 @@ export class Box extends DOM {
     this.$dom.style.animationName = ""
   }
   repeat(option: RepeatAnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
+    /*
     // 1: number+px / color は全て percentage として処理(よく考えたら同じ値をどうしても参照してしまうので無理では？)
     //  : top,left:translate(tx,ty), width/height/scale: scale() // rotate欲しい
     // 2: 中間オブジェクトを挟んで処理(位置は行けるとして色/borderが無理？)
@@ -376,7 +372,7 @@ export class Box extends DOM {
     let dstPercent = dst.percent || "100%"
     let h = hash(src) + hash(dst)
     function parse(op: AnimationFrameOption): CSS.Style {
-      // CSS.parse(this.parseBoxOptionOnCurrentState(op)) は現在の状態に依存してしまう
+      // CSS.parse(this.parseBoxOptionOnCurrentTransform(op)) は現在の状態に依存してしまう
       let result: CSS.AnyStyle = { ...op }
       let top = result.top || 0
       let left = result.left || 0
@@ -411,6 +407,7 @@ export class Box extends DOM {
       this.alreadyRegistedAnimationIteration = true
     }
     this.applyStyle({ animation: animation })
+    */
     return this
   }
 }
@@ -437,10 +434,13 @@ export class Scene extends Box {
 }
 // 画面に自動でフィットするDOM/Sceneの全ての祖
 export class Ibuki extends Box {
-  alwaysFullScreen: boolean = false
-  constructor(width: number = 1280, height: number = 720, alwaysFullScreen: boolean = false) {
-    super(document.body, { width: width, height: height })
-    this.alwaysFullScreen = alwaysFullScreen;
+  constructor(width: number = 1280, height: number = 720) {
+    // null　なので 必要最低限が全て有るように設定
+    super(null, {
+      top: 0, left: 0, scale: 1, width: width, height: height,
+      isScrollable: false,
+    })
+    document.body.appendChild(this.$dom)
     this.initializeWorld()
     this.adjustWindow()
   }
@@ -448,11 +448,15 @@ export class Ibuki extends Box {
     let inheritFontSize = { fontFamily: "inherit", fontSize: "100%" }
     new GlobalCSS().regist({
       body: { margin: 0, padding: 0, overflow: "hidden", background: "#000" },
-      "*": { "box-sizing": "border-box" },
+      "*": {
+        "box-sizing": "border-box",
+        // contain: "content"
+      },
       textarea: inheritFontSize,
       input: inheritFontSize,
       select: inheritFontSize,
       button: inheritFontSize,
+
     });
     window.addEventListener("resize", () => this.adjustWindow())
   }
@@ -463,24 +467,14 @@ export class Ibuki extends Box {
     let hRatio = pHeight / this.height;
     let ratio = Math.min(wRatio, hRatio);
     this.applyStyle({
-      overflow: "hidden",
       position: "relative",
       background: "#ffffff",
-      ... this.alwaysFullScreen ? {
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh"
-      } : {
-          top: Math.max(0, (pHeight - this.height * ratio) / 2),
-          left: Math.max(0, (pWidth - this.width * ratio) / 2),
-          width: this.width,
-          height: this.height,
-          ...CSS.transform({
-            scale: ratio,
-            origin: "0px 0px" //`${Math.floor(this.width / 2)}px ${Math.floor(this.height / 2)}px`
-          })
-        },
+      top: Math.max(0, (pHeight - this.height * ratio) / 2),
+      left: Math.max(0, (pWidth - this.width * ratio) / 2),
+      width: this.width,
+      height: this.height,
+      transformOrigin: "0px 0px",
+      transform: `scale(${ratio})`
     });
   }
   public play(seed: (scene: Scene) => any) {

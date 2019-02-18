@@ -59,13 +59,3 @@ export function flatten(style: Style): string {
   for (let key in style) result += `${key}:${style[key]};`
   return result;
 }
-export function transform(tr: { [key: string]: string | number }): Style {
-  let result = { transform: "" }
-  for (let key in tr) {
-    if (key === "origin") result["transform-origin"] = tr[key]
-    else if (key.startsWith("rotate")) result.transform += ` ${key}(${tr[key]}deg)`
-    else result.transform += ` ${key}(${tr[key]}) `
-  }
-  return result
-}
-

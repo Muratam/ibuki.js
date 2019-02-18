@@ -7,10 +7,9 @@ import { FlexBox, Table } from "./widget/container"
 import { toStore, Store, HasStoreValueWidgetInterface, assign } from "./store"
 import { ProgressBar, MeterBar, IFrame, Image } from "./widget/media";
 import { FAIcon } from "./widget/external"
-import { type } from "os";
 // todo : 間にBoxを挟むと悪くない感じに動いてくれるが,遅い...(でも後に回したいから放置)
 //      : animation と transition が競合した場合,不整合なことが起きるかもしれない(けどそこまで変わらないといえば変わらない)
-// fun  : effect / move parent
+// fun  : effect
 //      : big inputbox(selectbox) / progress bar
 // ext  : vividjs / katex / markdown / live2d / graph(tree/chart) / svgjs / code
 //      : tips / bootstrap / vue.js / react.js / jquery / niconicocomment
@@ -20,6 +19,10 @@ import { type } from "os";
 //      : isButtonを hover 時におこなう関数に変えたい. + click  +hover
 //      : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるとゲーム以外にも使える？
 //      : Scene<T extends DataStore> / input-assign
+
+
+//      : 全て transformで行う
+
 class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> {
   private count = new Store<number>(0)
   private $count = 0
@@ -60,11 +63,10 @@ class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> 
       return this
     }
     let option = this.boxes.length < this.tops.length - 1 ? this.tops[this.boxes.length] : this.tops[this.tops.length - 1]
-    let box = seed(this).applyOption({ ...option, ...this.childrenInitialOption })
+    // let box = seed(this).applyOption({ ...option, ...this.childrenInitialOption })
+    let box = new Box(this, { ...option, ...this.childrenInitialOption, height: this.height * 1.8 })
+    seed(box)
     this.boxes.push(box)
-    // let box = new Box(this, { ...option, ...this.childrenInitialOption })
-    // seed(box)
-    // this.boxes.push(box)
     return this
   }
   turn(n: number) {
@@ -73,8 +75,11 @@ class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> 
     if (pre === this.$count) return;
     for (let i = 0; i < this.boxes.length; i++) {
       let index = (i + this.$count) % this.boxes.length
-      let option = index < this.tops.length - 1 ? this.tops[index] : this.tops[3]
-      this.boxes[i].to({ ...option, ...this.childrenInitialOption })
+      let preIndex = (i + pre) % this.boxes.length
+      if (index >= this.tops.length - 1 && preIndex >= this.tops.length - 1) continue
+      let option = index < this.tops.length - 1 ? this.tops[index] : this.tops[this.tops.length - 1]
+      // this.boxes[i].to({ ...option, ...this.childrenInitialOption })
+      this.boxes[i].to(option)
     }
     this.count.set(this.$count)
     return this
@@ -176,7 +181,7 @@ function threeBoxSampleScene(scene: Scene) {
   scene.update(() => { wait--; })
   scene.on("keydownall", key => {
     store.pressedKey.set(key)
-    if (key === "d") scene.destroy()
+    if (key === "d") { scene.destroy(); scene.gotoNextScene(threeBoxSampleScene) }
     if (wait > 0) return;
     if (key === "ArrowRight") {
       store.posX.set((x: number) => x + 1)
@@ -191,6 +196,23 @@ function threeBoxSampleScene(scene: Scene) {
   let bottom = createElem4(back, {
     colorScheme: new ColorScheme("#444", "#cdf", "#89d"),
   }).repeat({ duration: 1 }, { width: scene.width * 0.8, left: scene.width * 0.1 })
-  scene.update(i => { if (i === 500) bottom.endRepeat() })
+
 }
 let ibuki = new Ibuki().play(threeBoxSampleScene)
+/*scene => {
+  console.log(3)
+  new Box(scene, {
+    top: scene.height * 0.2,
+    height: scene.height * 0.3,
+    width: scene.width * 0.5,
+    colorScheme: new ColorScheme("#fab", "red", "black")
+  }).tree(p => {
+    new Box(p, {
+      top: p.height * 0.2,
+      height: p.height * 0.3,
+      width: p.width * 0.5,
+      colorScheme: new ColorScheme("#000", "000", "000")
+    })
+  })
+})
+:*/
