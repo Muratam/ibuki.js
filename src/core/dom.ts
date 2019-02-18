@@ -159,7 +159,10 @@ export class DOM {
     if (style.isScrollable) {
       style.overflow = "scroll"
       delete style.isScrollable
-    } else style.overflow = "hidden"
+    } else if (style.isScrollable === false) {
+      style.overflow = "hidden"
+      delete style.isScrollable
+    }
     delete style.tag
     return style
   }
@@ -197,12 +200,12 @@ export class Box extends DOM {
   scale: number = 1;
   public get contentWidth(): number {
     return this.width
-      - (Box.pickNum(this.$dom.style.borderRightWidth) || 0)
+      - (Box.pickNum(this.$dom.style.borderRightWidth) || 0) * 2
       - (Box.pickNum(this.$dom.style.paddingRight) || 0) * 2
   }
   public get contentHeight(): number {
     return this.height
-      - (Box.pickNum(this.$dom.style.borderBottomWidth) || 0)
+      - (Box.pickNum(this.$dom.style.borderBottomWidth) || 0) * 2
       - (Box.pickNum(this.$dom.style.paddingBottom) || 0) * 2
   }
   public readonly $parent: Box;
@@ -210,8 +213,8 @@ export class Box extends DOM {
     super(parent, Box.copyDeletedTransformValues(option))
     // 全ての transform 値を number に保証
     if (parent !== null) {
-      this.width = parent.width
-      this.height = parent.height
+      this.width = parent.contentWidth
+      this.height = parent.contentHeight
     } else {
       this.width = option.width
       this.height = option.height
@@ -269,7 +272,6 @@ export class Box extends DOM {
     let result: CSS.AnyStyle = { ...transform, ...option }
     if (option.fit) {
       if (option.fit.x === "right") {
-        console.log([this.$parent.contentWidth, this.$parent.width])
         result.left = this.$parent.contentWidth - result.width * result.scale
       } else if (option.fit.x === "center") {
         result.left = this.$parent.contentWidth / 2 - result.width * result.scale / 2

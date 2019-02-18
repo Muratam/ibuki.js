@@ -45,11 +45,13 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
       return this
     }
     let option = this.boxes.length < this.tops.length - 1 ? this.tops[this.boxes.length] : this.tops[this.tops.length - 1]
+    console.log("BOX")
     let box = new Box(this, {
       height: this.height * 1.8,
       ...option,
       ...this.childrenInitialOption,
-    }).repeatAtHover({ top: -0.02, height: 0.98 }, 0.5)
+      isScrollable: true,
+    }).repeatAtHover({ scale: 0.95 }, 0.5)
     seed(box)
     this.boxes.push(box)
     return this
@@ -63,7 +65,7 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
       let preIndex = (i + pre) % this.boxes.length
       if (index >= this.tops.length - 1 && preIndex >= this.tops.length - 1) continue
       let option = index < this.tops.length - 1 ? this.tops[index] : this.tops[this.tops.length - 1]
-      this.boxes[i].to(option)
+      this.boxes[i].to(option, 0.5)
     }
     this.count.set(this.$count)
     return this

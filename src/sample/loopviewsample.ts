@@ -3,15 +3,19 @@ import { Box, BoxOption, Scene } from "../core/dom";
 import { Text, TextSequence, FixedSizeText } from "../html/text";
 import { Input } from "../html/input"
 import { FlexBox, Table } from "../html/container"
-import { toStore, DataStore } from "../core/store"
+import { toStore } from "../core/store"
 import { ProgressBar, MeterBar, IFrame, Image } from "../html/media";
 import { FAIcon } from "../widget/external/faicon"
 import { ThreeLoopView } from "../widget/loopview"
 
 
-
-export function threeBoxSampleScene(scene: Scene, store: DataStore) {
-  store.sec = scene.perFrame(10)
+export function threeBoxSampleScene(scene: Scene) {
+  let store = {
+    inputted: toStore(""),
+    sec: scene.perFrame(10),
+    pressedKey: toStore(""),
+    posX: toStore(0)
+  }
   function createElem1(p: Box): Box {
     return new FlexBox(p, {
       flexDirection: "column",
@@ -80,12 +84,11 @@ export function threeBoxSampleScene(scene: Scene, store: DataStore) {
   })
   let loopView = new ThreeLoopView(back, {
     height: scene.height * 0.7,
-    isScrollable: true,
   }, {
+      // padding: 30,
       colorScheme: new ColorScheme("#222", "#cdf", "#89d"),
       border: { width: 20, style: "solid", radius: 30 },
       fontSize: 100,
-      padding: 30,
       isScrollable: true,
     }).add([
       createElem3, createElem2, createElem1,
@@ -104,30 +107,24 @@ export function threeBoxSampleScene(scene: Scene, store: DataStore) {
     if (last !== "") store.pressedKey.set(last)
     if (key.d) {
       scene.destroy();
-      scene.gotoNextScene(scene => threeBoxSampleScene(scene, store))
+      scene.gotoNextScene(threeBoxSampleScene)
       return;
     }
     if (wait > 0) return;
     if (key.ArrowRight) {
       store.posX.set((x: number) => x + 1)
       loopView.turn(1)
-      wait = 40
+      wait = 20
     } else if (key.ArrowLeft) {
       store.posX.set((x: number) => x - 1)
       loopView.turn(-1)
-      wait = 40
+      wait = 20
     }
   })
   let bottom = createElem4(back, {
     colorScheme: new ColorScheme("#444", "#cdf", "#89d"),
   })
   //.repeatAtHover({ top: -0.1, height: 0.9 }, 0.5).repeat({ scale: 0.9 }, {}, 1)
-}
-export let threeLoopViewStore = {
-  inputted: toStore(""),
-  sec: toStore(0),
-  pressedKey: toStore(""),
-  posX: toStore(0)
 }
 
 // try

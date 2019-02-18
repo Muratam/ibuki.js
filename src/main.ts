@@ -11,8 +11,9 @@ export * from "./html/media"
 // widgets
 export * from "./widget/loopview"
 export * from "./widget/external/faicon"
+// sample scenes
 import { World } from "./core/dom"
-import { threeBoxSampleScene, threeLoopViewStore } from "./sample/loopviewsample"
+import { threeBoxSampleScene } from "./sample/loopviewsample"
 
 // fun  : effect
 //      : big inputbox(selectbox) / progress bar
@@ -23,4 +24,4 @@ import { threeBoxSampleScene, threeLoopViewStore } from "./sample/loopviewsample
 //      : colorSchemeLib
 // ???? : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるとゲーム以外にも使える？(height可変はむずいのでは？)
 
-let world = new World().play(scene => threeBoxSampleScene(scene, threeLoopViewStore))
+let world = new World().play(threeBoxSampleScene)
