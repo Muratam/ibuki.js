@@ -57,6 +57,7 @@ export class Store<T extends Primitive> {
 export interface HasValueWidgetInterface<T extends Primitive> { value: T }
 export interface HasStoreValueWidgetInterface<T extends Primitive> {
   assign: (dst: Store<T>) => void
+  value: Store<T>
 }
 export function* range(a: number = null, b: number = null): IterableIterator<number> {
   let i = b === null ? 0 : a === null ? Infinity : a;

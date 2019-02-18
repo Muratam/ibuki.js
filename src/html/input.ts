@@ -36,7 +36,7 @@ export interface InputOption extends DOMOption {
   label?: TextSeed// 間にlabelを生やす
 }
 export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
-  private value: Store<string>
+  value: Store<string>
   public readonly $dom: HTMLInputElement
   constructor(parent: DOM, inputOption: InputOption = {}) {
     if (inputOption.label) {
@@ -60,7 +60,7 @@ export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
     this.value = new Store(inputOption.value || "")
     this.value.regist(r => this.$dom.setAttribute("value", r))
     this.$dom.addEventListener("change", () => {
-      this.value.set(this.$dom.value)
+      this.value.set(this.$dom.value || this.$dom.checked ? "true" : "false")
     })
     this.$dom.addEventListener("keyup", () => {
       this.value.set(this.$dom.value)

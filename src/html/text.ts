@@ -2,9 +2,7 @@ import { Color } from "../core/color";
 import { DOM, DOMOption } from "../core/dom";
 import { MayStore, assign, HasValueWidgetInterface, Store } from "../core/store";
 export interface TextOption extends DOMOption {
-  size?: number
-  fontName?: string
-  color?: Color
+  color?: Color | string
   isBold?: boolean
   tag?: "span" | "code" | "pre" | "marquee" | "div"
   edge?: { color: Color, width: number }
@@ -18,15 +16,11 @@ export class Text extends DOM implements HasValueWidgetInterface<string> {
     this.$dom.innerText = this.$text;
   }
   constructor(parent: DOM, text: MayStore<string>, option: TextOption = {}) {
-    super(parent, option.tag || "span")
+    super(parent, { ...option, tag: "span" })
     assign(text, t => this.value = t)
     this.applyStyle({
-      color: option.color,
-      font: {
-        size: option.size,
-        family: option.fontName,
-        weight: option.isBold && "bold"
-      },
+      color: typeof option.color === "string" ? Color.parse(option.color) : option.color,
+      font: { weight: option.isBold && "bold" },
       ...(!option.edge ? {} : { "-webkit-text-stroke": option.edge })
     })
   }
@@ -42,7 +36,7 @@ export class FixedSizeText extends Text {
     this.applyStyle({ width: width, height: height, display: "inline-block" })
   }
 }
-type TextSequenceElem = [MayStore<string>, TextOption | string] | TextSeed;
+export type TextSequenceElem = [MayStore<string>, TextOption | string] | TextSeed;
 export class TextSequence extends DOM {
   private currentOption: TextOption;
   constructor(parent: DOM, texts: TextSequenceElem[]) {

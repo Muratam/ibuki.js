@@ -1,138 +1,195 @@
 import { Color, ColorScheme } from "../core/color";
-import { Box, BoxOption, Scene } from "../core/dom";
+import { Box, Scene } from "../core/dom";
 import { Text, TextSequence, FixedSizeText } from "../html/text";
-import { Input } from "../html/input"
+import { Input, InputOption, InputType } from "../html/input"
 import { FlexBox, Table } from "../html/container"
-import { toStore } from "../core/store"
+import { toStore, DataStore } from "../core/store"
 import { ProgressBar, MeterBar, IFrame, Image } from "../html/media";
 import { FAIcon } from "../widget/external/faicon"
 import { ThreeLoopView } from "../widget/loopview"
 
+function helloBox(p: Box, store: DataStore): Box {
+  let text = ` hello ibuki.ts !!
+  ibuki.ts は DOM をメインに迎えた新しいゲームエンジンです!!
+  ギャルゲーやボドゲなど、あまりキャラクターは動き回らないけど
+  テキストや UI のアニメーションがたくさん欲しいようなゲームなどにターゲットを当てています.
+  ibuki.ts は vue.js / jquery / ゲームエンジン構成法 のハイブリッドです.
+  通常のゲームエンジンがターゲットとする canvas / webgl ではなく
+  あえて vue.js / jquery のように DOM を対象にすることで,
+  豊富な DOM 資源を活用することができます！
+  例えばこのBox一つとっても,
+  ブラウザの標準スクロールやcanvasのtextでは描画できないキレイな
+  文字が見えるでしょう？？
+  これはただのテキストですが後で見ていくように様々なwidgetを活用することができます！
+  `.replace(/\n/g, "")
+  return new Box(p, { textAlign: "left", fontSize: 64, padding: 30 }).tree(p => {
+    new Text(p, text)
+  })
+}
+
+function informationBox(p: Box, store: DataStore): Box {
+  return new Box(p, {
+    textAlign: "center",
+    padding: 30
+  }).tree(p =>
+    new TextSequence(p, [
+      ["information box\n", {}],
+      [store.sec.to(x => "Frame : " + x + "\n"), "#afb"],
+      [store.pressedKey.to(x => "Key : " + x + "\n"), "#fab"],
+      [store.event.to(x => "Mouse : " + x + "\n"), {}],
+      p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
+    ])
+  ).on("mouseover", () => { store.event.set("mouseover") })
+    .on("mouseout", () => { store.event.set("mouseout") })
+    .on("mousemove", () => { store.event.set("mousemove") })
+}
+function flexBoxInputTest(p: Box, store: DataStore): Box {
+  return new FlexBox(p, {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    padding: 80,
+    fontSize: 70
+  }).tree(p => {
+    new Text(p, "Input with flexBox\n", {})
+    function create(type: InputType, option: InputOption) {
+      let result = new Input(p, {
+        type: type,
+        ...option,
+        label: p2 => new FixedSizeText(p2, type + "", p.width * 0.4, 20)
+      })
+      let input = result.value
+      new Text(p, input.to(x => "-> " + x), { color: "#fab" })
+      return result
+    }
+    create("text", { size: 10 }).assign(store.inputted)
+    create("select", { options: ["e1", "e2", "e3"] })
+    create("checkbox", {})
+    create("password", { size: 10 })
+    create("color", {})
+    create("file", {})
+    create("time", {})
+    create("search", {})
+    create("range", {})
+  });
+}
+function flexBoxMediaTest(p: Box, store: DataStore): Box {
+  return new FlexBox(p, {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    padding: 80,
+    fontSize: 70
+  }).tree(p => {
+    new Text(p, store.sec.to(x => `Media With FlexBox  : ${x % 100}%`), {})
+    new ProgressBar(p, store.sec.to(x => x % 100), {}, 100)
+    new MeterBar(p, store.sec.to(x => x % 100), { min: 0, max: 100, low: 22, high: 66, optimum: 80 })
+  });
+}
+
+function tableTest(p: Box, store: DataStore): Box {
+  return new FlexBox(p, {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    padding: 80,
+    fontSize: 60
+  }).tree(p => {
+    new Table(p, {}, (x, y) => {
+      if (y % 2 === 0) return { colorScheme: new ColorScheme("#cdf", "#222222bb", "#abd") }
+      return {}
+    }).addContents([
+      ["Table", "Test", "Box"],
+      ["please", "mouse", "hover"],
+      [store.event, store.event, store.event],
+      [store.event, store.event, store.event],
+      [store.event, store.event, store.event],
+      [store.event, store.event, store.event],
+      [store.event, store.event, store.event],
+      [store.event, store.event, store.event],
+      [store.event, store.event, store.event],
+      [store.event, store.event, store.event],
+      [store.event, store.event, store.event],
+      [store.event, store.event, store.event],
+      [store.event, store.event, store.event],
+      [store.event, store.event, store.event],
+    ]).on("mouseover", () => { store.event.set("mouseover") })
+      .on("mouseout", () => { store.event.set("mouseout") })
+      .on("mousemove", () => { store.event.set("mousemove") })
+  });
+}
+function iframeTest(p: Box, store: DataStore): Box {
+  return new Box(p, {
+    padding: 80,
+  }).tree(p => {
+    new Text(p, "iframe Test Box\n", {})
+    new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html", height: p.height * 0.7 })
+  });
+}
+
+
+function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
+  return new Box(p, {
+    fit: { x: "center", y: "bottom" },
+    height: p.height * 0.3,
+    colorScheme: colorScheme,
+    border: { radius: 10, style: "solid", width: 2 }
+  }).tree(p => {
+    new Text(p, store.posX.to(x => x + "%"))
+  }).on("click", function () {
+    this
+      .to({ fit: { x: "center", y: "center" }, }, 0.5)
+      .next({ fit: { x: "center", y: "top" } }, 0.5)
+      .next({ fit: { x: "center", y: "bottom" } }, 0.5)
+  }).update(function () { })
+}
 
 export function threeBoxSampleScene(scene: Scene) {
   let store = {
     inputted: toStore(""),
-    sec: scene.perFrame(10),
+    sec: scene.perFrame(1),
     pressedKey: toStore(""),
+    event: toStore(""),
     posX: toStore(0)
   }
-  function createElem1(p: Box): Box {
-    return new FlexBox(p, {
-      flexDirection: "column",
-      alignItems: "flex-start",
-    }).tree(p => {
-      new Input(p, { type: "text", size: 10, label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.5, 20) }).assign(store.inputted)
-      new Input(p, { type: "select", options: ["C#", "C++", "js"], label: p2 => new FixedSizeText(p2, "language : ", p.width * 0.5, 20) })
-      new Input(p, { type: "checkbox", label: p2 => new FixedSizeText(p2, store.inputted.to(t => t + "yade"), p.width * 0.5, 20) })
-    });
-  }
-  function createElem2(p: Box): Box {
-    return new Box(p, {
-      textAlign: "center",
-      draggable: true,
-    }).tree(p =>
-      new TextSequence(p, [
-        ["int main(){\n", { fontName: "Menlo" }],
-        [store.sec.to(x => x + "\n"), "#0fb"],
-        ["  return;\n", "#ff0"],
-        p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
-        [store.pressedKey, "#000"],
-      ])
-    ) // .to({ colorScheme: new ColorScheme("#000") }, 10)
-  }
-  function createElem3(p: Box): Box {
-    return new Table(p, {}, (x, y) => {
-      if (y % 2 === 0) return { colorScheme: new ColorScheme("#fce", "#034") }
-      return {}
-    }).addContents([
-      ["iikanji", store.inputted, "year"],
-      ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
-      ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
-      ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
-      ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
-      ["iikanji", p => new FAIcon(p, "faIgloo", {}), "year"],
-      ["iikanji", store.inputted, "year"],
-    ])
-  }
-  function createElem4(p: Box, option: BoxOption): Box {
-    return new Box(p, {
-      ...option,
-      fit: { x: "center", y: "bottom" },
-      height: p.height * 0.2,
-      width: p.width * 0.2,
-      scale: 0.8
-    }).tree(p => {
-      new ProgressBar(p, store.posX, {}, 100)
-      new Text(p, store.posX.to(x => x + "%"))
-      new MeterBar(p, store.posX, { min: 0, max: 100, low: 22, high: 66, optimum: 80 })
-    }).on("click", function () {
-      this
-        .to({
-          fit: { x: "center", y: "center" },
-        }, 0.5)
-        .next({ fit: { x: "center", y: "top" } }, 0.5)
-        .next({
-          colorScheme: new ColorScheme("#000", "#fff", "#888")
-        }, 1)
-        .next({ fit: { x: "right", y: "top" } }, 0.5)
-        .next({ fit: { x: "right", y: "center" } }, 0.5)
-        .next({ fit: { x: "right", y: "bottom" } }, 0.5)
-        .next({ fit: { x: "left", y: "top" } }, 0.5)
-        .next({ fit: { x: "left", y: "center" } }, 0.5)
-        .next({ fit: { x: "left", y: "bottom" } }, 0.5)
-        .next({ fit: { x: "center", y: "bottom" } }, 0.5)
-        .next({
-          colorScheme: new ColorScheme("#fff", "#000", "#888")
-        }, 1)
-    }).update(function () { })
-  }
-  let back = new Box(scene, {
-    colorScheme: new ColorScheme("#555")
+  let colorScheme = new ColorScheme("#222222bb", "#cdf", "#abd")
+  let backGround = new Box(scene, {
+    colorScheme: new ColorScheme("#181818")
   })
-  let loopView = new ThreeLoopView(back, {
-    height: scene.height * 0.7,
-  }, {
-      // padding: 30,
-      colorScheme: new ColorScheme("#222", "#cdf", "#89d"),
-      border: { width: 20, style: "solid", radius: 30 },
-      fontSize: 100,
-      isScrollable: true,
-    }).add([
-      createElem3, createElem2, createElem1,
-      p => new Image(p, { src: "https://sagisawa.0am.jp/me.jpg" }),
-      p => new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html" }),
-      p => new IFrame(p, {
-        src: "https://www.openstreetmap.org/export/embed.html",
-        width: p.width * 0.7,
-      })
-    ])
+  let loopView = new ThreeLoopView(backGround, { height: scene.height * 0.7, }, {
+    colorScheme: colorScheme,
+    border: { width: 20, style: "solid", radius: 30 },
+    fontSize: 100,
+    fontFamily: "Menlo"
+  }).add([
+    p => new Image(new Box(p, { padding: 80 }), { src: "https://sagisawa.0am.jp/me.jpg" }),
+    p => helloBox(p, store),
+    p => informationBox(p, store),
+    p => flexBoxInputTest(p, store),
+    p => flexBoxMediaTest(p, store),
+    p => tableTest(p, store),
+    p => iframeTest(p, store),
+  ])
+  let bottom = bottomTest(scene, store, colorScheme)
   let wait = 0
   scene.update(() => { wait--; })
   scene.on("keydownall", key => {
     let last = ""
     for (let k in key) last = k
     if (last !== "") store.pressedKey.set(last)
-    if (key.d) {
+    if (key.Escape) {
       scene.destroy();
       scene.gotoNextScene(threeBoxSampleScene)
       return;
     }
     if (wait > 0) return;
-    if (key.ArrowRight) {
+    if (key.ArrowLeft) {
       store.posX.set((x: number) => x + 1)
       loopView.turn(1)
       wait = 20
-    } else if (key.ArrowLeft) {
+    } else if (key.ArrowRight) {
       store.posX.set((x: number) => x - 1)
       loopView.turn(-1)
       wait = 20
     }
   })
-  let bottom = createElem4(back, {
-    colorScheme: new ColorScheme("#444", "#cdf", "#89d"),
-  })
-  new Box(scene, { width: 100, height: 100 }).to({})
-  //.repeatAtHover({ top: -0.1, height: 0.9 }, 0.5).repeat({ scale: 0.9 }, {}, 1)
 }
 
 // try

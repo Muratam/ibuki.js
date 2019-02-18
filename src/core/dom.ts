@@ -42,12 +42,14 @@ export type TagSeed = string | Seed<DOM> // そのタグで作成するか関数
 export interface DOMOption {
   // そのコンテナ内部でfloatするときの位置(後続のDOMに影響を与えたい場合はnull)
   tag?: string
-  fontSize?: number
   colorScheme?: Colors
   margin?: Rect | number
   padding?: Rect | number
   opacity?: number
   border?: Border | BorderContentType
+  fontSize?: number
+  fontFamily?: string
+  borderRadius?: number
   textAlign?: TextAlignType
   zIndex?: number | "auto"
   isScrollable?: boolean
@@ -74,24 +76,6 @@ export class DOM {
   protected $createdFrame: number
   public get frame(): number { return this.$scene.$createdFrame - this.$createdFrame; }
   public readonly $parent: DOM = null; // 移ることがある？
-  public update(fun: (this: this, i: number) => boolean | void | number) {
-    let f = fun.bind(this);
-    let i = 0;
-    this.$scene.$updater.regist(() => {
-      let result = f(i);
-      i++;
-      if (typeof result === "boolean") return result;
-      if (typeof result === "number") {
-        i = result
-        return true
-      }
-      return true
-    })
-    return this
-  }
-  public perFrame(step: number = 1, n: number = Infinity): Store<number> {
-    return this.$scene.$updater.perFrame(step, n)
-  }
   private $children: DOM[] = [];
   public get children() { return this.$children; }
   private static DOMMaxId: number = 0;
@@ -112,6 +96,25 @@ export class DOM {
     }
     if (typeof option !== "string") this.applyStyle(this.parseDOMOption(option))
   }
+  public update(fun: (this: this, i: number) => boolean | void | number) {
+    let f = fun.bind(this);
+    let i = 0;
+    this.$scene.$updater.regist(() => {
+      let result = f(i);
+      i++;
+      if (typeof result === "boolean") return result;
+      if (typeof result === "number") {
+        i = result
+        return true
+      }
+      return true
+    })
+    return this
+  }
+  public perFrame(step: number = 1, n: number = Infinity): Store<number> {
+    return this.$scene.$updater.perFrame(step, n)
+  }
+
   bloom(seed: TagSeed): DOM {
     if (typeof seed === "string") return new DOM(this, seed)
     return seed(this)

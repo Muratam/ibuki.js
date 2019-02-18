@@ -2,10 +2,10 @@ import { Box, BoxOption, Seed } from "../core/dom";
 import { Store, HasStoreValueWidgetInterface } from "../core/store"
 
 export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> {
-  private count = new Store<number>(0)
+  value = new Store<number>(0)
   private $count = 0
   assign(dst: Store<number>) {
-    this.count.assign(dst)
+    this.value.assign(dst)
     return this
   }
   private boxes: Box[] = []
@@ -64,7 +64,7 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
       let option = index < this.tops.length - 1 ? this.tops[index] : this.tops[this.tops.length - 1]
       this.boxes[i].to(option, 0.5)
     }
-    this.count.set(this.$count)
+    this.value.set(this.$count)
     return this
   }
 }
