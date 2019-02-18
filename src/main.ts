@@ -22,6 +22,7 @@ import { FAIcon } from "./widget/external"
 
 
 //      : 全て transformで行う
+
 class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> {
   private count = new Store<number>(0)
   private $count = 0
@@ -177,24 +178,18 @@ function threeBoxSampleScene(scene: Scene) {
       })
     ])
   let wait = 0
-  let turns: number[] = []
-  scene.update(() => {
-    wait--;
-    if (turns.length === 0) return;
-    let n = turns.shift();
-    store.posX.set((x: number) => x + n)
-    loopView.turn(n)
-  })
-  console.log(2);
+  scene.update(() => { wait--; })
   scene.on("keydownall", key => {
-    //store.pressedKey.set(key)
+    store.pressedKey.set(key)
     if (key === "d") { scene.destroy(); scene.gotoNextScene(threeBoxSampleScene) }
     if (wait > 0) return;
     if (key === "ArrowRight") {
-      turns.push(1)
+      store.posX.set((x: number) => x + 1)
+      loopView.turn(1)
       wait = 40
     } else if (key === "ArrowLeft") {
-      turns.push(-1)
+      store.posX.set((x: number) => x - 1)
+      loopView.turn(-1)
       wait = 40
     }
   })
@@ -204,3 +199,20 @@ function threeBoxSampleScene(scene: Scene) {
 
 }
 let ibuki = new Ibuki().play(threeBoxSampleScene)
+/*scene => {
+  console.log(3)
+  new Box(scene, {
+    top: scene.height * 0.2,
+    height: scene.height * 0.3,
+    width: scene.width * 0.5,
+    colorScheme: new ColorScheme("#fab", "red", "black")
+  }).tree(p => {
+    new Box(p, {
+      top: p.height * 0.2,
+      height: p.height * 0.3,
+      width: p.width * 0.5,
+      colorScheme: new ColorScheme("#000", "000", "000")
+    })
+  })
+})
+:*/
