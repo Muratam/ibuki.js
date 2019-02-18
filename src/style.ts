@@ -2,7 +2,7 @@ export interface AnyStyle { [key: string]: any }
 export interface Style { [key: string]: string }
 export interface CanTranslateCSS {
   toCSS(): string
-  multiply(target: CanTranslateCSS): CanTranslateCSS
+  // multiply(target: CanTranslateCSS): CanTranslateCSS
 }
 export function toNormalizedStyle(style: AnyStyle): AnyStyle {
   let result: AnyStyle = {}
@@ -35,23 +35,6 @@ export function parse(style: AnyStyle): Style {
     else console.assert(false, "parse error !! illegal css")
   }
   return result
-}
-export function parseWithMultipliedPercentage(style: AnyStyle, percentage: AnyStyle): Style {
-  let flattened = toNormalizedStyle(style)
-  let pFlattened = toNormalizedStyle(percentage)
-  let result: AnyStyle = {}
-  for (let key in flattened) {
-    let val = flattened[key]
-    let pVal = pFlattened[key]
-    if (pVal === undefined || typeof val === "string") {
-      result[key] = val
-      continue
-    }
-    if (typeof val === "number") result[key] = val * pVal
-    else if (val.toCSS) result[key] = (val.multiply()).toCSS()
-    else console.assert(false, "parse error !! illegal css")
-  }
-  return parse(result)
 }
 
 export function flatten(style: Style): string {

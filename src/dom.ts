@@ -169,9 +169,24 @@ interface TransitionQueueElement {
   timingFunction: TimingFunction
   delay: number
 }
-
+type NumberStyle = { [key: string]: number }
 // 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
+class TransfromCSS implements CSS.CanTranslateCSS {
+  left: number
+  top: number
+  scale: number
+  rotate: number
+  constructor(left: number, top: number, scale: number, rotate: number = 0) {
+    this.left = left
+    this.top = top
+    this.scale = scale
+    this.rotate = rotate
+  }
+  toCSS(): string {
+    return `translate(${Math.floor(this.left)}px,${Math.floor(this.top)}px) rotate(${Math.floor(this.rotate)}deg) scale(${this.scale})`
+  }
+}
 export class Box extends DOM {
   // 全てローカル値. transform:
   width: number = undefined;
@@ -191,10 +206,8 @@ export class Box extends DOM {
       this.height = option.height
       console.assert(typeof this.width === "number" && typeof this.height === "number", "illegal initial ibuki")
     }
-    this.applyOptionOnCurrentTransform(option)
+    this.applyOptionOnCurrentState(option)
   }
-
-
   get currentTransform(): BoxOption {
     return {
       width: this.width,
@@ -204,18 +217,46 @@ export class Box extends DOM {
       top: this.top,
     }
   }
-  applyOptionOnCurrentTransform(option: BoxOption): CSS.AnyStyle {
+  private percentages: NumberStyle = {}
+  private realStyles: NumberStyle = {} // width / height / scale / top / left の他
+  applyOptionOnCurrentState(option: BoxOption): CSS.AnyStyle {
     // option を読み込み,自身に(上書きができれば)適応
     let style = this.parseBoxOptionOnCurrentTransform(option)
     this.applyTransformValues(style)
-    Box.deleteTransformValues(style)
+    // this.percentages を style にだけ適応する
+    for (let k in { ...style }) {
+      if (typeof style[k] !== "number") continue
+      // WARN: color の乗算 階層オブジェクト(border:{})には未対応
+      // transform 系は既にapplyTransfromValuesで適応されている
+      if (k == "left") {
+        style.transform.left = (this.percentages[k] || 0) * this.width + this[k]
+      } else if (k === "top") {
+        style.transform.top = (this.percentages[k] || 0) * this.height + this[k]
+      } else if (k === "scale") {
+        style.transform.scale = (this.percentages[k] || 1) * this[k]
+      } else if (k === "width" || k == "height") {
+        style[k] = (this.percentages[k] || 1) * this[k]
+      } else {
+        this.realStyles[k] = style[k]
+        style[k] = (this.percentages[k] || 1) * style[k]
+      }
+    }
+    Box.deleteTransformValues(style) // transform にて変換したので(二重になるし)削除
     this.applyStyle(style)
     if (option.isButton) this.applyIsButton()
     if (option.draggable) this.applyDraggable()
     return style
   }
+  static pickNum(s: string): number {
+    let result: number = null
+    for (let c of s) {
+      if ("0" <= c && c <= "9") result = (result || 0) * 10 + (+c)
+    }
+    return result
+  }
   parseBoxOptionOnCurrentTransform(option: BoxOption): CSS.AnyStyle {
-    let result: CSS.AnyStyle = { ...this.currentTransform, ...option }
+    let transform = this.currentTransform;
+    let result: CSS.AnyStyle = { ...transform, ...option }
     if (option.fit) {
       if (option.fit.x === "right") {
         result.left = this.$parent.width - result.width * result.scale
@@ -235,20 +276,13 @@ export class Box extends DOM {
     }
     result.position = "absolute" // 無いと後続の要素の位置がバグる
     result["transform-origin"] = "0px 0px"
-    result.transform = `translate(${Math.floor(result.left)}px,${Math.floor(result.top)}px) rotate(0deg) scale(${result.scale})`
+    result.transform = new TransfromCSS(result.left, result.top, result.scale)
     return this.parseDOMOption(result);
   }
   applyTransformValues(style: CSS.AnyStyle) {
     let parse = (key: string, init: number): number =>
       typeof style[key] === "number" ? style[key] : this[key] || init
     let apply = (key: string, init: number) => this[key] = parse(key, init)
-    // let applySize = (key: string, init: number) => {
-    //   let parsed = parse(key, init)
-    //   if (!this.applyWidthHeightOnlyForAttributes) return this[key] = parsed;
-    //   this.$dom.setAttribute(key, parsed + "px")
-    // }
-    // protected applyWidthHeightOnlyForAttributes = false
-    // this.applyWidthHeightOnlyForAttributes = this.applyWidthHeightOnlyForAttributes || style.applyWidthHeightOnlyForAttributes === true
     if (this.$parent !== null) {
       apply("width", this.$parent.width)
       apply("height", this.$parent.height)
@@ -316,11 +350,11 @@ export class Box extends DOM {
       return
     }
     if (force) this.transitionQueue = []
-    let style = this.applyOptionOnCurrentTransform(option)
+    let style = this.applyOptionOnCurrentState(option)
     let transition = CSS.parse(style);
     let results: string[] = []
     for (let key in transition) {
-      // if (style[key] === this[key]) continue // WARN: すでに適応されてしまっている
+      // if (style[key] === this[key]) continue // WARN: すでに適応されてしまっているので効かないとはいえ,減らしたほうがよい？
       if (typeof style[key] === "string" && key !== "transform") continue
       results.push(`${key} ${duration}s ${timingFunction} ${delay}s `)
       this.$dom.style[key] = transition[key]
@@ -354,49 +388,26 @@ export class Box extends DOM {
     this.transitionQueue.push(newElem)
     return this
   }
-  static __animationMaxId: number = 0
-  static __hashes: { [key: string]: string } = {} // シーンを破棄しても残りそうだが多くないしいいかな？
-  endRepeat() {
-    this.$dom.style.animationName = ""
-  }
-  parsePercentageBoxOptionOnCurrentState(base: BoxOption): BoxOption {
-    let transform = { ...this.currentTransform };
-    let now = window.getComputedStyle(this.$dom, "");
-    function pickNum(s: string): number {
-      let result: number = null
-      for (let c of s) {
-        if ("0" <= c && c <= "9") result = (result || 0) * 10 + (+c)
-      }
-      return result
-    }
-    let option: BoxOption = {}
+  private repeatStopped = false
+  endRepeat() { this.repeatStopped = true }
+  restartRepeat() { this.repeatStopped = false }
+  static filterPercentageBoxOption(base: BoxOption): NumberStyle {
+    let result: NumberStyle = {}
     for (let k in base) {
-      if (typeof base[k] !== "number") {
-        option[k] = base[k]
-      } else if (k == "left") {
-        option.left = base.left * transform.width + transform.left
-      } else if (k === "top") {
-        option.top = base.top * transform.height + transform.top
-      } else if (k === "width" || k == "height" || k == "scale") {
-        option[k] = base[k] * transform[k]
-      } else if (now[k] === undefined || pickNum(now[k]) === null) {
-        option[k] = base[k]
-      } else {
-        option[k] = base[k] * pickNum(now[k])
-      }
-      // WARN: color の乗算 階層オブジェクト(border:{})には未対応
+      if (typeof base[k] !== "number") continue
+      result[k] = base[k]
     }
-    return option;
+    return result
   }
-  repeat(base: BoxOption, dst: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
+  repeat(dst: BoxOption, base: BoxOption = {}, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
     // percentage
-    // WARN:ずっとやってるとズレてくるかも？
     let per = Math.floor(duration * 60) || 1 // WARN: 60FPS ?
-    let isBase = true
+    let isBase = false
     this.update(i => {
+      if (this.repeatStopped) return;
       if (i % per !== 0) return;
-      let result = this.parsePercentageBoxOptionOnCurrentState(isBase ? base : dst)
-      this.to(result, duration, timingFunction, delay, false, true)
+      this.percentages = Box.filterPercentageBoxOption(isBase ? base : dst)
+      this.to({}, duration, timingFunction, delay, false, true)
       isBase = !isBase;
     })
     return this

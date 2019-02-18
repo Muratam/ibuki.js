@@ -7,13 +7,11 @@ import { FlexBox, Table } from "./widget/container"
 import { toStore, Store, HasStoreValueWidgetInterface, assign } from "./store"
 import { ProgressBar, MeterBar, IFrame, Image } from "./widget/media";
 import { FAIcon } from "./widget/external"
-// todo : 間にBoxを挟むと悪くない感じに動いてくれるが,遅い...(でも後に回したいから放置)
-//      : animation と transition が競合した場合,不整合なことが起きるかもしれない(けどそこまで変わらないといえば変わらない)
 // fun  : effect
 //      : big inputbox(selectbox) / progress bar
 // ext  : vividjs / katex / markdown / live2d / graph(tree/chart) / svgjs / code
 //      : tips / bootstrap / vue.js / react.js / jquery / niconicocomment
-// bug  : media(image size bug(style/attrs)) / rotation bug / resize bug
+// bug  : media(image size bug(style/attrs)) / rotation bug
 // impl : webgl(?) / canvas / drag and drop / a-href
 //      : colorSchemeLib
 //      : isButtonを hover 時におこなう関数に変えたい. + click  +hover
@@ -161,7 +159,8 @@ function threeBoxSampleScene(scene: Scene) {
     colorScheme: new ColorScheme("#555")
   })
   let loopView = new ThreeLoopView(back, {
-    height: scene.height * 0.7
+    height: scene.height * 0.7,
+    isScrollable: true,
   }, {
       colorScheme: new ColorScheme("#222", "#cdf", "#89d"),
       border: { width: 20, style: "solid", radius: 30 },
@@ -201,23 +200,6 @@ function threeBoxSampleScene(scene: Scene) {
   })
   let bottom = createElem4(back, {
     colorScheme: new ColorScheme("#444", "#cdf", "#89d"),
-  }).repeat({ left: 0.1, width: 0.9 }, { left: -0.1, width: 1 / 0.9 }, 0.5)
+  }).repeat({ left: 0.1, width: 0.9, height: 0.9, scale: 0.5 }, {}, 0.5)
 }
 let ibuki = new Ibuki().play(threeBoxSampleScene)
-/*scene => {
-  console.log(3)
-  new Box(scene, {
-    top: scene.height * 0.2,
-    height: scene.height * 0.3,
-    width: scene.width * 0.5,
-    colorScheme: new ColorScheme("#fab", "red", "black")
-  }).tree(p => {
-    new Box(p, {
-      top: p.height * 0.2,
-      height: p.height * 0.3,
-      width: p.width * 0.5,
-      colorScheme: new ColorScheme("#000", "000", "000")
-    })
-  })
-})
-:*/
