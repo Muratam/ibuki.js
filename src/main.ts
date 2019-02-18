@@ -201,8 +201,7 @@ function threeBoxSampleScene(scene: Scene) {
   })
   let bottom = createElem4(back, {
     colorScheme: new ColorScheme("#444", "#cdf", "#89d"),
-  }).repeat({ duration: 1 }, { width: scene.width * 0.8, left: scene.width * 0.1 })
-
+  }).repeat({ top: 100 }, 3)
 }
 let ibuki = new Ibuki().play(threeBoxSampleScene)
 /*scene => {

@@ -72,6 +72,8 @@ export class DOM {
   public readonly $dom: HTMLElement = null;
   public readonly $DOMId: number;
   $scene: Scene;
+  protected $createdFrame: number
+  public get frame(): number { return this.$scene.$createdFrame - this.$createdFrame; }
   public readonly $parent: DOM = null; // 移ることがある？
   public update(fun: (this: this, i: number) => boolean | void) {
     let f = fun.bind(this);
@@ -98,9 +100,12 @@ export class DOM {
     this.$dom.id = `ibuki-box-${this.$DOMId}`
     if (parent !== null) {
       parent.$dom.appendChild(this.$dom);
-      this.$scene = parent.$scene;
       this.$parent = parent;
       parent.$children.push(this)
+      if (parent.$scene) {
+        this.$scene = parent.$scene;
+        this.$createdFrame = this.$scene.$createdFrame;
+      }
     }
     if (typeof option !== "string") this.applyStyle(this.parseDOMOption(option))
   }
@@ -114,7 +119,7 @@ export class DOM {
     else if (name === "keyupall") this.$scene.$keyboard.onKeyUp(c)
     else if (name === "keypressall") this.$scene.$keyboard.onKeyPress(c)
     else this.$dom.addEventListener(name, e => {
-      // WARN: ↑と違って毎フレームに一回呼ばれるわけではない！同時に押されてもダメかも.
+      // WARN: ↑と違って毎フレームに一回呼ばれるわけではない(し、メインスレッドでもない)！同時に押されてもダメかも.
       if (!e.key) return c()
       let key = {}
       key[e.key] = true
@@ -164,15 +169,6 @@ interface TransitionQueueElement {
   timingFunction: TimingFunction
   delay: number
 }
-export interface RepeatAnimationOption {
-  duration?: number // s
-  timingFunction?: TimingFunction // cubic-bezier?
-  delay?: number // s
-  iterationCount?: number | "infinite"
-  direction?: "normal" | "alternate"
-  fillMode?: "none" | "formards" | "backwards" | "both"
-}
-interface AnimationFrameOption extends BoxOption { percent?: number }
 
 // 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
@@ -183,11 +179,7 @@ export class Box extends DOM {
   left: number = 0;
   top: number = 0;
   scale: number = 1;
-  // left/top は +(0) ,他は全て *(1) でこの倍率が掛けられる : animation用
-  protected rates: { [key: string]: number } = {}
-
   public readonly $parent: Box;
-  private alreadyRegistedAnimationIteration = false
   constructor(parent: Box, option: BoxOption = {}) {
     super(parent, Box.copyDeletedTransformValues(option))
     // 全ての transform 値を number に保証
@@ -312,10 +304,17 @@ export class Box extends DOM {
 
   // すぐに値を変更する(with transition)
   // force をはずすと過去の登録したアニメーションは残る.
+  // constructな最初のフレームでは無効
   private alreadyTransitionEventListenerRegisted = false
   private transitionFinished = true
   private transitionQueue: TransitionQueueElement[] = []
   to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, force = true) {
+    if (this.frame === 0) {
+      this.$scene.reserveExecuteNextFrame(() => {
+        this.to(option, duration, timingFunction, delay, force)
+      })
+      return
+    }
     if (force) this.transitionQueue = []
     let style = this.applyOptionOnCurrentTransform(option)
     let transition = CSS.parse(style);
@@ -357,25 +356,58 @@ export class Box extends DOM {
   }
   static __animationMaxId: number = 0
   static __hashes: { [key: string]: string } = {} // シーンを破棄しても残りそうだが多くないしいいかな？
-  private applyPercentages: { [key: string]: number } = {}
   endRepeat() {
     this.$dom.style.animationName = ""
   }
-  repeat(option: RepeatAnimationOption, a: AnimationFrameOption, b: AnimationFrameOption = null) {
+  parsePercentageBoxOptionOnCurrentState(base: BoxOption): BoxOption {
+    let transform = { ...this.currentTransform };
+    let now = window.getComputedStyle(this.$dom, "");
+    function pickNum(s: string): number {
+      let result: number = null
+      for (let c of s) {
+        if ("0" <= c && c <= "9") result = (result || 0) * 10 + (+c)
+      }
+      return result
+    }
+    let option: BoxOption = {}
+    for (let k in base) {
+      if (typeof base[k] !== "number") {
+        option[k] = base[k]
+      } else if (k === "left" || k === "top") {
+        option[k] = base[k] + transform[k]
+      } else if (k === "width" || k == "height" || k == "scale") {
+        option[k] = base[k] * transform[k]
+      } else if (now[k] === undefined || pickNum(now[k]) === null) {
+        option[k] = base[k]
+      } else {
+        option[k] = base[k] * pickNum(now[k])
+      }
+      // WARN: color の乗算 階層オブジェクト(border:{})には未対応
+    }
+    return option;
+  }
+  repeat(a: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity, b: BoxOption = null) {
+    // percentage
+    let dst = b !== null ? a : {};
+    let base = b !== null ? b : a;
+    let result = this.parsePercentageBoxOptionOnCurrentState(base)
+    this.to(result, duration, timingFunction, delay, false)
+
     /*
+    export interface RepeatAnimationOption {
+      duration?: number // s
+      timingFunction?: TimingFunction // cubic-bezier?
+      delay?: number // s
+      iterationCount?: number
+    }
+    interface AnimationFrameOption extends BoxOption { percent?: number }
     // 1: number+px / color は全て percentage として処理(よく考えたら同じ値をどうしても参照してしまうので無理では？)
     //  : top,left:translate(tx,ty), width/height/scale: scale() // rotate欲しい
-    // 2: 中間オブジェクトを挟んで処理(位置は行けるとして色/borderが無理？)
-    // p -> this -> [children]
-    // p -> mid -> this -> [children]
-    // p -> this -> mid -> children (thisのいい感じの機能が使えなくなるので無理)
-    // 現在はとりあえず top と left :: translate()だけ
     // もっとkeyframeを増やしたければ VA_ARGS的な感じでできそう
-    let src = b !== null ? a : {};
     let srcPercent = b !== null ? a.percent || "0%" : "0%"
-    let dst = b !== null ? b : a;
     let dstPercent = dst.percent || "100%"
     let h = hash(src) + hash(dst)
+      private alreadyRegistedAnimationIteration = false
     function parse(op: AnimationFrameOption): CSS.Style {
       // CSS.parse(this.parseBoxOptionOnCurrentTransform(op)) は現在の状態に依存してしまう
       let result: CSS.AnyStyle = { ...op }
@@ -422,12 +454,23 @@ export class Scene extends Box {
   public readonly $keyboard: KeyBoard;
   public readonly $css: GlobalCSS;
   public readonly $parent: Ibuki
+  private reservedExecuteNextFrames: (() => any)[] = []
+  reserveExecuteNextFrame(fun: () => any) {
+    this.reservedExecuteNextFrames.push(fun)
+  }
   constructor(parent: Ibuki) {
     super(parent)
     this.$updater = new Updater();
     this.$keyboard = new KeyBoard(this.$updater)
     this.$css = new GlobalCSS();
     this.$scene = this
+    this.$createdFrame = 0;
+    this.$updater.regist(() => {
+      this.$createdFrame++;
+      for (let r of this.reservedExecuteNextFrames) r()
+      this.reservedExecuteNextFrames = []
+      return true;
+    })
   }
   destroy() {
     this.$dom.remove();
@@ -458,7 +501,7 @@ export class Ibuki extends Box {
       body: { margin: 0, padding: 0, overflow: "hidden", background: "#000" },
       "*": {
         "box-sizing": "border-box",
-        // contain: "content"
+        contain: "content",
       },
       textarea: inheritFontSize,
       input: inheritFontSize,
