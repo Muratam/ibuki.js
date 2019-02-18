@@ -54,12 +54,13 @@ export interface DOMOption {
 }
 export type FitType = { x: "left" | "center" | "right", y: "top" | "center" | "bottom" }
 export interface BoxOption extends DOMOption {
-  left?: number
-  top?: number
+  x?: number
+  y?: number
   fit?: FitType
   draggable?: boolean // ドラッグできるか？
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
+  rotate?: number
   scale?: number  // | Vec2
   display?: "none" | "block"
   applyWidthHeightOnlyForAttributes?: boolean
@@ -177,26 +178,26 @@ interface TransitionQueueElement {
 // 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
 class TransfromCSS implements CSS.CanTranslateCSS {
-  left: number
-  top: number
+  y: number
+  x: number
   scale: number
   rotate: number
-  constructor(left: number, top: number, scale: number, rotate: number = 0) {
-    this.left = left
-    this.top = top
+  constructor(x: number, y: number, scale: number, rotate: number = 0) {
+    this.x = x
+    this.y = y
     this.scale = scale
     this.rotate = rotate
   }
   toCSS(): string {
-    return `translate(${Math.floor(this.left)}px,${Math.floor(this.top)}px) rotate(${Math.floor(this.rotate)}deg) scale(${this.scale})`
+    return `translate(${Math.floor(this.x)}px,${Math.floor(this.y)}px) scale(${this.scale}) rotate(${Math.floor(this.rotate)}deg) `
   }
 }
 export class Box extends DOM {
   // 全てローカル値. transform:
   width: number = undefined;
   height: number = undefined;
-  left: number = 0;
-  top: number = 0;
+  x: number = 0;
+  y: number = 0;
   scale: number = 1;
   public get contentWidth(): number {
     return this.width
@@ -227,32 +228,34 @@ export class Box extends DOM {
       width: this.width,
       height: this.height,
       scale: this.scale,
-      left: this.left,
-      top: this.top,
+      x: this.x,
+      y: this.y,
     }
   }
   private percentages: CSS.NumberStyle = {}
-  private realStyles: CSS.NumberStyle = {} // width / height / scale / top / left の他
+  private realStyles: CSS.NumberStyle = {} // width / height / scale / x / y の他
   applyOptionOnCurrentState(option: BoxOption): CSS.AnyStyle {
     // option を読み込み,自身に(上書きができれば)適応
     let style = this.parseBoxOptionOnCurrentTransform(option)
     this.applyTransformValues(style)
     // this.percentages を style にだけ適応する
-    for (let k in { ...style }) {
-      if (typeof style[k] !== "number") continue
+    for (let k in { ...style, ...this.percentages }) {
+      if (typeof style[k] !== "number" && typeof this.percentages[k] !== "number") continue
       // WARN: color の乗算 階層オブジェクト(border:{})には未対応
       // transform 系は既にapplyTransfromValuesで適応されている
-      if (k == "left") {
-        style.transform.left = (this.percentages[k] || 0) * this.width + this[k]
-      } else if (k === "top") {
-        style.transform.top = (this.percentages[k] || 0) * this.height + this[k]
+      if (k == "x") {
+        style.transform.x = (this.percentages[k] || 0) * this.width + this[k]
+      } else if (k === "y") {
+        style.transform.y = (this.percentages[k] || 0) * this.height + this[k]
       } else if (k === "scale") {
-        style.transform.scale = (this.percentages[k] || 1) * this[k]
+        style.transform[k] = (this.percentages[k] || 1) * this[k]
+      } else if (k === "rotate") {
+        style.transform[k] = (this.percentages[k] || 0) + (style[k] || 0)
       } else if (k === "width" || k == "height") {
         style[k] = (this.percentages[k] || 1) * this[k]
       } else {
-        this.realStyles[k] = style[k]
-        style[k] = (this.percentages[k] || 1) * style[k]
+        this.realStyles[k] = style[k] || 0
+        style[k] = (this.percentages[k] || 1) * (style[k] || 0)
       }
     }
     Box.deleteTransformValues(style) // transform にて変換したので(二重になるし)削除
@@ -271,25 +274,28 @@ export class Box extends DOM {
     let transform = this.currentTransform;
     let result: CSS.AnyStyle = { ...transform, ...option }
     if (option.fit) {
+      // 倍率が1倍のときにジャストフィットするような位置
       if (option.fit.x === "right") {
-        result.left = this.$parent.contentWidth - result.width * result.scale
+        result.x = this.$parent.contentWidth - result.width
       } else if (option.fit.x === "center") {
-        result.left = this.$parent.contentWidth / 2 - result.width * result.scale / 2
+        result.x = this.$parent.contentWidth / 2
+          - result.width / 2
       } else {
-        result.left = 0
+        result.x = 0;
       }
       if (option.fit.y === "bottom") {
-        result.top = this.$parent.contentHeight - result.height * result.scale
+        result.y = this.$parent.contentHeight - result.height
       } else if (option.fit.y === "center") {
-        result.top = this.$parent.contentHeight / 2 - result.height * result.scale / 2
+        result.y = this.$parent.contentHeight / 2
+          - result.height / 2
       } else {
-        result.top = 0
+        result.y = 0;
       }
       delete result.fit
     }
     result.position = "absolute" // 無いと後続の要素の位置がバグる
-    result["transform-origin"] = "0px 0px"
-    result.transform = new TransfromCSS(result.left, result.top, result.scale)
+    result["transform-origin"] = `center center` // これができると rotation / scaleがいい感じになる
+    result.transform = new TransfromCSS(result.x, result.y, result.scale, result.rotate)
     return this.parseDOMOption(result);
   }
   applyTransformValues(style: CSS.AnyStyle) {
@@ -301,8 +307,8 @@ export class Box extends DOM {
       apply("height", this.$parent.height)
     }
     apply("scale", 1.0)
-    apply("left", 0)
-    apply("top", 0)
+    apply("y", 0)
+    apply("x", 0)
   }
   static copyDeletedTransformValues(option: BoxOption): BoxOption {
     let result = { ...option }
@@ -310,8 +316,8 @@ export class Box extends DOM {
     return result
   }
   static deleteTransformValues(style: CSS.AnyStyle) {
-    delete style.top
-    delete style.left
+    delete style.x
+    delete style.y
     delete style.scale
   }
   applyDraggable() {
@@ -495,7 +501,7 @@ export class World extends Box {
   constructor(width: number = 1280, height: number = 720) {
     // null　なので 必要最低限が全て有るように設定
     super(null, {
-      top: 0, left: 0, scale: 1, width: width, height: height,
+      x: 0, y: 0, scale: 1, width: width, height: height,
       isScrollable: false,
     })
     document.body.appendChild(this.$dom)

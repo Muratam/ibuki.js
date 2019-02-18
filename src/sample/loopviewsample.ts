@@ -55,28 +55,35 @@ export function threeBoxSampleScene(scene: Scene) {
     ])
   }
   function createElem4(p: Box, option: BoxOption): Box {
-    let clickCount = 0;
     return new Box(p, {
       ...option,
-      fit: { y: "bottom", x: "center" },
+      fit: { x: "center", y: "bottom" },
       height: p.height * 0.2,
+      width: p.width * 0.2,
+      scale: 0.8
     }).tree(p => {
       new ProgressBar(p, store.posX, {}, 100)
       new Text(p, store.posX.to(x => x + "%"))
       new MeterBar(p, store.posX, { min: 0, max: 100, low: 22, high: 66, optimum: 80 })
     }).on("click", function () {
-      clickCount++;
-      if (clickCount % 2 === 1)
-        this
-          .to({
-            fit: { x: "left", y: "center" },
-          }, 0.5)
-          .next({ fit: { x: "left", y: "top" } }, 0.5)
-          .next({
-            colorScheme: new ColorScheme("#000", "#fff", "#888")
-          }, 1)
-      if (clickCount % 2 === 0)
-        this.to({ fit: { x: "left", y: "bottom" } }, 1)
+      this
+        .to({
+          fit: { x: "center", y: "center" },
+        }, 0.5)
+        .next({ fit: { x: "center", y: "top" } }, 0.5)
+        .next({
+          colorScheme: new ColorScheme("#000", "#fff", "#888")
+        }, 1)
+        .next({ fit: { x: "right", y: "top" } }, 0.5)
+        .next({ fit: { x: "right", y: "center" } }, 0.5)
+        .next({ fit: { x: "right", y: "bottom" } }, 0.5)
+        .next({ fit: { x: "left", y: "top" } }, 0.5)
+        .next({ fit: { x: "left", y: "center" } }, 0.5)
+        .next({ fit: { x: "left", y: "bottom" } }, 0.5)
+        .next({ fit: { x: "center", y: "bottom" } }, 0.5)
+        .next({
+          colorScheme: new ColorScheme("#fff", "#000", "#888")
+        }, 1)
     }).update(function () { })
   }
   let back = new Box(scene, {
@@ -124,6 +131,7 @@ export function threeBoxSampleScene(scene: Scene) {
   let bottom = createElem4(back, {
     colorScheme: new ColorScheme("#444", "#cdf", "#89d"),
   })
+  new Box(scene, { width: 100, height: 100 }).to({})
   //.repeatAtHover({ top: -0.1, height: 0.9 }, 0.5).repeat({ scale: 0.9 }, {}, 1)
 }
 

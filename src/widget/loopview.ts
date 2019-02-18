@@ -9,34 +9,32 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
     return this
   }
   private boxes: Box[] = []
-  public readonly tops: BoxOption[] = [{
-    scale: 0.15,
-    fit: { x: "right", y: "center" },
-    zIndex: 1,
-    opacity: 1
-  }, {
-    scale: 0.5,
-    fit: { x: "center", y: "center" },
-    zIndex: 2,
-    opacity: 1
-  }, {
-    scale: 0.15,
-    fit: { x: "left", y: "center" },
-    zIndex: 1,
-    opacity: 1
-  }, {
-    scale: 0.1,
-    fit: { x: "center", y: "center" },
-    zIndex: 0,
-    opacity: 0
-  },]
+  public readonly tops: BoxOption[];
   private childrenInitialOption: BoxOption = {}
   constructor(p: Box, option: BoxOption = {}, childrenInitialOption: BoxOption = {}) {
     super(p, {
-      padding: p.width * 0.05,
       isScrollable: false,
       ...option
     })
+    this.tops = [{
+      scale: 0.3,
+      x: -this.width * 0.3,
+      y: -this.height * 0.5,
+      zIndex: 1,
+    }, {
+      scale: 0.5,
+      fit: { x: "center", y: "center" },
+      zIndex: 2,
+    }, {
+      scale: 0.3,
+      x: this.width * 0.3,
+      y: -this.height * 0.5,
+      zIndex: 1,
+    }, {
+      scale: 0.1,
+      fit: { x: "center", y: "center" },
+      zIndex: 0,
+    },]
     this.childrenInitialOption = childrenInitialOption;
   }
   add(seed: Seed<Box> | Seed<Box>[]) {
@@ -45,13 +43,12 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
       return this
     }
     let option = this.boxes.length < this.tops.length - 1 ? this.tops[this.boxes.length] : this.tops[this.tops.length - 1]
-    console.log("BOX")
     let box = new Box(this, {
       height: this.height * 1.8,
       ...option,
       ...this.childrenInitialOption,
       isScrollable: true,
-    }).repeatAtHover({ scale: 0.95 }, 0.5)
+    }).repeatAtHover({ scale: 0.95, rotate: 10 }, 0.5)
     seed(box)
     this.boxes.push(box)
     return this
