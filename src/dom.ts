@@ -308,7 +308,7 @@ export class Box extends DOM {
   private alreadyTransitionEventListenerRegisted = false
   private transitionFinished = true
   private transitionQueue: TransitionQueueElement[] = []
-  to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, force = true) {
+  to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, force = true, interrupt = false) {
     if (this.frame === 0) {
       this.$scene.reserveExecuteNextFrame(() => {
         this.to(option, duration, timingFunction, delay, force)
@@ -320,13 +320,13 @@ export class Box extends DOM {
     let transition = CSS.parse(style);
     let results: string[] = []
     for (let key in transition) {
-      if (style[key] === this[key]) continue
+      // if (style[key] === this[key]) continue // WARN: すでに適応されてしまっている
       if (typeof style[key] === "string" && key !== "transform") continue
       results.push(`${key} ${duration}s ${timingFunction} ${delay}s `)
       this.$dom.style[key] = transition[key]
     }
     this.$dom.style.transition = results.join(",")
-    this.transitionFinished = false
+    if (!interrupt) this.transitionFinished = false
     if (!this.alreadyTransitionEventListenerRegisted) {
       this.$dom.addEventListener("transitionend", e => {
         this.transitionFinished = true
@@ -386,65 +386,17 @@ export class Box extends DOM {
     }
     return option;
   }
-  repeat(a: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity, b: BoxOption = null) {
+  repeat(base: BoxOption, dst: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
     // percentage
-    let dst = b !== null ? a : {};
-    let base = b !== null ? b : a;
-    let result = this.parsePercentageBoxOptionOnCurrentState(base)
-    this.to(result, duration, timingFunction, delay, false)
-
-    /*
-    export interface RepeatAnimationOption {
-      duration?: number // s
-      timingFunction?: TimingFunction // cubic-bezier?
-      delay?: number // s
-      iterationCount?: number
-    }
-    interface AnimationFrameOption extends BoxOption { percent?: number }
-    // 1: number+px / color は全て percentage として処理(よく考えたら同じ値をどうしても参照してしまうので無理では？)
-    //  : top,left:translate(tx,ty), width/height/scale: scale() // rotate欲しい
-    // もっとkeyframeを増やしたければ VA_ARGS的な感じでできそう
-    let srcPercent = b !== null ? a.percent || "0%" : "0%"
-    let dstPercent = dst.percent || "100%"
-    let h = hash(src) + hash(dst)
-      private alreadyRegistedAnimationIteration = false
-    function parse(op: AnimationFrameOption): CSS.Style {
-      // CSS.parse(this.parseBoxOptionOnCurrentTransform(op)) は現在の状態に依存してしまう
-      let result: CSS.AnyStyle = { ...op }
-      let top = result.top || 0
-      let left = result.left || 0
-      delete result.top
-      delete result.left
-      result.transform = `translate(${left}px,${top}px)`
-      return CSS.parse(result);
-    }
-    if (!Box.__hashes[h]) {
-      let srcCSS = CSS.flatten(parse(src));
-      let dstCSS = CSS.flatten(parse(dst));
-      var name = `ibuki-animation-${Box.__animationMaxId++}`;
-      this.$scene.$css.regist(`@keyframes ${name} {
-        ${srcPercent} {${srcCSS}}
-        ${dstPercent} {${dstCSS}}
-      }`)
-      Box.__hashes[h] = name
-    } else name = Box.__hashes[h]
-    let animation: CSS.Style = {
-      name: name,
-      iterationCount: "infinite",
-      direction: "alternate",
-      fillMode: "both"
-    }
-    for (let key in option) {
-      let val = option[key];
-      if (typeof val === "number") animation[key] = Math.floor(val * 1000) + "ms"
-      else animation[key] = val
-    }
-    if (!this.alreadyRegistedAnimationIteration) {
-      this.$dom.addEventListener("animationiteration", e => { })
-      this.alreadyRegistedAnimationIteration = true
-    }
-    this.applyStyle({ animation: animation })
-    */
+    // WARN:ずっとやってるとズレてくるかも？
+    let per = Math.floor(duration * 60) || 1 // WARN: 60FPS ?
+    let isBase = true
+    this.update(i => {
+      if (i % per !== 0) return;
+      let result = this.parsePercentageBoxOptionOnCurrentState(isBase ? base : dst)
+      this.to(result, duration, timingFunction, delay, false, true)
+      isBase = !isBase;
+    })
     return this
   }
 }
