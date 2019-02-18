@@ -1,10 +1,10 @@
 import * as CSS from "./style";
 import { Color, ColorScheme } from "./color";
-import { Box, BoxOption, Seed, Ibuki, Scene } from "./dom";
+import { Box, BoxOption, Seed, World, Scene } from "./dom";
 import { Text, TextSequence, FixedSizeText } from "./widget/text";
 import { Input } from "./widget/input"
 import { FlexBox, Table } from "./widget/container"
-import { toStore, Store, HasStoreValueWidgetInterface, assign } from "./store"
+import { toStore, Store, DataStore, HasStoreValueWidgetInterface } from "./store"
 import { ProgressBar, MeterBar, IFrame, Image } from "./widget/media";
 import { FAIcon } from "./widget/external"
 // fun  : effect
@@ -15,7 +15,7 @@ import { FAIcon } from "./widget/external"
 // impl : webgl(?) / canvas / drag and drop / a-href
 //      : colorSchemeLib
 //      : isButtonを hover 時におこなう関数に変えたい. + click  +hover
-//      : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるとゲーム以外にも使える？
+// ???? : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)モードがあるとゲーム以外にも使える？(height可変はむずいのでは？)
 
 class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> {
   private count = new Store<number>(0)
@@ -80,13 +80,9 @@ class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> 
   }
 }
 
-function threeBoxSampleScene(scene: Scene) {
-  let store = {
-    inputted: toStore(""),
-    sec: scene.perFrame(10),
-    pressedKey: toStore(""),
-    posX: toStore(0)
-  }
+
+function threeBoxSampleScene(scene: Scene, store: DataStore) {
+  store.sec = scene.perFrame(10)
   function createElem1(p: Box): Box {
     return new FlexBox(p, {
       flexDirection: "column",
@@ -180,7 +176,7 @@ function threeBoxSampleScene(scene: Scene) {
     if (last !== "") store.pressedKey.set(last)
     if (key.d) {
       scene.destroy();
-      scene.gotoNextScene(threeBoxSampleScene)
+      scene.gotoNextScene(scene => threeBoxSampleScene(scene, store))
       return;
     }
     if (wait > 0) return;
@@ -198,4 +194,10 @@ function threeBoxSampleScene(scene: Scene) {
     colorScheme: new ColorScheme("#444", "#cdf", "#89d"),
   }).repeat({ top: -0.1, height: 0.9 }, {}, 0.5)
 }
-let ibuki = new Ibuki().play(threeBoxSampleScene)
+let store = {
+  inputted: toStore(""),
+  sec: toStore(0),
+  pressedKey: toStore(""),
+  posX: toStore(0)
+}
+let world = new World().play(scene => threeBoxSampleScene(scene, store))

@@ -57,7 +57,7 @@ export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
         }
       }
     } else super(parent, "input");
-    this.value = new Store("")
+    this.value = new Store(inputOption.value || "")
     this.value.regist(r => this.$dom.setAttribute("value", r))
     this.$dom.addEventListener("change", () => {
       this.value.set(this.$dom.value)
@@ -68,6 +68,7 @@ export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
     this.applyInputOption({ ...inputOption })
   }
   public assign(dst: Store<string>) {
+    this.value.set(dst.notLinkCreatedRawValue)
     this.value.assign(dst)
     return this
   }

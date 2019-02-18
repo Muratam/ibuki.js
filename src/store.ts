@@ -8,6 +8,7 @@ export function assign<T extends Primitive>(may: MayStore<T>, func: ((t: T) => a
   if (may instanceof Store) may.regist(func)
   else func(may)
 }
+export type DataStore = { [key: string]: Store<any> }
 export function toStore(s: string): Store<string>;
 export function toStore(s: number): Store<number>;
 export function toStore(s: boolean): Store<boolean>;
@@ -19,6 +20,7 @@ export function toStore(s: Primitive): any {
 
 export class Store<T extends Primitive> {
   private data: T;
+  public get notLinkCreatedRawValue(): T { return this.data; }
   private registed: ((root: T) => any)[] = []
   constructor(initialValue: T) {
     this.data = initialValue;

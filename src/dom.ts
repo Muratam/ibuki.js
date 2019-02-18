@@ -96,7 +96,7 @@ export class DOM {
     this.$dom = document.createElement(
       (typeof option === "string" ? option : option.tag) || "div");
     this.$DOMId = DOM.DOMMaxId++
-    this.$dom.id = `ibuki-box-${this.$DOMId}`
+    this.$dom.id = `World-box-${this.$DOMId}`
     if (parent !== null) {
       parent.$dom.appendChild(this.$dom);
       this.$parent = parent;
@@ -210,7 +210,7 @@ export class Box extends DOM {
     } else {
       this.width = option.width
       this.height = option.height
-      console.assert(typeof this.width === "number" && typeof this.height === "number", "illegal initial ibuki")
+      console.assert(typeof this.width === "number" && typeof this.height === "number", "illegal initial World")
     }
     this.applyOptionOnCurrentState(option)
   }
@@ -433,12 +433,12 @@ export class Scene extends Box {
   public readonly $updater: Updater;
   public readonly $keyboard: KeyBoard;
   public readonly $css: GlobalCSS;
-  public readonly $parent: Ibuki
+  public readonly $parent: World
   private reservedExecuteNextFrames: (() => any)[] = []
   reserveExecuteNextFrame(fun: () => any) {
     this.reservedExecuteNextFrames.push(fun)
   }
-  constructor(parent: Ibuki) {
+  constructor(parent: World) {
     super(parent)
     this.$updater = new Updater();
     this.$keyboard = new KeyBoard(this.$updater)
@@ -464,7 +464,7 @@ export class Scene extends Box {
   }
 }
 // 画面に自動でフィットするDOM/Sceneの全ての祖
-export class Ibuki extends Box {
+export class World extends Box {
   constructor(width: number = 1280, height: number = 720) {
     // null　なので 必要最低限が全て有るように設定
     super(null, {
