@@ -7,6 +7,7 @@ import { toStore, DataStore } from "../core/store"
 import { ProgressBar, MeterBar, IFrame, Image } from "../html/media";
 import { FAIcon } from "../widget/external/faicon"
 import { MarkDown } from "../widget/external/markdown"
+import { Katex } from "../widget/external/katex"
 import { ThreeLoopView } from "../widget/loopview"
 
 function helloBox(p: Box, store: DataStore): Box {
@@ -133,6 +134,15 @@ function markdownTest(p: Box, store: DataStore): Box {
     new MarkDown(p, text)
   });
 }
+function katexTest(p: Box, store: DataStore): Box {
+  return new Box(p, {
+    padding: 80,
+  }).tree(p => {
+    new Text(p, "realtime katex")
+    let text = new Input(p, { type: "textarea" }).value
+    new Katex(p, text)
+  });
+}
 
 
 function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
@@ -176,6 +186,7 @@ export function threeBoxSampleScene(scene: Scene) {
     p => flexBoxInputTest(p, store),
     p => flexBoxMediaTest(p, store),
     p => markdownTest(p, store),
+    p => katexTest(p, store),
     p => tableTest(p, store),
     p => iframeTest(p, store),
   ])
