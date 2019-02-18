@@ -62,7 +62,6 @@ export interface BoxOption extends DOMOption {
   height?: number // null なら親と同じ
   scale?: number  // | Vec2
   display?: "none" | "block"
-  isButton?: boolean
   applyWidthHeightOnlyForAttributes?: boolean
 }
 export interface ContainerOption extends BoxOption { }
@@ -168,7 +167,6 @@ interface TransitionQueueElement {
   timingFunction: TimingFunction
   delay: number
 }
-type NumberStyle = { [key: string]: number }
 // 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
 class TransfromCSS implements CSS.CanTranslateCSS {
@@ -185,13 +183,6 @@ class TransfromCSS implements CSS.CanTranslateCSS {
   toCSS(): string {
     return `translate(${Math.floor(this.left)}px,${Math.floor(this.top)}px) rotate(${Math.floor(this.rotate)}deg) scale(${this.scale})`
   }
-}
-class Callback {
-  private callback: () => any = () => { }
-  used = false
-  constructor() { }
-  regist(callback: () => any) { this.callback = callback; }
-  call() { this.callback(); this.used = true }
 }
 export class Box extends DOM {
   // 全てローカル値. transform:
@@ -223,8 +214,8 @@ export class Box extends DOM {
       top: this.top,
     }
   }
-  private percentages: NumberStyle = {}
-  private realStyles: NumberStyle = {} // width / height / scale / top / left の他
+  private percentages: CSS.NumberStyle = {}
+  private realStyles: CSS.NumberStyle = {} // width / height / scale / top / left の他
   applyOptionOnCurrentState(option: BoxOption): CSS.AnyStyle {
     // option を読み込み,自身に(上書きができれば)適応
     let style = this.parseBoxOptionOnCurrentTransform(option)
@@ -249,7 +240,6 @@ export class Box extends DOM {
     }
     Box.deleteTransformValues(style) // transform にて変換したので(二重になるし)削除
     this.applyStyle(style)
-    if (option.isButton) this.applyIsButton()
     if (option.draggable) this.applyDraggable()
     return style
   }
@@ -307,12 +297,6 @@ export class Box extends DOM {
     delete style.left
     delete style.scale
   }
-
-  applyIsButton() {
-    // WARN: もうちょっとやりたい
-    this.on("mouseover", () => { this.$dom.style.cursor = "pointer" })
-    this.on("mouseout", () => { this.$dom.style.cursor = "default" })
-  }
   applyDraggable() {
     // WARN: いっぱい登録すると重そう / タッチ未対応 / regist <-> remove できるようにしたい
     let x = 0;
@@ -343,7 +327,6 @@ export class Box extends DOM {
   }
 
   // すぐに値を変更する(with transition)
-  // TODO: delete callbacks
   private callBacks: { [key: number]: () => any } = {}
   private transitionMaxId = 0
   to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, id: number = null) {
@@ -400,33 +383,54 @@ export class Box extends DOM {
     } else console.assert("illegal transition maxid")
     return this
   }
-  private repeatStopped = false
-  endRepeat() { this.repeatStopped = true }
-  restartRepeat() { this.repeatStopped = false }
-  static filterPercentageBoxOption(base: BoxOption): NumberStyle {
-    let result: NumberStyle = {}
+  static filterPercentageBoxOption(base: BoxOption): CSS.NumberStyle {
+    let result: CSS.NumberStyle = {}
     for (let k in base) {
       if (typeof base[k] !== "number") continue
       result[k] = base[k]
     }
     return result
   }
-  repeat(dst: BoxOption, base: BoxOption = {}, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
+  private stopped: { [key: number]: boolean } = {}
+  endRepeat(id: number) { this.stopped[id] = true }
+  private playMaxId = 0
+  repeat(dst: BoxOption, base: BoxOption = {}, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity, allowEndDstState = false): number {
     // percentage
-    let per = Math.floor(duration * 60) || 1 // WARN: 60FPS ?
+    let per = Math.floor(duration * 60) || 1
     let isBase = false
     let itcnt = 0;
+    let id = this.playMaxId
+    this.playMaxId++
     this.update(i => {
-      if (this.repeatStopped) return;
+      if (this.stopped[id]) {
+        if (allowEndDstState || !isBase) return;
+      }
       if (i % per !== 0) return;
       this.percentages = Box.filterPercentageBoxOption(isBase ? base : dst)
       this.to({}, duration, timingFunction, delay)
+      console.log([i, isBase])
       itcnt++;
       if (itcnt === iterationCount) return false;
       isBase = !isBase;
     })
+    return id
+  }
+  repeatAtHover(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
+    let id = -1;
+    let iii = 0
+    this.on("mouseover", () => {
+      this.$dom.style.cursor = "pointer"
+      console.log("mouseover" + iii++)
+      id = this.repeat(option, {}, duration, timingFunction, delay, iterationCount)
+    })
+    this.on("mouseout", () => {
+      console.log("mouseout" + iii++)
+      this.$dom.style.cursor = "default"
+      this.endRepeat(id)
+    })
     return this
   }
+
 }
 
 export class Scene extends Box {

@@ -1,5 +1,7 @@
 export interface AnyStyle { [key: string]: any }
 export interface Style { [key: string]: string }
+export interface NumberStyle { [key: string]: number }
+
 export interface CanTranslateCSS {
   toCSS(): string
   // multiply(target: CanTranslateCSS): CanTranslateCSS

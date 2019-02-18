@@ -11,7 +11,7 @@ import { FAIcon } from "./widget/external"
 //      : big inputbox(selectbox) / progress bar
 // ext  : vividjs / katex / markdown / live2d / graph(tree/chart) / svgjs / code
 //      : tips / bootstrap / vue.js / react.js / jquery / niconicocomment
-// bug  : media(image size bug(style/attrs)) / rotation bug
+// bug  : media(image size bug(style/attrs)) / rotate
 // impl : webgl(?) / canvas / drag and drop / a-href
 //      : colorSchemeLib
 //      : isButtonを hover 時におこなう関数に変えたい. + click  +hover
@@ -58,7 +58,11 @@ class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> 
     }
     let option = this.boxes.length < this.tops.length - 1 ? this.tops[this.boxes.length] : this.tops[this.tops.length - 1]
     // let box = seed(this).applyOption({ ...option, ...this.childrenInitialOption })
-    let box = new Box(this, { ...option, ...this.childrenInitialOption, height: this.height * 1.8 })
+    let box = new Box(this, {
+      height: this.height * 1.8,
+      ...option,
+      ...this.childrenInitialOption,
+    }).repeatAtHover({ top: -0.02, height: 0.98 }, 0.5)
     seed(box)
     this.boxes.push(box)
     return this
@@ -87,7 +91,6 @@ function threeBoxSampleScene(scene: Scene, store: DataStore) {
     return new FlexBox(p, {
       flexDirection: "column",
       alignItems: "flex-start",
-      isButton: true,
     }).tree(p => {
       new Input(p, { type: "text", size: 10, label: p2 => new FixedSizeText(p2, "name : ", p.width * 0.5, 20) }).assign(store.inputted)
       new Input(p, { type: "select", options: ["C#", "C++", "js"], label: p2 => new FixedSizeText(p2, "language : ", p.width * 0.5, 20) })
@@ -192,7 +195,8 @@ function threeBoxSampleScene(scene: Scene, store: DataStore) {
   })
   let bottom = createElem4(back, {
     colorScheme: new ColorScheme("#444", "#cdf", "#89d"),
-  }).repeat({ top: -0.1, height: 0.9 }, {}, 0.5)
+  })
+  //.repeatAtHover({ top: -0.1, height: 0.9 }, 0.5).repeat({ scale: 0.9 }, {}, 1)
 }
 let store = {
   inputted: toStore(""),
