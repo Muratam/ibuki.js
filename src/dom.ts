@@ -1,9 +1,7 @@
 import { Color, Colors, ColorScheme } from "./color";
 import * as CSS from "./style";
-import * as hash from "object-hash";
-import { MayStore, Store, Primitive } from "./store";
+import { Store } from "./store";
 import { Updater, KeyBoard, GlobalCSS, KeysType } from "./static"
-import { timingSafeEqual } from "crypto";
 export interface Vec2 {
   x: number
   y: number
