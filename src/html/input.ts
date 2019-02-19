@@ -33,27 +33,43 @@ export interface InputOption {
   // select
   options?: string[] | { [key: string]: string[] }
   // custom
-  list?: string[] | string // string[] の時は datalist が生える
+  list?: string[] | string // string[] の時は datalist が生えるし,そうでない時はlistにidをいれるとそれを参照できる
   label?: TextSeed// 間にlabelを生やす
+  prependLabel?: TextSeed
+  valid?: Store<boolean>
 }
 export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
   value: Store<string>
   public readonly $dom: HTMLInputElement
   constructor(parent: Box, inputAttributeOption: InputOption = {}, domOption: DOMOption = {}) {
-    let formGroup = new DOM(parent, { class: ["form-group"] })
+    let isSmallInputType = ["checkbox", "radio"].some(x => x === inputAttributeOption.type)
+    let formGroup = new DOM(parent, {
+      class: ["form-group", isSmallInputType ? "form-check" : ""]
+    })
     if (!inputAttributeOption.dontFitWidth) formGroup.fitWidth(parent)
     let label: DOM = null
-    if (inputAttributeOption.label) {
+    function createLabel(flag: boolean) {
+      if (!inputAttributeOption.label) return;
       label = new DOM(formGroup, "label")
       Text.bloom(label, inputAttributeOption.label)
     }
-    let bs = ["form-control"]
-    let option = { tag: "input", class: bs, ...domOption }
+    if (!isSmallInputType) createLabel(false)
+    if (inputAttributeOption.prependLabel) {
+      formGroup = new DOM(formGroup, { class: ["input-group"] })
+      let prependLabel = new DOM(formGroup, { class: ["input-group-prepend"] })
+      let labelContent = Text.bloom(prependLabel, inputAttributeOption.prependLabel)
+      labelContent.$dom.classList.add("input-group-text")
+    }
+    let option = {
+      tag: "input",
+      class: [isSmallInputType ? "form-check-input" : "form-control"],
+      type: "text",
+      ...domOption
+    }
     if (inputAttributeOption.type === "textarea") {
       option.tag = "textarea"
       super(formGroup, option);
-    }
-    else if (inputAttributeOption.type === "select") {
+    } else if (inputAttributeOption.type === "select") {
       option.tag = "select"
       super(formGroup, option);
       if (inputAttributeOption.options instanceof Array) {
@@ -67,7 +83,17 @@ export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
         }
       }
     } else super(formGroup, option);
+    if (isSmallInputType) createLabel(false)
     if (label !== null) label.$dom.setAttribute("for", this.$dom.id)
+    if (inputAttributeOption.valid) {
+      inputAttributeOption.valid.regist(x => {
+        let now = "is-valid"
+        let not = "is-invalid"
+        if (!x) [now, not] = [not, now]
+        this.$dom.classList.add(now);
+        this.$dom.classList.remove(not);
+      })
+    }
     this.value = new Store(inputAttributeOption.value || "")
     this.value.regist(r => this.$dom.setAttribute("value", r))
     this.$dom.addEventListener("change", () => {

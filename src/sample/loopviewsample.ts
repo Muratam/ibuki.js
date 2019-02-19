@@ -60,22 +60,19 @@ function flexBoxInputTest(p: Box, store: DataStore, colorScheme: ColorScheme): B
       }, { colorScheme: colorScheme }).assign(input)
     }
     create("text", { placeholder: "reactive input here" }).assign(store.inputted)
+    let preLabel = toStore("")
+    create("text", { prependLabel: preLabel }).assign(preLabel)
+    let valid = toStore(true)
+    create("text", { prependLabel: "size < 4", valid: valid }).value.regist(x => valid.set(x.length < 4))
     create("select", { options: ["ro", "ro", "to", "ro"] })
+    create("select", { options: ["ro", "ro", "to", "ro"], multiple: true })
+    create("text", { placeholder: "readonly", readonly: true }).assign(store.inputted)
     let inputTypes: InputType[] = [
-      "password",
-      "color",
-      "range",
-      "checkbox",
-      "file",
-      "time",
-      "date",
-      "email",
-      "search",
-      "tel",
-      "time",
-      "url",
-      "radio",
-      "number",
+      "password", "color", "range",
+      "checkbox", "file", "time",
+      "date", "email",
+      "search", "tel", "time",
+      "url", "radio", "number",
     ]
     for (let s of inputTypes) create(s, {})
   });

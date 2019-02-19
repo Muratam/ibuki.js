@@ -99,7 +99,7 @@ export class DOM {
       }
     }
     if (typeof option !== "string") {
-      if (option.class) for (let c of option.class) this.$dom.classList.add(c)
+      if (option.class) for (let c of option.class) if (c) this.$dom.classList.add(c)
       this.applyStyle(this.parseDOMOption(option))
     }
   }
@@ -154,9 +154,12 @@ export class DOM {
       if (typeof val === "boolean") {
         if (val) this.$dom.setAttribute(key, "")
         else this.$dom.removeAttribute(key)
-      } else if (val instanceof Array)
+      } else if (val instanceof Array) {
         this.$dom.setAttribute(key, val.join(" , "))
-      else this.$dom.setAttribute(key, `${val}`)
+      } else {
+        this.$dom.setAttribute(key, `${val}`)
+        if (val === "color") console.warn("↑↑↑↑this is input[type=color] warning...fuck!!!")
+      }
     }
     return this
   }
