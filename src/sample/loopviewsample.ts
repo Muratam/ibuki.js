@@ -9,8 +9,6 @@ import { FAIcon } from "../widget/external/faicon"
 import { MarkDown } from "../widget/external/markdown"
 import { Katex } from "../widget/external/katex"
 import { ThreeLoopView } from "../widget/loopview"
-import "bootstrap";
-import 'bootstrap/dist/css/bootstrap.min.css';
 function helloBox(p: Box, store: DataStore): Box {
   let text = ` hello ibuki.ts !!
   ibuki.ts は DOM をメインに迎えた新しいゲームエンジンです!!
@@ -25,7 +23,7 @@ function helloBox(p: Box, store: DataStore): Box {
   文字が見えるでしょう？？
   これはただのテキストですが後で見ていくように様々なwidgetを活用することができます！
   `.replace(/\n/g, "")
-  return new Box(p, { textAlign: "left", fontSize: 64, padding: 30 }).tree(p => {
+  return new Box(p, { textAlign: "left", padding: 30 }).tree(p => {
     new Text(p, text)
   })
 }
@@ -46,41 +44,47 @@ function informationBox(p: Box, store: DataStore): Box {
     .on("mouseout", () => { store.event.set("mouseout") })
     .on("mousemove", () => { store.event.set("mousemove") })
 }
-function flexBoxInputTest(p: Box, store: DataStore): Box {
+function flexBoxInputTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
   return new FlexBox(p, {
     flexDirection: "column",
     alignItems: "flex-start",
-    padding: 80,
-    fontSize: 70
+    padding: 20,
   }).tree(p => {
     new Text(p, "Input with flexBox\n", {})
     function create(type: InputType, option: InputOption) {
-      let result = new Input(p, {
+      let input = toStore("")
+      return new Input(p, {
         type: type,
         ...option,
-        label: p2 => new FixedSizeText(p2, type + "", p.width * 0.4, 20)
-      })
-      let input = result.value
-      new Text(p, input.to(x => "-> " + x), { color: "#fab" })
-      return result
+        label: input.to(x => type + " -> " + x)
+      }, { colorScheme: colorScheme }).assign(input)
     }
-    create("text", { size: 10 }).assign(store.inputted)
-    create("select", { options: ["e1", "e2", "e3"] })
-    create("checkbox", {})
-    create("password", { size: 10 })
-    create("color", {})
-    create("file", {})
-    create("time", {})
-    create("search", {})
-    create("range", {})
+    create("text", { placeholder: "reactive input here" }).assign(store.inputted)
+    create("select", { options: ["ro", "ro", "to", "ro"] })
+    let inputTypes: InputType[] = [
+      "password",
+      "color",
+      "range",
+      "checkbox",
+      "file",
+      "time",
+      "date",
+      "email",
+      "search",
+      "tel",
+      "time",
+      "url",
+      "radio",
+      "number",
+    ]
+    for (let s of inputTypes) create(s, {})
   });
 }
 function flexBoxMediaTest(p: Box, store: DataStore): Box {
   return new FlexBox(p, {
     flexDirection: "column",
     alignItems: "flex-start",
-    padding: 80,
-    fontSize: 70
+    padding: 20,
   }).tree(p => {
     new Text(p, store.sec.to(x => `Media With FlexBox  : ${x % 100}%`), {})
     new ProgressBar(p, store.sec.to(x => x % 100), {}, 100)
@@ -92,8 +96,7 @@ function tableTest(p: Box, store: DataStore): Box {
   return new FlexBox(p, {
     flexDirection: "column",
     alignItems: "flex-start",
-    padding: 80,
-    fontSize: 60
+    padding: 20,
   }).tree(p => {
     new Table(p, {}, (x, y) => {
       if (y % 2 === 0) return { colorScheme: new ColorScheme("#cdf", "#222222bb", "#abd") }
@@ -120,27 +123,26 @@ function tableTest(p: Box, store: DataStore): Box {
 }
 function iframeTest(p: Box, store: DataStore): Box {
   return new Box(p, {
-    padding: 80,
+    padding: 20,
   }).tree(p => {
     new Text(p, "iframe Test Box\n", {})
     new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html", height: p.height * 0.7 })
   });
 }
-function markdownTest(p: Box, store: DataStore): Box {
+function markdownTest(p: Box, colorScheme: ColorScheme): Box {
   return new Box(p, {
-    padding: 80,
+    padding: 20,
   }).tree(p => {
-    new Text(p, "realtime markdown")
-    let text = new Input(p, { type: "textarea" }).value
+    let text = new Input(p, { type: "textarea", label: "realtime markdown" }, { colorScheme: colorScheme }).value
     new MarkDown(p, text)
   });
 }
-function katexTest(p: Box, store: DataStore): Box {
+function katexTest(p: Box, colorScheme: ColorScheme): Box {
   return new Box(p, {
-    padding: 80,
+    padding: 20,
   }).tree(p => {
     new Text(p, "realtime katex")
-    let text = new Input(p, { type: "textarea" }).value
+    let text = new Input(p, { type: "textarea" }, { colorScheme: colorScheme }).value
     new Katex(p, text)
   });
 }
@@ -152,7 +154,7 @@ function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
     fit: { x: "center", y: "bottom" },
     height: p.height * 0.3,
     colorScheme: colorScheme,
-    border: { radius: 10, style: "solid", width: 2 }
+    border: { width: 5, style: "solid", radius: 15 },
   }).tree(p => {
     new Text(p, store.posX.to(x => x + "%"))
   }).on("click", function () {
@@ -177,17 +179,16 @@ export function threeBoxSampleScene(scene: Scene) {
   })
   let loopView = new ThreeLoopView(backGround, { height: scene.height * 0.7, }, {
     colorScheme: colorScheme,
-    border: { width: 20, style: "solid", radius: 30 },
-    fontSize: 100,
+    border: { width: 5, style: "solid", radius: 15 },
     fontFamily: "Menlo"
   }).add([
-    p => new Image(new Box(p, { padding: 80 }), { src: "https://sagisawa.0am.jp/me.jpg" }),
+    p => new Image(new Box(p, { padding: 20 }), { src: "https://sagisawa.0am.jp/me.jpg" }),
     p => helloBox(p, store),
     p => informationBox(p, store),
-    p => flexBoxInputTest(p, store),
+    p => flexBoxInputTest(p, store, colorScheme),
     p => flexBoxMediaTest(p, store),
-    p => markdownTest(p, store),
-    p => katexTest(p, store),
+    p => markdownTest(p, colorScheme),
+    p => katexTest(p, colorScheme),
     p => tableTest(p, store),
     p => iframeTest(p, store),
   ])

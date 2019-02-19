@@ -17,9 +17,9 @@ export * from "./widget/external/katex"
 import { World } from "./core/dom"
 import { threeBoxSampleScene } from "./sample/loopviewsample"
 
-// fun  : effect boxshadow
+// fun  : effect boxshadow bootstrap
 // ext  : graph(tree/chart) / vividjs svgjs code-highlight / nene
-//      : bootstrap =>size(input/progressbar)bug / tips
+//      : top / left を 0 0 でcontainerの中心にする
 // impl : drag and drop / a-href / colorSchemeLib
 // ???? : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)
 //      : モードがあるとゲーム以外にも使える？(height可変はむずいのでは？)

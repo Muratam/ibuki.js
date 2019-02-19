@@ -3,12 +3,15 @@ import { Store, MayStore, assign } from "../core/store";
 // MEDIA :: audio / img / video
 export class ProgressBar extends DOM {
   public readonly $dom: HTMLProgressElement
-  constructor(parent: DOM, progress: MayStore<number>, option: DOMOption = {}, max: number = 1) {
-    super(parent, { ...option, tag: "progress" })
+  constructor(parent: Box, progress: MayStore<number>, option: DOMOption = {}, max: number = 1) {
+    super(parent, { ...option, tag: "progress", class: ["progress-bar"] })
+    this.$dom.setAttribute("role", "progressbar")
+    this.fitWidth(parent)
     assign(progress, x => this.$dom.value = x)
     this.$dom.max = max;
   }
 }
+// TODO: MeterBar is now progress bar!!
 export interface MeterBarOption extends DOMOption {
   min?: number,
   max?: number,
@@ -18,8 +21,9 @@ export interface MeterBarOption extends DOMOption {
 }
 export class MeterBar extends DOM {
   public readonly $dom: HTMLMeterElement
-  constructor(parent: DOM, value: MayStore<number>, option: MeterBarOption = {}) {
+  constructor(parent: Box, value: MayStore<number>, option: MeterBarOption = {}) {
     super(parent, { ...option, tag: "meter" })
+    this.fitWidth(parent)
     assign(value, x => this.$dom.value = x)
     if (option.min) this.$dom.min = option.min
     if (option.max) this.$dom.max = option.max

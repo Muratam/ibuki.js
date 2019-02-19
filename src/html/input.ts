@@ -5,10 +5,11 @@ export type InputType =
   "password" | "search" | "text" | "textarea" | "select" |
   "date" | "email" | "tel" | "time" | "url" | "checkbox" | "radio" |
   "number" | "file" | "range" | "color" | "hidden"
-export interface InputOption extends DOMOption {
+export interface InputOption {
   type?: InputType
   name?: string // checkbox / radio では同じ名前にすると共有
   size?: number
+  dontFitWidth?: boolean
   maxlength?: number
   placeholder?: string
   pattern?: string
@@ -38,35 +39,45 @@ export interface InputOption extends DOMOption {
 export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
   value: Store<string>
   public readonly $dom: HTMLInputElement
-  constructor(parent: DOM, inputOption: InputOption = {}) {
-    if (inputOption.label) {
-      parent = new DOM(parent, "label");
-      Text.bloom(parent, inputOption.label)
+  constructor(parent: Box, inputAttributeOption: InputOption = {}, domOption: DOMOption = {}) {
+    let formGroup = new DOM(parent, { class: ["form-group"] })
+    if (!inputAttributeOption.dontFitWidth) formGroup.fitWidth(parent)
+    let label: DOM = null
+    if (inputAttributeOption.label) {
+      label = new DOM(formGroup, "label")
+      Text.bloom(label, inputAttributeOption.label)
     }
-    if (inputOption.type === "textarea") super(parent, "textarea");
-    else if (inputOption.type === "select") {
-      super(parent, "select");
-      if (inputOption.options instanceof Array) {
-        for (let option of inputOption.options)
+    let bs = ["form-control"]
+    let option = { tag: "input", class: bs, ...domOption }
+    if (inputAttributeOption.type === "textarea") {
+      option.tag = "textarea"
+      super(formGroup, option);
+    }
+    else if (inputAttributeOption.type === "select") {
+      option.tag = "select"
+      super(formGroup, option);
+      if (inputAttributeOption.options instanceof Array) {
+        for (let option of inputAttributeOption.options)
           new DOM(this, "option").$dom.innerText = option
       } else {
-        for (let optionKey in inputOption.options) {
+        for (let optionKey in inputAttributeOption.options) {
           let optgroup = new DOM(this, "optgroup").setAttributes({ label: optionKey })
-          for (let option of inputOption.options[optionKey])
+          for (let option of inputAttributeOption.options[optionKey])
             new DOM(optgroup, "option").$dom.innerText = option
         }
       }
-    } else super(parent, "input");
-    this.value = new Store(inputOption.value || "")
+    } else super(formGroup, option);
+    if (label !== null) label.$dom.setAttribute("for", this.$dom.id)
+    this.value = new Store(inputAttributeOption.value || "")
     this.value.regist(r => this.$dom.setAttribute("value", r))
     this.$dom.addEventListener("change", () => {
-      this.value.set(this.$dom.value || this.$dom.checked ? "true" : "false")
+      if (this.$dom.type === "checkbox") this.value.set(this.$dom.checked + "")
+      else this.value.set(this.$dom.value)
     })
     this.$dom.addEventListener("keyup", () => {
       this.value.set(this.$dom.value)
     })
-    this.applyInputOption({ ...inputOption })
-    this.$dom.classList.add("form-control")
+    this.applyInputOption(inputAttributeOption)
   }
   public assign(dst: Store<string>) {
     this.value.set(dst.notLinkCreatedRawValue)
@@ -74,6 +85,7 @@ export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
     return this
   }
   private applyInputOption(option: InputOption) {
+    option = { ...option }
     if (typeof option.autocomplete === "boolean")
       option.autocomplete = option.autocomplete ? "on" : "off"
     if (option.list && typeof option.list !== "string") {
@@ -83,6 +95,7 @@ export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
     }
     delete option.label
     delete option.options
+    delete option.dontFitWidth
     this.setAttributes(option);
   }
 }

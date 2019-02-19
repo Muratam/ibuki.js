@@ -2,6 +2,9 @@ import { Color, Colors, ColorScheme } from "./color";
 import * as CSS from "./style";
 import { Store } from "./store";
 import { Updater, KeyBoard, GlobalCSS, KeysType } from "./static"
+import "bootstrap";
+import 'bootstrap/dist/css/bootstrap.min.css';
+
 export interface Vec2 {
   x: number
   y: number
@@ -42,6 +45,7 @@ export type TagSeed = string | Seed<DOM> // そのタグで作成するか関数
 export interface DOMOption {
   // そのコンテナ内部でfloatするときの位置(後続のDOMに影響を与えたい場合はnull)
   tag?: string
+  class?: string[] // WARN: classによるアニメーションは意図したものではないので,construct時のみしか適用されない
   colorScheme?: Colors
   margin?: Rect | number
   padding?: Rect | number
@@ -84,7 +88,7 @@ export class DOM {
     this.$dom = document.createElement(
       (typeof option === "string" ? option : option.tag) || "div");
     this.$DOMId = DOM.DOMMaxId++
-    this.$dom.id = `World-box-${this.$DOMId}`
+    this.$dom.id = `ibuki-box-${this.$DOMId}`
     if (parent !== null) {
       parent.$dom.appendChild(this.$dom);
       this.$parent = parent;
@@ -94,8 +98,13 @@ export class DOM {
         this.$createdFrame = this.$scene.$createdFrame;
       }
     }
-    if (typeof option !== "string") this.applyStyle(this.parseDOMOption(option))
+    if (typeof option !== "string") {
+      if (option.class) for (let c of option.class) this.$dom.classList.add(c)
+      this.applyStyle(this.parseDOMOption(option))
+    }
   }
+  fitWidth(parent: Box) { this.$dom.style.width = parent.contentWidth + "px" }
+  fitHeight(parent: Box) { this.$dom.style.height = parent.contentHeight + "px" }
   public update(fun: (this: this, i: number) => boolean | void | number) {
     let f = fun.bind(this);
     let i = 0;
@@ -167,6 +176,7 @@ export class DOM {
       style.overflow = "hidden"
       delete style.isScrollable
     }
+    delete style.class
     delete style.tag
     return style
   }
