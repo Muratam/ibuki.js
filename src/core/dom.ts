@@ -209,8 +209,8 @@ export class Box extends DOM {
   // 全てローカル値. transform:
   width: number = undefined;
   height: number = undefined;
-  x: number = 0;
-  y: number = 0;
+  x: number = undefined;
+  y: number = undefined;
   scale: number = 1;
   public get contentWidth(): number {
     return this.width
@@ -286,28 +286,33 @@ export class Box extends DOM {
   parseBoxOptionOnCurrentTransform(option: BoxOption): CSS.AnyStyle {
     let transform = this.currentTransform;
     let result: CSS.AnyStyle = { ...transform, ...option }
-    if (option.fit) {
-      // 倍率が1倍のときにジャストフィットするような位置
-      if (option.fit.x === "right") {
-        result.x = this.$parent.contentWidth - result.width
-      } else if (option.fit.x === "center") {
-        result.x = this.$parent.contentWidth / 2
-          - result.width / 2
-      } else {
-        result.x = 0;
-      }
-      if (option.fit.y === "bottom") {
-        result.y = this.$parent.contentHeight - result.height
-      } else if (option.fit.y === "center") {
-        result.y = this.$parent.contentHeight / 2
-          - result.height / 2
-      } else {
-        result.y = 0;
-      }
-      delete result.fit
-    }
     result.position = "absolute" // 無いと後続の要素の位置がバグる
     result["transform-origin"] = `center center` // これができると rotation / scaleがいい感じになる
+    if (this.$parent) {
+      if (option.fit) {
+        // 中心は `center center` である
+        // 倍率が1倍のときにジャストフィットするような位置
+        if (option.fit.x === "right") {
+          result.x = this.$parent.contentWidth / 2 - result.width / 2
+        } else if (option.fit.x === "center") {
+          result.x = 0
+        } else {
+          result.x = -(this.$parent.contentWidth / 2 - result.width / 2);
+        }
+        if (option.fit.y === "bottom") {
+          result.y = this.$parent.contentHeight / 2 - result.height / 2
+        } else if (option.fit.y === "center") {
+          result.y = 0
+        } else {
+          result.y = -(this.$parent.contentHeight / 2 - result.height / 2);
+        }
+        delete result.fit
+      }
+      if (option.fit || typeof option.x === "number")
+        result.x = (result.x || 0) + this.$parent.contentWidth / 2 - result.width / 2
+      if (option.fit || typeof option.y === "number")
+        result.y = (result.y || 0) + this.$parent.contentHeight / 2 - result.height / 2
+    }
     result.transform = new TransfromCSS(result.x, result.y, result.scale, result.rotate)
     return this.parseDOMOption(result);
   }

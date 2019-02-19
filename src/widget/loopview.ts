@@ -19,20 +19,22 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
     this.tops = [{
       scale: 0.5,
       x: -this.width * 0.3,
-      y: -this.height * 0.5,
+      y: 0,
       zIndex: 1,
     }, {
       scale: 1.0,
-      fit: { x: "center", y: "center" },
+      x: 0,
+      y: 0,
       zIndex: 2,
     }, {
       scale: 0.5,
       x: this.width * 0.3,
-      y: -this.height * 0.5,
+      y: 0,
       zIndex: 1,
     }, {
       scale: 0.2,
-      fit: { x: "center", y: "center" },
+      x: 0,
+      y: 0,
       zIndex: 0,
     },]
     this.childrenInitialOption = childrenInitialOption;

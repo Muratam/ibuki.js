@@ -25,3 +25,5 @@ import { threeBoxSampleScene } from "./sample/loopviewsample"
 //      : モードがあるとゲーム以外にも使える？(height可変はむずいのでは？)
 let world = new World().play(threeBoxSampleScene)
 // bootstrap -> effect <-> 弾幕画報 -> 超人録
+// PIXI.js && THREE.js も同じ枠組みで適用したら
+// (text:selectable/focus:inputでkeyの割り込み無効) すごいかんじになりそう

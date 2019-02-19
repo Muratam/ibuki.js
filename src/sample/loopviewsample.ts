@@ -177,21 +177,25 @@ export function threeBoxSampleScene(scene: Scene) {
   let backGround = new Box(scene, {
     colorScheme: new ColorScheme("#181818")
   })
-  let loopView = new ThreeLoopView(backGround, { height: scene.height * 0.7, }, {
-    colorScheme: colorScheme,
-    border: { width: 5, style: "solid", radius: 15 },
-    fontFamily: "Menlo"
-  }).add([
-    p => new Image(new Box(p, { padding: 20 }), { src: "https://sagisawa.0am.jp/me.jpg" }),
-    p => helloBox(p, store),
-    p => informationBox(p, store),
-    p => flexBoxInputTest(p, store, colorScheme),
-    p => flexBoxMediaTest(p, store),
-    p => markdownTest(p, colorScheme),
-    p => katexTest(p, colorScheme),
-    p => tableTest(p, store),
-    p => iframeTest(p, store),
-  ])
+  let loopView = new ThreeLoopView(backGround,
+    {
+      height: scene.height * 0.7,
+      fit: { x: "center", y: "top" }
+    }, {
+      colorScheme: colorScheme,
+      border: { width: 5, style: "solid", radius: 15 },
+      fontFamily: "Menlo"
+    }).add([
+      p => new Image(new Box(p, { padding: 20 }), { src: "https://sagisawa.0am.jp/me.jpg" }),
+      p => helloBox(p, store),
+      p => informationBox(p, store),
+      p => flexBoxInputTest(p, store, colorScheme),
+      p => flexBoxMediaTest(p, store),
+      p => markdownTest(p, colorScheme),
+      p => katexTest(p, colorScheme),
+      p => tableTest(p, store),
+      p => iframeTest(p, store),
+    ])
   let bottom = bottomTest(scene, store, colorScheme)
   let wait = 0
   scene.update(() => { wait--; })
