@@ -24,3 +24,4 @@ import { threeBoxSampleScene } from "./sample/loopviewsample"
 // ???? : worldにて、width に自動で(scaleが)フィットしてheightが無限大(になりうる)
 //      : モードがあるとゲーム以外にも使える？(height可変はむずいのでは？)
 let world = new World().play(threeBoxSampleScene)
+// bootstrap -> effect <-> 弾幕画報 -> 超人録
