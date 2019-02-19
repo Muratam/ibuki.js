@@ -66,6 +66,7 @@ export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
       this.value.set(this.$dom.value)
     })
     this.applyInputOption({ ...inputOption })
+    this.$dom.classList.add("form-control")
   }
   public assign(dst: Store<string>) {
     this.value.set(dst.notLinkCreatedRawValue)

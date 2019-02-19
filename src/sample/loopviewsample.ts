@@ -9,7 +9,8 @@ import { FAIcon } from "../widget/external/faicon"
 import { MarkDown } from "../widget/external/markdown"
 import { Katex } from "../widget/external/katex"
 import { ThreeLoopView } from "../widget/loopview"
-
+import "bootstrap";
+import 'bootstrap/dist/css/bootstrap.min.css';
 function helloBox(p: Box, store: DataStore): Box {
   let text = ` hello ibuki.ts !!
   ibuki.ts は DOM をメインに迎えた新しいゲームエンジンです!!
