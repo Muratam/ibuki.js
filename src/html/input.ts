@@ -105,9 +105,12 @@ export class Input extends FitWidthDOM implements HasStoreValueWidgetInterface<s
       if (this.$dom.type === "checkbox") this.value.set(this.$dom.checked + "")
       else this.value.set(this.$dom.value)
     })
-    this.$dom.addEventListener("keyup", () => {
+    let keyEvent = (e: KeyboardEvent) => {
       this.value.set(this.$dom.value)
-    })
+      this.$scene.$keyboard.eventCanceled = true;
+    };
+    this.$dom.addEventListener("keyup", keyEvent)
+    this.$dom.addEventListener("keydown", keyEvent)
     this.applyInputOption(inputAttributeOption)
   }
   public assign(dst: Store<string>) {
@@ -129,6 +132,10 @@ export class Input extends FitWidthDOM implements HasStoreValueWidgetInterface<s
     this.setAttributes(option);
   }
 }
+
+// button [基準: custom Color ] FitWidth  (x buttonGroup)
+// DropDown customRange customFile
+
 /*
 export interface FormOption {
   // TODO: with submit(button?)
@@ -143,13 +150,6 @@ export class Form extends Box {
   constructor(parent: Box, formOption: FormOption = {}, containerOption: BoxOption = {}) {
     super(parent, { tag: "form", ...containerOption })
     this.setAttributes(formOption)
-  }
-}
-export class FieldSet extends Box {
-  // 間に fieldset / legend[] を生やす
-  constructor(parent: Box, option: BoxOption = {}, legend: TextSeed) {
-    super(parent, { ...option, tag: "fieldset" })
-    Text.bloom(new DOM(this, "legend"), legend)
   }
 }
 */

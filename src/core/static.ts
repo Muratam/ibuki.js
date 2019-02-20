@@ -126,11 +126,16 @@ export class KeyBoard {
   private keyDowns: KeysType = {}
   private keyPresses: KeysType = {}
   private keyUps: KeysType = {}
+  eventCanceled = false
   constructor(updater: Updater) {
     updater.regist(() => {
-      for (let k of this.keyDownCallBacks) k(this.keyDowns)
-      for (let k of this.keyPressCallBacks) k(this.keyPresses)
-      for (let k of this.keyUpCallBacks) k(this.keyUps)
+      if (this.eventCanceled) {
+        this.eventCanceled = false
+      } else {
+        for (let k of this.keyDownCallBacks) k(this.keyDowns)
+        for (let k of this.keyPressCallBacks) k(this.keyPresses)
+        for (let k of this.keyUpCallBacks) k(this.keyUps)
+      }
       this.keyUps = {}
       this.keyDowns = {}
       this.keyPresses = {}

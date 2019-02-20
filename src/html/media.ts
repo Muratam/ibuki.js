@@ -48,9 +48,6 @@ export class ProgressBar extends FitWidthDOM {
   }
 }
 
-
-
-
 export interface IFrameOption extends BoxOption { src: string }
 export class IFrame extends Box {
   public readonly $dom: HTMLIFrameElement
