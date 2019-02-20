@@ -10,10 +10,18 @@ export class Color implements CanTranslateCSS {
   public readonly b: number = 1.0
   public readonly a: number = 1.0
   constructor(r: number, g: number, b: number, a: number = 1.0) {
-    this.r = r;
-    this.g = g;
-    this.b = b;
-    this.a = a;
+    this.r = Math.max(-1, Math.min(1, r));
+    this.g = Math.max(-1, Math.min(1, g));
+    this.b = Math.max(-1, Math.min(1, b));
+    this.a = Math.max(-1, Math.min(1, a));
+  }
+  static sub(str: string): Color {
+    let c: number[] = rgba(str);
+    c = c.map(x => -x)
+    if (!str.startsWith("#") || (str.length !== 5 && str.length !== 9)) {
+      c[3] = 0;
+    }
+    return new Color(c[0] / 255, c[1] / 255, c[2] / 255, c[3]);
   }
   static parse(str: string): Color {
     let c: number[] = rgba(str);
@@ -27,12 +35,14 @@ export class Color implements CanTranslateCSS {
     }
     return "#" + tr(this.r) + tr(this.g) + tr(this.b) + tr(this.a);
   }
-  multiply(c: CanTranslateCSS): Color {
-    if (c instanceof Color)
-      return new Color(this.r * c.r, this.g * c.g, this.b * c.b, this.a * c.a)
-    console.assert(false, "not inplemented error @ multiply color")
-    return this
+  addColor(c: Color | string): Color {
+    if (typeof c === "string") c = Color.parse(c)
+    return new Color(this.r + c.r, this.g + c.g, this.b + c.b, this.a + c.a)
   }
+  mul(n: number): Color {
+    return new Color(this.r * n, this.g * n, this.b * n, this.a * n)
+  }
+
 }
 export type DirectionDegree = number | "bottom" | "top" | "right" | "left"
 export class LinearGradient implements CanTranslateCSS {
@@ -51,9 +61,9 @@ export class LinearGradient implements CanTranslateCSS {
       this.colors.map(x => x.toCSS()).join(",")
       })`;
   }
-  multiply(target: CanTranslateCSS) {
-    console.assert(false, "not inplemented error @ multiply lineargradient")
-    return this
+  addColor(c: Color | string): LinearGradient {
+    if (typeof c === "string") c = Color.parse(c)
+    return new LinearGradient(this.colors.map(x => x.addColor(c)), this.directionDegree);
   }
 }
 export type Colors = Color | LinearGradient | string | ColorScheme
@@ -77,6 +87,13 @@ export class ColorScheme implements CanTranslateCSS {
     if (color instanceof LinearGradient) return new ColorScheme(color)
     if (color instanceof Color) return new ColorScheme(color)
     return new ColorScheme(color)
+  }
+  addColor(color: Color | string): ColorScheme {
+    if (typeof color === "string") color = Color.parse(color)
+    return new ColorScheme(
+      this.baseColor.addColor(color),
+      this.mainColor.addColor(color),
+      this.accentColor.addColor(color))
   }
   constructor(baseColor: Colors = "#fff", mainColor: Colors = "#000", accentColor: Colors = "") {
     this.baseColor = ColorScheme.parse(baseColor)

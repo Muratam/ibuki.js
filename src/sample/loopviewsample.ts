@@ -1,8 +1,8 @@
 import { Color, ColorScheme } from "../core/color";
-import { Box, Scene } from "../core/dom";
-import { Text, TextSequence, FixedSizeText } from "../html/text";
+import { Box, DOM, Scene } from "../core/dom";
+import { Text, TextSequence, Badge } from "../html/text";
 import { Input, InputOption, InputType } from "../html/input"
-import { FlexBox, Table } from "../html/container"
+import { FlexBox, Table, BSGridBox } from "../html/container"
 import { toStore, DataStore } from "../core/store"
 import { ProgressBar, MeterBar, IFrame, Image } from "../html/media";
 import { FAIcon } from "../widget/external/faicon"
@@ -31,6 +31,7 @@ function helloBox(p: Box, store: DataStore): Box {
 function informationBox(p: Box, store: DataStore): Box {
   return new Box(p, {
     textAlign: "center",
+    fontSize: 30,
     padding: 30
   }).tree(p =>
     new TextSequence(p, [
@@ -38,7 +39,11 @@ function informationBox(p: Box, store: DataStore): Box {
       [store.sec.to(x => "Frame : " + x + "\n"), "#afb"],
       [store.pressedKey.to(x => "Key : " + x + "\n"), "#fab"],
       [store.event.to(x => "Mouse : " + x + "\n"), {}],
-      p => new FAIcon(p, "faIgloo", { size: 100, color: Color.parse("#fab") }),
+      p => new FAIcon(p, "faIgloo", { color: Color.parse("#fab") }),
+      ["\n", {}],
+      p => new Badge(p, "Badge:", { label: store.pressedKey, href: store.pressedKey, modifier: "primary" }),
+      p => new Text(p, store.pressedKey, { href: store.pressedKey }),
+      p => new Badge(p, "Badge:", { pill: true, label: store.pressedKey, href: store.pressedKey, modifier: "warning" }),
     ])
   ).on("mouseover", () => { store.event.set("mouseover") })
     .on("mouseout", () => { store.event.set("mouseout") })
@@ -77,6 +82,53 @@ function flexBoxInputTest(p: Box, store: DataStore, colorScheme: ColorScheme): B
     for (let s of inputTypes) create(s, {})
   });
 }
+// function BSGridBoxInputTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
+//   function create(p: DOM, type: InputType, option: InputOption) {
+//     let input = toStore("")
+//     return new Input(p, {
+//       type: type,
+//       ...option,
+//       label: input.to(x => type + " -> " + x)
+//     }, { colorScheme: colorScheme }).assign(input)
+//   }
+//   return new BSGridBox(p, { padding: 20, }).add(
+//     p => new Text(p, "Input with flexBox\n", {}),
+//     p => {
+//       create(p, "text", { placeholder: "reactive input here" }).assign(store.inputted)
+//     }, p => {
+//       let preLabel = toStore("")
+//       create("text", { prependLabel: preLabel }).assign(preLabel)
+//       let valid = toStore(true)
+//       create("text", { prependLabel: "size < 4", valid: valid }).value.regist(x => valid.set(x.length < 4))
+//       create("select", { options: ["ro", "ro", "to", "ro"] })
+//       create("select", { options: ["ro", "ro", "to", "ro"], multiple: true })
+//       create("text", { placeholder: "readonly", readonly: true }).assign(store.inputted)
+//       let inputTypes: InputType[] = [
+//         "password", "color", "range",
+//         "checkbox", "file", "time",
+//         "date", "email",
+//         "search", "tel", "time",
+//         "url", "radio", "number",
+//       ]
+//       for (let s of inputTypes) create(s, {})
+//     })
+//   .add([p => new Text(p, "Input with BootStrap Grid System\n")])
+//   .addForm(p => create(p, "text", { placeholder: "reactive input here" }).assign(store.inputted))
+//   .addForm(p => create(p, "text", { prependLabel: preLabel }).assign(preLabel))
+//   // .addForm(p => create(p, "text", { prependLabel: "size < 4", valid: valid }).value.regist(x => valid.set(x.length < 4)))
+//   .addForm(p => create(p, "select", { options: ["ro", "ro", "to", "ro"] }))
+//   .addForm(p => create(p, "select", { options: ["ro", "ro", "to", "ro"], multiple: true }))
+//   .addForm(p => create(p, "text", { placeholder: "readonly", readonly: true }).assign(store.inputted))
+// let inputTypes: InputType[] = [
+//   "password", "color", "range",
+//   "checkbox", "file", "time",
+//   "date", "email",
+//   "search", "tel", "time",
+//   "url", "radio", "number",
+// ]
+// for (let s of inputTypes) create(grid, s, {})
+// return grid
+// }
 function flexBoxMediaTest(p: Box, store: DataStore): Box {
   return new FlexBox(p, {
     flexDirection: "column",
@@ -187,6 +239,7 @@ export function threeBoxSampleScene(scene: Scene) {
       p => helloBox(p, store),
       p => informationBox(p, store),
       p => flexBoxInputTest(p, store, colorScheme),
+      // p => BSGridBoxInputTest(p, store, colorScheme),
       p => flexBoxMediaTest(p, store),
       p => markdownTest(p, colorScheme),
       p => katexTest(p, colorScheme),

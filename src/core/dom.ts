@@ -45,7 +45,7 @@ export type TagSeed = string | Seed<DOM> // そのタグで作成するか関数
 export interface DOMOption {
   // そのコンテナ内部でfloatするときの位置(後続のDOMに影響を与えたい場合はnull)
   tag?: string
-  class?: string[] // WARN: classによるアニメーションは意図したものではないので,construct時のみしか適用されない
+  class?: string[] | string// WARN: classによるアニメーションは意図したものではないので,construct時のみしか適用されない
   colorScheme?: Colors
   margin?: Rect | number
   padding?: Rect | number
@@ -99,7 +99,10 @@ export class DOM {
       }
     }
     if (typeof option !== "string") {
-      if (option.class) for (let c of option.class) if (c) this.$dom.classList.add(c)
+      if (option.class) {
+        if (typeof option.class === "string") this.$dom.classList.add(option.class)
+        else for (let c of option.class) if (c) this.$dom.classList.add(c)
+      }
       this.applyStyle(this.parseDOMOption(option))
     }
   }
@@ -156,7 +159,7 @@ export class DOM {
         else this.$dom.removeAttribute(key)
       } else if (val instanceof Array) {
         this.$dom.setAttribute(key, val.join(" , "))
-      } else {
+      } else if (typeof val === "string") {
         this.$dom.setAttribute(key, `${val}`)
         if (val === "color") console.warn("↑↑↑↑this is input[type=color] warning...fuck!!!")
       }
@@ -184,6 +187,7 @@ export class DOM {
     return style
   }
 }
+
 type TimingFunction = "ease" | "linear" | "ease-in" | "ease-out" | "ease-in-out"
 interface TransitionQueueElement {
   option: BoxOption

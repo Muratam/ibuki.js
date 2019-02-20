@@ -1,6 +1,7 @@
 import { Box, BoxOption, DOM, DOMOption } from "../core/dom";
 import { Text, TextSeed } from "./text"
 import { Store, HasStoreValueWidgetInterface } from "../core/store"
+import { ColorScheme, Color } from "../core/color";
 export type InputType =
   "password" | "search" | "text" | "textarea" | "select" |
   "date" | "email" | "tel" | "time" | "url" | "checkbox" | "radio" |
@@ -9,7 +10,6 @@ export interface InputOption {
   type?: InputType
   name?: string // checkbox / radio では同じ名前にすると共有
   size?: number
-  dontFitWidth?: boolean
   maxlength?: number
   placeholder?: string
   pattern?: string
@@ -41,12 +41,11 @@ export interface InputOption {
 export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
   value: Store<string>
   public readonly $dom: HTMLInputElement
-  constructor(parent: Box, inputAttributeOption: InputOption = {}, domOption: DOMOption = {}) {
+  constructor(parent: DOM, inputAttributeOption: InputOption = {}, domOption: DOMOption = {}) {
     let isSmallInputType = ["checkbox", "radio"].some(x => x === inputAttributeOption.type)
     let formGroup = new DOM(parent, {
       class: ["form-group", isSmallInputType ? "form-check" : ""]
     })
-    if (!inputAttributeOption.dontFitWidth) formGroup.fitWidth(parent)
     let label: DOM = null
     function createLabel(flag: boolean) {
       if (!inputAttributeOption.label) return;
@@ -55,14 +54,16 @@ export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
     }
     if (!isSmallInputType) createLabel(false)
     if (inputAttributeOption.prependLabel) {
-      formGroup = new DOM(formGroup, { class: ["input-group"] })
-      let prependLabel = new DOM(formGroup, { class: ["input-group-prepend"] })
+      formGroup = new DOM(formGroup, { class: "input-group" })
+      let prependLabel = new DOM(formGroup, { class: "input-group-prepend" })
       let labelContent = Text.bloom(prependLabel, inputAttributeOption.prependLabel)
       labelContent.$dom.classList.add("input-group-text")
+      let c = ColorScheme.parseToColorScheme(domOption.colorScheme).addColor(Color.sub("#080808"))
+      labelContent.applyStyle(labelContent.parseDOMOption({ colorScheme: c }))
     }
     let option = {
       tag: "input",
-      class: [isSmallInputType ? "form-check-input" : "form-control"],
+      class: isSmallInputType ? "form-check-input" : "form-control",
       type: "text",
       ...domOption
     }
@@ -121,7 +122,6 @@ export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
     }
     delete option.label
     delete option.options
-    delete option.dontFitWidth
     this.setAttributes(option);
   }
 }

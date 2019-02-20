@@ -1,4 +1,4 @@
-import { Box, BoxOption, DOM, TextAlignType, DOMOption } from "../core/dom";
+import { Box, BoxOption, DOM, Seed } from "../core/dom";
 import { TextSeed, Text } from "./text";
 export interface FlexBoxOption extends BoxOption {
   flexDirection?: "row" | "row-reverse" | "column" | "column-reverse"
@@ -8,6 +8,34 @@ export interface FlexBoxOption extends BoxOption {
   alignContent?: "stretch" | "flex-start" | "flex-end" | "center" | "space-between" | "space-around"
   // 子要素には order / flex-grow / flex-shrink / flex-basis / align-self があるが
 }
+
+
+// Boot Strap Grid(12)System
+export class BSGridBox extends Box {
+  constructor(parent: Box, option: BoxOption) {
+    super(parent, option)
+    this.$dom.classList.add("container")
+
+  }
+  //   addForm(seed: BSSeed) {
+  //     bloomBSSeed(seed, this);
+  //     return this
+  //   }
+  //   add(seed: BSSeed[]) {
+  //     let row = new DOM(this, { class: "row" })
+  //     return this
+  //   }
+  //   add(seed: ((p: DOM) => any)[], size: (number | "" | "auto")[] = []) {
+  //     let row = new DOM(this, { class: "row" })
+  //     for (let s of seed) seed(row)
+  //     for (let i = 0; i < row.children.length; i++) {
+  //       let colClass = i < size.length && size[i] !== "" ? `col-${size[i]}` : "col";
+  //       row.childr
+  //     }
+  //   }
+}
+
+
 export class FlexBox extends Box {
   constructor(parent: Box, option: FlexBoxOption) {
     super(parent, option)

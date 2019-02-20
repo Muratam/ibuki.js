@@ -4,6 +4,7 @@ import { MayStore, assign, HasValueWidgetInterface, Store } from "../core/store"
 export interface TextOption extends DOMOption {
   color?: Color | string
   isBold?: boolean
+  href?: MayStore<string>,
   tag?: "span" | "code" | "pre" | "marquee" | "div"
   edge?: { color: Color, width: number }
 }
@@ -16,8 +17,9 @@ export class Text extends DOM implements HasValueWidgetInterface<string> {
     this.$dom.innerText = this.$text;
   }
   constructor(parent: DOM, text: MayStore<string>, option: TextOption = {}) {
-    super(parent, { ...option, tag: "span" })
+    super(parent, { ...option, tag: option.href ? "a" : "span" })
     assign(text, t => this.value = t)
+    assign(option.href, t => this.$dom.setAttribute("href", t))
     this.applyStyle({
       color: typeof option.color === "string" ? Color.parse(option.color) : option.color,
       font: { weight: option.isBold && "bold" },
@@ -30,12 +32,25 @@ export class Text extends DOM implements HasValueWidgetInterface<string> {
     return seed(parent)
   }
 }
-export class FixedSizeText extends Text {
-  constructor(parent: DOM, text: MayStore<string>, width: number, height: number, textOption: TextOption = {}) {
-    super(parent, text, { tag: "div", ...textOption })
-    this.applyStyle({ width: width, height: height, display: "inline-block" })
+export interface BadgeOption extends TextOption {
+  label?: TextSeed
+  pill?: boolean
+  modifier?: "primary" | "secondary" | "success" | "danger" | "warning" | "info" | "light" | "dark"
+}
+export class Badge extends Text {
+  constructor(parent: DOM, text: MayStore<string>, option: BadgeOption = {}) {
+    super(parent, text, option)
+    this.$dom.classList.add("badge")
+    if (option.modifier) this.$dom.classList.add(`badge-${option.modifier}`)
+    if (option.pill) this.$dom.classList.add("badge-pill")
+    if (option.label) {
+      let label = Text.bloom(this, option.label)
+      label.$dom.classList.add("badge-light")
+      label.$dom.classList.add("badge")
+    }
   }
 }
+
 export type TextSequenceElem = [MayStore<string>, TextOption | string] | TextSeed;
 export class TextSequence extends DOM {
   private currentOption: TextOption;
