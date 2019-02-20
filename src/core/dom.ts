@@ -59,7 +59,7 @@ export interface DOMOption {
   zIndex?: number | "auto"
   isScrollable?: boolean
 }
-export type FitType = { x: "left" | "center" | "right", y: "top" | "center" | "bottom" }
+export type FitType = { x?: "left" | "center" | "right", y?: "top" | "center" | "bottom" }
 export interface BoxOption extends DOMOption {
   x?: number
   y?: number
@@ -288,17 +288,17 @@ export class Box extends DOM {
         // 倍率が1倍のときにジャストフィットするような位置
         if (option.fit.x === "right") {
           result.x = this.$parent.contentWidth / 2 - result.width / 2
-        } else if (option.fit.x === "center") {
-          result.x = 0
-        } else {
+        } else if (option.fit.x === "left") {
           result.x = -(this.$parent.contentWidth / 2 - result.width / 2);
+        } else {
+          result.x = 0
         }
         if (option.fit.y === "bottom") {
           result.y = this.$parent.contentHeight / 2 - result.height / 2
-        } else if (option.fit.y === "center") {
-          result.y = 0
-        } else {
+        } else if (option.fit.y === "top") {
           result.y = -(this.$parent.contentHeight / 2 - result.height / 2);
+        } else {
+          result.y = 0
         }
         delete result.fit
       }

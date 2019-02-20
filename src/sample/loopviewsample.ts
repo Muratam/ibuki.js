@@ -4,7 +4,7 @@ import { Text, TextSequence, Badge } from "../html/text";
 import { Input, InputOption, InputType } from "../html/input"
 import { FlexBox, Table } from "../html/container"
 import { toStore, DataStore } from "../core/store"
-import { ProgressBar, MeterBar, IFrame, Image, Spinner } from "../html/media";
+import { ProgressBar, IFrame, Image, Spinner } from "../html/media";
 import { FAIcon } from "../widget/external/faicon"
 import { MarkDown } from "../widget/external/markdown"
 import { Katex } from "../widget/external/katex"
@@ -89,15 +89,20 @@ function flexBoxInputTest(p: Box, store: DataStore, colorScheme: ColorScheme): B
     new Input(p, { placeholder: "dontFit", label: "dontFit" }, { colorScheme: colorScheme, dontFitWidth: true })
   });
 }
-function flexBoxMediaTest(p: Box, store: DataStore): Box {
+function flexBoxMediaTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
   return new FlexBox(p, {
     flexDirection: "column",
     alignItems: "flex-start",
     padding: 20,
   }).tree(p => {
     new Text(p, store.sec.to(x => `Media With FlexBox  : ${x % 100}%`), {})
-    new ProgressBar(p, store.sec.to(x => x % 100), {}, 100)
-    new MeterBar(p, store.sec.to(x => x % 100), { min: 0, max: 100, low: 22, high: 66, optimum: 80 })
+    new ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 1, withLabel: false }, 100)
+    new Text(p, "striped", {})
+    new ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 10, withLabel: false, striped: true }, 100)
+    new Text(p, "display percentage", {})
+    new ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 20, withLabel: true }, 100)
+    new Text(p, "custom color", {})
+    new ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 30, withLabel: true, colorScheme, striped: true }, 100)
   });
 }
 
@@ -200,7 +205,7 @@ export function threeBoxSampleScene(scene: Scene) {
       p => informationBox(p, store),
       p => flexBoxInputTest(p, store, colorScheme),
       // p => BSGridBoxInputTest(p, store, colorScheme),
-      p => flexBoxMediaTest(p, store),
+      p => flexBoxMediaTest(p, store, new ColorScheme("#222222bb", "#abd", "#238")),
       p => markdownTest(p, colorScheme),
       p => katexTest(p, colorScheme),
       p => tableTest(p, store),
