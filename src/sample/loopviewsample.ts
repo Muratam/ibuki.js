@@ -11,6 +11,8 @@ import { MarkDown } from "../widget/external/markdown"
 import { Katex } from "../widget/external/katex"
 import { ThreeLoopView } from "../widget/loopview"
 import * as CSS from "../core/style"
+import * as $ from "jquery";
+
 function helloBox(p: Box, store: DataStore): Box {
   let text = ` hello ibuki.ts !!
   ibuki.ts は DOM をメインに迎えた新しいゲームエンジンです!!
@@ -27,7 +29,6 @@ function helloBox(p: Box, store: DataStore): Box {
   `.replace(/\n/g, "")
   return new Box(p, { textAlign: "left", padding: 30 }).tree(p => {
     new Text(p, text)
-    new DOM(p).$dom.innerHTML = `<button type="button" class="btn btn-secondary" data-toggle="tooltip" data-placement="right" title="Tooltip on right">Tooltip on right</button>`
   })
 }
 
@@ -104,6 +105,7 @@ function flexBoxMediaTest(p: Box, store: DataStore, colorScheme: ColorScheme): B
     new DOM(p).tree(p => {
       new Badge(p, "Badge:", { label: store.pressedKey, href: store.pressedKey, modifier: "primary" })
       new Badge(p, "Badge:", { pill: true, label: store.pressedKey, href: store.pressedKey, modifier: "warning" })
+        .tooltip("tooltip", "right")
     })
     new Alert(p).tree(p => {
       new Text(p, "current link is ")
@@ -179,7 +181,7 @@ function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
     colorScheme: colorScheme,
     border: { width: 5, style: "solid", radius: 15 },
   }).tree(p => {
-    new Text(p, store.posX.to(x => x + "%"))
+    new DOM(p).$dom.innerHTML = `<button type="button" class="btn btn-secondary" data-toggle="tooltip" data-placement="right" title="Tooltip on right"></button>`
   }).on("click", function () {
     this
       .to({ fit: { x: "center", y: "center" }, }, 0.5)

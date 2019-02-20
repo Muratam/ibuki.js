@@ -1,10 +1,11 @@
 import { Color, Colors, ColorScheme } from "./color";
 import * as CSS from "./style";
-import { Store } from "./store";
+import { Store, MayStore, assign } from "./store";
 import { Updater, KeyBoard, GlobalCSS, KeysType } from "./static"
 import "bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
-
+import * as jQuery from "jquery";
+import { Placement } from "bootstrap";
 export interface Vec2 {
   x: number
   y: number
@@ -184,6 +185,11 @@ export class DOM {
     delete style.class
     delete style.tag
     return style
+  }
+  tooltip(text: string, placement: Placement = "top") {
+    this.$dom.setAttribute("data-toggle", "tooltip")
+    this.$dom.setAttribute("data-placement", placement)
+    this.$dom.setAttribute("title", text)
   }
 }
 
@@ -511,6 +517,7 @@ export class Scene extends Box {
       this.reservedExecuteNextFrames = []
       return true;
     })
+    jQuery(() => { jQuery('[data-toggle="tooltip"]').tooltip(); });
   }
   destroy() {
     this.$dom.remove();
@@ -547,7 +554,6 @@ export class World extends Box {
       input: inheritFontSize,
       select: inheritFontSize,
       button: inheritFontSize,
-
     });
     window.addEventListener("resize", () => this.adjustWindow())
   }

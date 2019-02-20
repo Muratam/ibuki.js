@@ -18,8 +18,6 @@ export * from "./widget/external/katex"
 import { World } from "./core/dom"
 import { threeBoxSampleScene } from "./sample/loopviewsample"
 
-// import * as $ from "jquery";
-// $(() => { $('[data-toggle="tooltip"]').tooltip(); });
 // ext  : effect graph(tree/chart) nene
 // impl : drag and drop/ colorSchemeLib
 // ???? : worldにて、width に自動で(scaleが)フィットしてheightが無限大(にpなりうる)
@@ -27,8 +25,4 @@ import { threeBoxSampleScene } from "./sample/loopviewsample"
 let world = new World().play(threeBoxSampleScene)
 // bootstrap -> effect <-> 弾幕画報 -> 超人録
 // PIXI.js && THREE.js も同じ枠組みで適用したら
-// (text:selectable/focus:inputでkeyの割り込み無効) すごいかんじになりそう
-// table? stretchedlink
 // text :overflow-wrap: break-word| left right center
-// toast - modal? tips - popover ?
-// collapse carousel

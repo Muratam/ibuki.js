@@ -67,7 +67,10 @@ export class Input extends FitWidthDOM implements HasStoreValueWidgetInterface<s
     }
     let option = {
       tag: "input",
-      class: isSmallInputType ? "form-check-input" : "form-control",
+      class: isSmallInputType ? "form-check-input" :
+        inputAttributeOption.type === "range" ? "custom-range" :
+          // inputAttributeOption.type === "file" ? "custom-file-input" :
+          "form-control",
       type: "text",
       ...domOption
     }
@@ -134,7 +137,7 @@ export class Input extends FitWidthDOM implements HasStoreValueWidgetInterface<s
 }
 
 // button [基準: custom Color ] FitWidth  (x buttonGroup)
-// DropDown customRange customFile
+// DropDown / tips - popover ?
 
 /*
 export interface FormOption {
