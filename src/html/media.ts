@@ -1,16 +1,35 @@
-import { DOM, DOMOption, BoxOption, Box } from "../core/dom";
+import { DOM, DOMOption, BoxOption, Box, FitWidthDOM, FitWidthDOMOption } from "../core/dom";
 import { Store, MayStore, assign } from "../core/store";
+// # Box でないサイズのもの
+// ゲーム画面なので,通常は固定サイズのboxに中身があるべきという考えを採用.
+// - DOM(!Box) -> DOM(!BOX) ... な階層はそもそも深くてよくないし.
+// - Text / Button / Input / Progress / Badge / Spinner
+// Button / input の中に 例えばspinnerなどを入れたい可能性もある.
+// Boot Strap Grid(12)System ? or 自分で置く ?
+
+
 // MEDIA :: audio / img / video
-export class ProgressBar extends DOM {
+export class ProgressBar extends FitWidthDOM {
   public readonly $dom: HTMLProgressElement
-  constructor(parent: Box, progress: MayStore<number>, option: DOMOption = {}, max: number = 1) {
+  constructor(parent: Box, progress: MayStore<number>, option: FitWidthDOMOption = {}, max: number = 1) {
     super(parent, { ...option, tag: "progress", class: ["progress-bar"] })
     this.$dom.setAttribute("role", "progressbar")
-    this.fitWidth(parent)
     assign(progress, x => this.$dom.value = x)
     this.$dom.max = max;
   }
 }
+
+interface SpinnerOption extends DOMOption {
+  type?: "border" | "grow"
+}
+export class Spinner extends DOM {
+  constructor(parent: DOM, option: SpinnerOption = {}) {
+    super(parent, option)
+    this.$dom.classList.add(`spinner-${option.type === "grow" ? "grow" : "border"}`)
+  }
+}
+
+
 // TODO: MeterBar is now progress bar!!
 export interface MeterBarOption extends DOMOption {
   min?: number,
@@ -21,9 +40,8 @@ export interface MeterBarOption extends DOMOption {
 }
 export class MeterBar extends DOM {
   public readonly $dom: HTMLMeterElement
-  constructor(parent: Box, value: MayStore<number>, option: MeterBarOption = {}) {
+  constructor(parent: DOM, value: MayStore<number>, option: MeterBarOption = {}) {
     super(parent, { ...option, tag: "meter" })
-    this.fitWidth(parent)
     assign(value, x => this.$dom.value = x)
     if (option.min) this.$dom.min = option.min
     if (option.max) this.$dom.max = option.max

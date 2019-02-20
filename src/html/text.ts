@@ -19,7 +19,7 @@ export class Text extends DOM implements HasValueWidgetInterface<string> {
   constructor(parent: DOM, text: MayStore<string>, option: TextOption = {}) {
     super(parent, { ...option, tag: option.href ? "a" : "span" })
     assign(text, t => this.value = t)
-    assign(option.href, t => this.$dom.setAttribute("href", t))
+    if (option.href) assign(option.href, t => this.$dom.setAttribute("href", t))
     this.applyStyle({
       color: typeof option.color === "string" ? Color.parse(option.color) : option.color,
       font: { weight: option.isBold && "bold" },

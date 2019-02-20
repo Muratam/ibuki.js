@@ -1,4 +1,4 @@
-import { Box, BoxOption, DOM, DOMOption } from "../core/dom";
+import { Box, BoxOption, FitWidthDOM, FitWidthDOMOption, DOM, DOMOption } from "../core/dom";
 import { Text, TextSeed } from "./text"
 import { Store, HasStoreValueWidgetInterface } from "../core/store"
 import { ColorScheme, Color } from "../core/color";
@@ -38,15 +38,16 @@ export interface InputOption {
   prependLabel?: TextSeed
   valid?: Store<boolean>
 }
-export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
+export class Input extends FitWidthDOM implements HasStoreValueWidgetInterface<string> {
   value: Store<string>
   public readonly $dom: HTMLInputElement
-  constructor(parent: DOM, inputAttributeOption: InputOption = {}, domOption: DOMOption = {}) {
+  constructor(parent: DOM, inputAttributeOption: InputOption = {}, domOption: FitWidthDOMOption = {}) {
     let isSmallInputType = ["checkbox", "radio"].some(x => x === inputAttributeOption.type)
-    let formGroup = new DOM(parent, {
-      class: ["form-group", isSmallInputType ? "form-check" : ""]
+    let formGroup = new FitWidthDOM(parent, {
+      class: ["form-group", isSmallInputType ? "form-check" : ""],
+      dontFitWidth: domOption.dontFitWidth
     })
-    let label: DOM = null
+    let label: DOM = undefined
     function createLabel(flag: boolean) {
       if (!inputAttributeOption.label) return;
       label = new DOM(formGroup, "label")
@@ -54,7 +55,10 @@ export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
     }
     if (!isSmallInputType) createLabel(false)
     if (inputAttributeOption.prependLabel) {
-      formGroup = new DOM(formGroup, { class: "input-group" })
+      formGroup = new FitWidthDOM(formGroup, {
+        class: "input-group",
+        dontFitWidth: domOption.dontFitWidth
+      })
       let prependLabel = new DOM(formGroup, { class: "input-group-prepend" })
       let labelContent = Text.bloom(prependLabel, inputAttributeOption.prependLabel)
       labelContent.$dom.classList.add("input-group-text")
@@ -85,7 +89,7 @@ export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
       }
     } else super(formGroup, option);
     if (isSmallInputType) createLabel(false)
-    if (label !== null) label.$dom.setAttribute("for", this.$dom.id)
+    if (label !== undefined) label.$dom.setAttribute("for", this.$dom.id)
     if (inputAttributeOption.valid) {
       inputAttributeOption.valid.regist(x => {
         let now = "is-valid"
@@ -125,7 +129,7 @@ export class Input extends DOM implements HasStoreValueWidgetInterface<string> {
     this.setAttributes(option);
   }
 }
-
+/*
 export interface FormOption {
   // TODO: with submit(button?)
   action?: string
@@ -148,3 +152,4 @@ export class FieldSet extends Box {
     Text.bloom(new DOM(this, "legend"), legend)
   }
 }
+*/

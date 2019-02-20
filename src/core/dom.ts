@@ -55,6 +55,7 @@ export interface DOMOption {
   fontFamily?: string
   borderRadius?: number
   textAlign?: TextAlignType
+  filter?: CSS.Filter
   zIndex?: number | "auto"
   isScrollable?: boolean
 }
@@ -106,8 +107,6 @@ export class DOM {
       this.applyStyle(this.parseDOMOption(option))
     }
   }
-  fitWidth(parent: Box) { this.$dom.style.width = parent.contentWidth + "px" }
-  fitHeight(parent: Box) { this.$dom.style.height = parent.contentHeight + "px" }
   public update(fun: (this: this, i: number) => boolean | void | number) {
     let f = fun.bind(this);
     let i = 0;
@@ -189,29 +188,17 @@ export class DOM {
 }
 
 type TimingFunction = "ease" | "linear" | "ease-in" | "ease-out" | "ease-in-out"
-interface TransitionQueueElement {
-  option: BoxOption
-  duration: number
-  timingFunction: TimingFunction
-  delay: number
+// 文字が右向きに流れるせいでWidthにのみFitするDOMという概念ができる.
+export interface FitWidthDOMOption extends DOMOption { dontFitWidth?: boolean }
+export class FitWidthDOM extends DOM {
+  fitWidth() { if (this.$parent instanceof Box) this.$dom.style.width = this.$parent.contentWidth + "px" }
+  constructor(parent: DOM, option: FitWidthDOMOption) {
+    super(parent, option)
+    if (!option.dontFitWidth) this.fitWidth()
+  }
 }
 // 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
-class TransfromCSS implements CSS.CanTranslateCSS {
-  y: number
-  x: number
-  scale: number
-  rotate: number
-  constructor(x: number, y: number, scale: number, rotate: number = 0) {
-    this.x = x
-    this.y = y
-    this.scale = scale
-    this.rotate = rotate
-  }
-  toCSS(): string {
-    return `translate(${Math.floor(this.x)}px,${Math.floor(this.y)}px) scale(${this.scale}) rotate(${Math.floor(this.rotate)}deg) `
-  }
-}
 export class Box extends DOM {
   // 全てローカル値. transform:
   width: number = undefined;
@@ -320,7 +307,7 @@ export class Box extends DOM {
       if (option.fit || typeof option.y === "number")
         result.y = (result.y || 0) + this.$parent.contentHeight / 2 - result.height / 2
     }
-    result.transform = new TransfromCSS(result.x, result.y, result.scale, result.rotate)
+    result.transform = new CSS.Transfrom(result.x, result.y, result.scale, result.rotate)
     return this.parseDOMOption(result);
   }
   applyTransformValues(style: CSS.AnyStyle) {
@@ -388,10 +375,12 @@ export class Box extends DOM {
     let style = this.applyOptionOnCurrentState(option)
     let transition = CSS.parse(style);
     let results: string[] = []
-    for (let key in transition) {
-      this.$dom.style[key] = transition[key]
-      // if (style[key] === this[key]) continue // WARN: すでに適応されてしまっているので効かないとはいえ,減らしたほうがよい？
+    for (let key in { ...transition, ...this.percentages }) {
+      if (transition.key !== undefined) this.$dom.style[key] = transition[key]
       if (typeof style[key] === "string" && key !== "transform") continue
+      // WARN: DOM の transition / transform の制約
+      // transform に scale rotate translate 全てが食べられているのでtransitionの上書きに弱い...
+      // if (!(this.percentages[key] === undefined && option[key] === undefined))
       results.push(`${key} ${duration}s ${timingFunction} ${delay}s `)
     }
     this.$dom.style.transition = results.join(",")

@@ -3,10 +3,14 @@
   "author": "murata <murata@kmc.gr.jp> (https://muratam.github.io)",
   "description": "ibuki game engine",
   "scripts": {
-    "build": "webpack",
+    "build": "webpack --mode production",
     "watch": "webpack --watch"
   },
   "devDependencies": {
+    "@types/bootstrap": "^4.2.2",
+    "@types/jquery": "^3.3.29",
+    "@types/lodash": "^4.14.121",
+    "@types/node": "^11.9.4",
     "ts-loader": "^5.3.3",
     "ts-node": "^8.0.2",
     "tslint": "^5.12.1",
@@ -17,7 +21,6 @@
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^1.2.15",
     "@fortawesome/free-solid-svg-icons": "^5.7.2",
-    "@types/lodash": "^4.14.121",
     "bootstrap": "^4.3.1",
     "color-rgba": "^2.1.0",
     "color-scheme": "^1.0.1",
@@ -32,7 +35,6 @@
     "popper.js": "^1.14.7",
     "style-loader": "^0.23.1",
     "svg.js": "^2.7.1",
-    "svgdom": "0.0.18",
     "typescript": "^3.3.3"
   }
 }

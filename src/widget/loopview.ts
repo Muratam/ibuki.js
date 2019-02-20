@@ -1,6 +1,6 @@
 import { Box, BoxOption, Seed } from "../core/dom";
 import { Store, HasStoreValueWidgetInterface } from "../core/store"
-
+import * as CSS from "../core/style"
 export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> {
   value = new Store<number>(0)
   private $count = 0
@@ -18,6 +18,10 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
     })
     this.tops = [{
       scale: 0.5,
+      filter: new CSS.Filter({
+        blur: 5,
+        dropShadow: { x: 5, y: 5, blur: 10, color: "gray" },
+      }),
       x: -this.width * 0.3,
       y: 0,
       zIndex: 1,
@@ -25,16 +29,25 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
       scale: 1.0,
       x: 0,
       y: 0,
+      filter: new CSS.Filter({
+        blur: 0,
+        dropShadow: { x: 5, y: 5, blur: 10, color: "gray" }
+      }),
       zIndex: 2,
     }, {
       scale: 0.5,
       x: this.width * 0.3,
       y: 0,
+      filter: new CSS.Filter({
+        blur: 5,
+        dropShadow: { x: 5, y: 5, blur: 10, color: "gray" },
+      }),
       zIndex: 1,
     }, {
       scale: 0.2,
       x: 0,
       y: 0,
+      filter: new CSS.Filter({ blur: 5 }),
       zIndex: 0,
     },]
     this.childrenInitialOption = childrenInitialOption;
