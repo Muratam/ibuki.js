@@ -11,7 +11,6 @@ import { MarkDown } from "../widget/external/markdown"
 import { Katex } from "../widget/external/katex"
 import { ThreeLoopView } from "../widget/loopview"
 import * as CSS from "../core/style"
-import * as $ from "jquery";
 
 function helloBox(p: Box, store: DataStore): Box {
   let text = ` hello ibuki.ts !!
@@ -115,7 +114,7 @@ function flexBoxMediaTest(p: Box, store: DataStore, colorScheme: ColorScheme): B
       new Text(p, "current link is ")
       new Text(p, store.pressedKey, { href: store.pressedKey })
       new Text(p, "!!!")
-    });
+    })
   })
 }
 
@@ -187,7 +186,7 @@ function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
       .to({ fit: { x: "center", y: "center" }, }, 0.5)
       .next({ fit: { x: "center", y: "top" } }, 0.5)
       .next({ fit: { x: "center", y: "bottom" } }, 0.5)
-  }).update(function () { })
+  }).update(function () { }).popover("iikanji ", "これが Pop over ってやつやで", "top")
 }
 
 export function threeBoxSampleScene(scene: Scene) {

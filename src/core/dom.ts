@@ -190,6 +190,15 @@ export class DOM {
     this.$dom.setAttribute("data-toggle", "tooltip")
     this.$dom.setAttribute("data-placement", placement)
     this.$dom.setAttribute("title", text)
+    return this
+  }
+  popover(title: string, content: string, placement: Placement = "top", trigger: "hover" | "focus" | "click" = "hover") {
+    this.$dom.setAttribute("data-toggle", "popover")
+    this.$dom.setAttribute("data-trigger", trigger)
+    this.$dom.setAttribute("data-placement", placement)
+    this.$dom.setAttribute("title", title)
+    this.$dom.setAttribute("data-content", content)
+    return this
   }
 }
 
@@ -518,6 +527,7 @@ export class Scene extends Box {
       return true;
     })
     jQuery(() => { jQuery('[data-toggle="tooltip"]').tooltip(); });
+    jQuery(() => { jQuery('[data-toggle="popover"]').popover(); });
   }
   destroy() {
     this.$dom.remove();

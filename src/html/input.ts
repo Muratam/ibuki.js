@@ -137,7 +137,7 @@ export class Input extends FitWidthDOM implements HasStoreValueWidgetInterface<s
 }
 
 // button [基準: custom Color ] FitWidth  (x buttonGroup)
-// DropDown / tips - popover ?
+// DropDown
 
 /*
 export interface FormOption {
