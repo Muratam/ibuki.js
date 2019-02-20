@@ -8,6 +8,7 @@ export * from "./html/text"
 export * from "./html/input"
 export * from "./html/container"
 export * from "./html/media"
+export * from "./html/notice"
 // widgets
 export * from "./widget/loopview"
 export * from "./widget/external/faicon"

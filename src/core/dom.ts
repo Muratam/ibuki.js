@@ -192,7 +192,7 @@ type TimingFunction = "ease" | "linear" | "ease-in" | "ease-out" | "ease-in-out"
 export interface FitWidthDOMOption extends DOMOption { dontFitWidth?: boolean }
 export class FitWidthDOM extends DOM {
   fitWidth() { if (this.$parent instanceof Box) this.$dom.style.width = this.$parent.contentWidth + "px" }
-  constructor(parent: DOM, option: FitWidthDOMOption) {
+  constructor(parent: DOM, option: FitWidthDOMOption = {}) {
     super(parent, option)
     if (!option.dontFitWidth) this.fitWidth()
   }

@@ -1,10 +1,11 @@
 import { Color, ColorScheme } from "../core/color";
-import { Box, DOM, Scene } from "../core/dom";
-import { Text, TextSequence, Badge } from "../html/text";
+import { Box, DOM, Scene, FitWidthDOM } from "../core/dom";
+import { Text, Spinner, HR } from "../html/text";
 import { Input, InputOption, InputType } from "../html/input"
 import { FlexBox, Table } from "../html/container"
 import { toStore, DataStore } from "../core/store"
-import { ProgressBar, IFrame, Image, Spinner } from "../html/media";
+import { ProgressBar, IFrame, Image } from "../html/media";
+import { Alert, Badge } from "../html/notice"
 import { FAIcon } from "../widget/external/faicon"
 import { MarkDown } from "../widget/external/markdown"
 import { Katex } from "../widget/external/katex"
@@ -35,21 +36,17 @@ function informationBox(p: Box, store: DataStore): Box {
     textAlign: "center",
     fontSize: 30,
     padding: 30
-  }).tree(p =>
-    new TextSequence(p, [
-      ["information box\n", {}],
-      [store.sec.to(x => "Frame : " + x + "\n"), "#afb"],
-      [store.pressedKey.to(x => "Key : " + x + "\n"), "#fab"],
-      [store.event.to(x => "Mouse : " + x + "\n"), {}],
-      p => new FAIcon(p, "faIgloo", { color: Color.parse("#fab") }),
-      p => new Spinner(p),
-      p => new Spinner(p, { type: "grow" }),
-      ["\n", {}],
-      p => new Text(p, store.pressedKey, { href: store.pressedKey }),
-      p => new Badge(p, "Badge:", { label: store.pressedKey, href: store.pressedKey, modifier: "primary" }),
-      p => new Badge(p, "Badge:", { pill: true, label: store.pressedKey, href: store.pressedKey, modifier: "warning" }),
-    ])
-  ).on("mouseover", () => { store.event.set("mouseover") })
+  }).tree(p => {
+    new Text(p, "information box\n")
+    new Text(p, store.sec.to(x => "Frame : " + x + "\n"), { color: "#afb" })
+    new Text(p, store.pressedKey.to(x => "Key : " + x + "\n"), { color: "#afb" })
+    new Text(p, store.event.to(x => "Mouse : " + x + "\n"), { color: "#afb" })
+    new FAIcon(p, "faIgloo", { color: Color.parse("#fab") })
+    new Spinner(p)
+    new Spinner(p, { type: "grow" })
+    new Text(p, "\n")
+    new Text(p, store.pressedKey, { href: store.pressedKey })
+  }).on("mouseover", () => { store.event.set("mouseover") })
     .on("mouseout", () => { store.event.set("mouseout") })
     .on("mousemove", () => { store.event.set("mousemove") })
 }
@@ -103,7 +100,21 @@ function flexBoxMediaTest(p: Box, store: DataStore, colorScheme: ColorScheme): B
     new ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 20, withLabel: true }, 100)
     new Text(p, "custom color", {})
     new ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 30, withLabel: true, colorScheme, striped: true }, 100)
-  });
+    new HR(p)
+    new DOM(p).tree(p => {
+      new Badge(p, "Badge:", { label: store.pressedKey, href: store.pressedKey, modifier: "primary" })
+      new Badge(p, "Badge:", { pill: true, label: store.pressedKey, href: store.pressedKey, modifier: "warning" })
+    })
+    new Alert(p).tree(p => {
+      new Text(p, "current link is ")
+      new Text(p, store.pressedKey, { href: store.pressedKey })
+      new Text(p, "!!!")
+      new HR(p)
+      new Text(p, "current link is ")
+      new Text(p, store.pressedKey, { href: store.pressedKey })
+      new Text(p, "!!!")
+    });
+  })
 }
 
 function tableTest(p: Box, store: DataStore): Box {
@@ -160,8 +171,6 @@ function katexTest(p: Box, colorScheme: ColorScheme): Box {
     new Katex(p, text)
   });
 }
-
-
 function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
   // TODO: show FPS
   return new Box(p, {

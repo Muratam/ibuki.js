@@ -32,45 +32,21 @@ export class Text extends DOM implements HasValueWidgetInterface<string> {
     return seed(parent)
   }
 }
-export interface BadgeOption extends TextOption {
-  label?: TextSeed
-  pill?: boolean
-  modifier?: "primary" | "secondary" | "success" | "danger" | "warning" | "info" | "light" | "dark"
+export function textAssign(parent: DOM, may: TextSeed, func: ((t: string) => any)) {
+  if (typeof may === "function") may(parent)
+  else assign(may, func)
 }
-export class Badge extends Text {
-  constructor(parent: DOM, text: MayStore<string>, option: BadgeOption = {}) {
-    super(parent, text, option)
-    this.$dom.classList.add("badge")
-    if (option.modifier) this.$dom.classList.add(`badge-${option.modifier}`)
-    if (option.pill) this.$dom.classList.add("badge-pill")
-    if (option.label) {
-      let label = Text.bloom(this, option.label)
-      label.$dom.classList.add("badge-light")
-      label.$dom.classList.add("badge")
-    }
+interface SpinnerOption extends DOMOption {
+  type?: "border" | "grow"
+}
+export class Spinner extends DOM {
+  constructor(parent: DOM, option: SpinnerOption = {}) {
+    super(parent, option)
+    this.$dom.classList.add(`spinner-${option.type === "grow" ? "grow" : "border"}`)
   }
 }
-
-export type TextSequenceElem = [MayStore<string>, TextOption | string] | TextSeed;
-export class TextSequence extends DOM {
-  private currentOption: TextOption;
-  constructor(parent: DOM, texts: TextSequenceElem[]) {
-    super(parent, "span");
-    this.currentOption = {};
-    this.add(texts)
-  }
-  add(texts: TextSequenceElem[]) {
-    for (let elem of texts) {
-      if (typeof elem === "function") elem(this)
-      else if (typeof elem === "string" || elem instanceof Store) new Text(this, elem, this.currentOption)
-      else {
-        let [text, option] = elem;
-        if (typeof option === "string")
-          this.currentOption.color = Color.parse(option)
-        else this.currentOption = { ...this.currentOption, ...option };
-        new Text(this, text, this.currentOption);
-      }
-    }
+export class HR extends DOM {
+  constructor(parent: DOM) {
+    super(parent, { tag: "hr" })
   }
 }
-

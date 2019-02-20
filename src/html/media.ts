@@ -48,15 +48,8 @@ export class ProgressBar extends FitWidthDOM {
   }
 }
 
-interface SpinnerOption extends DOMOption {
-  type?: "border" | "grow"
-}
-export class Spinner extends DOM {
-  constructor(parent: DOM, option: SpinnerOption = {}) {
-    super(parent, option)
-    this.$dom.classList.add(`spinner-${option.type === "grow" ? "grow" : "border"}`)
-  }
-}
+
+
 
 export interface IFrameOption extends BoxOption { src: string }
 export class IFrame extends Box {
