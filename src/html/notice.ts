@@ -24,7 +24,7 @@ export class Badge extends Text {
 }
 export interface AlertOption extends FitWidthDOMOption {
   modifier?: Modifier
-  hasDeleteButton?: boolean
+  noDeleteButton?: boolean
 }
 export class Alert extends FitWidthDOM {
   constructor(parent: DOM, option: AlertOption = {}) {
@@ -41,6 +41,15 @@ export class Alert extends FitWidthDOM {
         }
       }
       addAlertLink(this)
+    })
+    if (option.noDeleteButton) return;
+    // WARN: DOMが隠れるのではなく削除される！Store系が変に参照してちょっと怖いかも
+    new DOM(this, { tag: "button", class: "close" }).tree(p => {
+      new Text(p, "×", {}).$dom.setAttribute("aria-hidden", "true")
+    }).setAttributes({
+      type: "button",
+      "data-dismiss": "alert",
+      "aria-label": "Close"
     })
   }
 }
