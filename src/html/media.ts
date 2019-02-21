@@ -1,4 +1,4 @@
-import { DOM, BoxOption, Box, FitWidthDOM, FitWidthDOMOption } from "../core/dom";
+import { DOM, BoxOption, FitBox, Box, FitWidthDOM, FitWidthDOMOption } from "../core/dom";
 import { Store, MayStore } from "../core/store";
 import { ColorScheme } from "../core/color";
 // MEDIA :: audio / img / video
@@ -37,10 +37,21 @@ export class ProgressBar extends FitWidthDOM {
 }
 
 export interface IFrameOption extends BoxOption { src: string }
-export class IFrame extends Box {
+export class IFrame extends FitBox {
   public readonly $dom: HTMLIFrameElement
   constructor(parent: Box, option: IFrameOption) {
     super(parent, { ...option, tag: "iframe" })
+    this.$dom.src = option.src;
+  }
+}
+export interface ImageOption extends BoxOption {
+  src: string
+  forceSize?: boolean
+}
+export class Image extends FitBox {
+  public readonly $dom: HTMLImageElement
+  constructor(parent: Box, option: ImageOption) {
+    super(parent, { ...option, tag: "img" })
     this.$dom.src = option.src;
   }
 }

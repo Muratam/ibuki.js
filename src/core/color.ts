@@ -101,9 +101,23 @@ export class ColorScheme implements CanTranslateCSS {
     if (accentColor === "") this.accentColor = this.baseColor
     else this.accentColor = ColorScheme.parse(accentColor)
   }
-  multiply(target: CanTranslateCSS) {
-    console.assert(false, "not inplemented error @ multiply color scheme")
-    return this
+  // o:src x:dst -> src のまま / 他は補完
+  complement(src: ColorScheme, per: number): ColorScheme {
+    let result = new ColorScheme(this)
+    if (src === undefined) return result
+    for (let key in ["baseColor", "accentColor", "mainColor"]) {
+      if (src[key] instanceof LinearGradient || this[key] instanceof LinearGradient)
+        console.assert("LinearGradient is not suppoerted for animation...")
+      let a = src[key]
+      let b = this[key]
+      result[key] = new Color(
+        per * b.r + (1 - per) * (a.r || 0),
+        per * b.g + (1 - per) * (a.g || 0),
+        per * b.b + (1 - per) * (a.b || 0),
+        per * b.a + (1 - per) * (a.a || 0)
+      )
+    }
+    return result
   }
   toCSS(): string { return this.baseColor.toCSS() }
 }

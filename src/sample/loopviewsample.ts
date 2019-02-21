@@ -1,6 +1,6 @@
 
 import { Color, ColorScheme } from "../core/color";
-import { Box, FitBox, DOM, Scene, Text, Sprite } from "../core/dom";
+import { Box, FitBox, DOM, Scene, Text } from "../core/dom";
 import { Input, InputOption, InputType } from "../html/input"
 import { FlexBox, Table } from "../html/container"
 import { toStore, DataStore } from "../core/store"
@@ -185,15 +185,15 @@ function movableBottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): 
   }).tree(p => {
     new Text(p, "クリックすると動き出すやで")
   }).on("click", function () {
-    // this
-    //   .to({ fit: { x: "right", y: "center" }, }, 0.5)
-    //   .next({ fit: { x: "right", y: "top" } }, 0.5)
-    //   .next({ fit: { x: "center", y: "top" } }, 0.5)
-    //   .next({ fit: { x: "left", y: "top" } }, 0.5)
-    //   .next({ fit: { x: "left", y: "center" }, }, 0.5)
-    //   .next({ fit: { x: "left", y: "bottom" }, }, 0.5)
-    //   .next({ fit: { x: "center", y: "bottom" } }, 0.5)
-    //   .next({ fit: { x: "right", y: "bottom" } }, 0.5)
+    this
+      .to({ fit: { x: "right", y: "center" }, }, 0.5)
+      .next({ fit: { x: "right", y: "top" } }, 0.5)
+      .next({ fit: { x: "center", y: "top" } }, 0.5)
+      .next({ fit: { x: "left", y: "top" } }, 0.5)
+      .next({ fit: { x: "left", y: "center" }, }, 0.5)
+      .next({ fit: { x: "left", y: "bottom" }, }, 0.5)
+      .next({ fit: { x: "center", y: "bottom" } }, 0.5)
+      .next({ fit: { x: "right", y: "bottom" } }, 0.5)
   })//.toRelativeOnHover({ scale: 0.8 }, 0.5)
 }
 function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
@@ -265,15 +265,10 @@ export function threeBoxSampleScene(scene: Scene) {
       wait = 20
     }
   })
-  new Sprite(scene, "me.jpg").update(function (i) {
-    this.x += 1
-    this.rotation += 0.01
-  })
   new Box(scene, { width: 100, height: 100, colorScheme: "#fff" }).update(function (i) {
     this.x += 1
     this.rotation += 0.01
   })
-
 }
 
 // try

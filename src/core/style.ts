@@ -70,6 +70,23 @@ export interface FilterOption {
 export class Filter implements CanTranslateCSS {
   option: FilterOption
   constructor(option: FilterOption) { this.option = option; }
+  // o:src x:dst -> src のまま / 他は補完
+  complement(src: Filter, per: number): Filter {
+    let result = new Filter({ ...this.option })
+    for (let key in { ...(src ? src.option : {}), ...this.option }) {
+      if (key === "dropShadow") {
+        for (let k2 in this.option[key]) {
+          if (k2 === "color") result.option.dropShadow.color = this.option.dropShadow.color
+          else result.option.dropShadow[k2] =
+            this.option.dropShadow[k2] * per
+            + (1 - per) * (src && src.option ? src.option.dropShadow[k2] || 0 : 0)
+        }
+        continue
+      }
+      result.option[key] = this.option[key] * per + (1 - per) * (src && src.option ? src.option[key] || 0 : 0)
+    }
+    return result
+  }
   toCSS(): string {
     let result = ""
     if (this.option.blur) result += ` blur(${this.option.blur}px) `

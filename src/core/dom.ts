@@ -5,7 +5,6 @@ import { Updater, KeyBoard, GlobalCSS, KeysType } from "./static"
 import "bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import * as jQuery from "jquery";
-import { Placement } from "bootstrap";
 import * as PIXI from 'pixi.js'
 
 // types and interfaces
@@ -80,17 +79,13 @@ export class IBukiMinElement {
   public get createdFrame(): number { return this.$createdFrame }
   public get frame(): number { return this.$scene.$createdFrame - this.$createdFrame; }
   constructor() { }
-  public update(fun: (this: this, i: number) => boolean | void | number) {
+  public update(fun: (this: this, milliSec: number) => boolean | void | number) {
     let f = fun.bind(this);
-    let i = 0;
+    let start = Date.now();
     this.$scene.$updater.regist(() => {
-      let result = f(i);
-      i++;
+      let now = Date.now()
+      let result = f(now - start);
       if (typeof result === "boolean") return result;
-      if (typeof result === "number") {
-        i = result
-        return true
-      }
       return true
     })
     return this
@@ -282,11 +277,10 @@ export class Box extends DOM implements Transform {
       this.needUpdate = false;
     })
   }
-
   applyOption(option: BoxOption) {
     // option を読み込み,自身に(上書きができれば)適応
     let style = this.parseBoxOption(option)
-    this.applyTransformValues(style)
+    this.setValues(style)
     Box.deleteTransformKeys(style) // transform にて変換したので(二重になるし)削除
     this.applyStyle(style)
     // if (option.isDraggable) this.applyDraggable()
@@ -335,7 +329,10 @@ export class Box extends DOM implements Transform {
     }
     return result
   }
-  private applyTransformValues(style: CSS.Style<any>) {
+  colorScheme: ColorScheme = undefined
+  filter: CSS.Filter = undefined
+  zIndex: number = 0
+  private setValues(style: CSS.Style<any>) {
     let parse = (key: string, init: number): number =>
       typeof style[key] === "number" ? style[key] : this[key] || init
     let apply = (key: string, init: number) => this[key] = parse(key, init)
@@ -346,7 +343,25 @@ export class Box extends DOM implements Transform {
     apply("scale", 1.0)
     apply("y", 0)
     apply("x", 0)
+    if (style.colorScheme) this.colorScheme = new ColorScheme(style.colorScheme)
+    if (style.filter) this.filter = style.filter
+    if (style.zIndex) this.zIndex = style.zIndex
   }
+  private getValues(): BoxOption {
+    let result: BoxOption = {
+      x: this.x,
+      y: this.y,
+      scale: this.scale,
+      width: this.width,
+      height: this.height,
+      rotation: this.rotation,
+    }
+    if (this.colorScheme) result.colorScheme = this.colorScheme
+    if (this.filter) result.filter = this.filter
+    if (this.zIndex) result.zIndex = this.zIndex
+    return result
+  }
+
   private static deleteTransformKeys(style: CSS.Style<any>): CSS.Style<any> {
     // width と height は適応してもらう
     delete style.x
@@ -355,6 +370,64 @@ export class Box extends DOM implements Transform {
     delete style.rotation
     return style
   }
+  // o:src x:dst -> src のまま / 他は補完
+  complement(srcOp: BoxOption, dstOp: BoxOption, per: number): BoxOption {
+    let result: BoxOption = {}
+    let src = this.parseBoxOption(srcOp)
+    let dst = this.parseBoxOption(dstOp)
+    for (let key in { ...src, ...dst }) {
+      if (dst[key] === undefined) {
+        continue
+      } else if (dst[key].complement) {
+        result[key] = dst[key].complement(src[key], per)
+      } else if (typeof dst[key] !== "number") {
+        result[key] = dst[key]
+      } else {
+        result[key] = dst[key] * per + (1 - per) * (src[key] || 0)
+      }
+    }
+    return result
+  }
+  private callBacks: { [key: number]: () => any } = {}
+  private transitionMaxId = 0
+
+  to(dst: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, id: number = undefined) {
+    let src = this.getValues()
+    if (timingFunction !== "linear" && timingFunction !== "ease") console.assert(false, "not implemented")
+    if (id === undefined) {
+      this.transitionMaxId++;
+      id = this.transitionMaxId;
+    }
+    this.update(millisec => {
+      // 割り込み percent ease を無視
+      let j = millisec / 1000.0 - delay
+      if (j < 0) return;
+      if (j >= duration) {
+        this.applyOption(dst)
+        if (this.callBacks[id]) {
+          this.callBacks[id]()
+          delete this.callBacks[id]
+        }
+        return false;
+      }
+      let t = j / duration
+      if (timingFunction === "ease") t = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
+      this.applyOption(this.complement(src, dst, t))
+    })
+    return this
+  }
+  // 最後に登録した to / next が 終わってから発火する
+  next(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0) {
+    this.transitionMaxId++;
+    let id = this.transitionMaxId
+    if (!this.callBacks[id - 1]) {
+      this.callBacks[id - 1] = () => {
+        this.to(option, duration, timingFunction, delay, id)
+      }
+    } else console.assert("illegal transition maxid")
+    return this
+  }
+
 }
 // 0,0 を本当に 0,0 にすると使いにくいことが多いので
 export class FitBox extends Box {
@@ -373,7 +446,6 @@ export class Scene extends FitBox {
   private $mouseY: number = 0
   public get mouseY(): number { return this.$mouseY }
   private reservedExecuteNextFrames: (() => any)[] = []
-  public readonly stage: PIXI.Container
   reserveExecuteNextFrame(fun: () => any) {
     this.reservedExecuteNextFrames.push(fun)
   }
@@ -395,7 +467,6 @@ export class Scene extends FitBox {
       this.reservedExecuteNextFrames = []
       return true;
     })
-    this.stage = parent.pixi.app.stage;
     document.body.addEventListener("mousemove", this.trackMouse.bind(this))
     document.body.addEventListener("touchmove", this.trackMouse.bind(this))
     jQuery(() => { jQuery('[data-toggle="tooltip"]').tooltip(); });
@@ -414,56 +485,9 @@ export class Scene extends FitBox {
     this.$parent.play(seed)
   }
 }
-// DOMの裏側に描画される.
-class PIXIBox extends FitBox {
-  app: PIXI.Application
-  $dom: HTMLCanvasElement
-  constructor(parent: Box, option: BoxOption = {}) {
-    super(parent, { tag: "canvas", ...option })
-    this.app = new PIXI.Application({
-      width: this.width, height: this.height,
-      antialias: true,
-      resolution: 1,
-      view: this.$dom
-    })
-  }
-}
-export class Sprite extends IBukiMinElement implements Transform {
-  $width: number = undefined;
-  public get width(): number { return this.$width }
-  public set width(val: number) { this.$width = this.sprite.width = val }
-  $height: number = undefined;
-  public get height(): number { return this.$height }
-  public set height(val: number) { this.$height = this.sprite.height = val }
-  $x: number = 0;
-  public get x(): number { return this.$x }
-  public set x(val: number) { this.$x = this.sprite.x = val }
-  $y: number = 0;
-  public get y(): number { return this.$y }
-  public set y(val: number) { this.$y = this.sprite.y = val }
-  $scale: number = 1;
-  public get scale(): number { return this.$scale }
-  public set scale(val: number) { this.$scale = val; this.sprite.scale.set(val, val) }
-  $rotation: number = 0;
-  public get rotation(): number { return this.$rotation }
-  public set rotation(val: number) { this.$rotation = this.sprite.rotation = val }
-  sprite: PIXI.Sprite
-  constructor(scene: Scene, imageURL: string, option: Transform = {}) {
-    super()
-    // use PIXI.Loader.shared.add('bunny', 'me.jpg').load((loader, resources) => {
-    this.sprite = PIXI.Sprite.from(imageURL)
-    this.sprite.anchor.set(0.5)
-    this.$width = this.sprite.width
-    this.$height = this.sprite.height
-    for (let key in option) { this[key] = option[key] }
-    this.$scene = scene
-    this.$createdFrame = this.$scene.createdFrame
-    this.$scene.stage.addChild(this.sprite)
-  }
-}
+
 // 画面に自動でフィットするDOM/Sceneの全ての祖
 export class World extends Box {
-  pixi: PIXIBox
   constructor(width: number = 1280, height: number = 720) {
     // null　なので 必要最低限が全て有るように設定
     super(null, {
@@ -471,7 +495,6 @@ export class World extends Box {
       isScrollable: false,
     })
     document.body.appendChild(this.$dom)
-    this.pixi = new PIXIBox(this)
     this.initializeWorld()
     this.adjustWindow()
   }

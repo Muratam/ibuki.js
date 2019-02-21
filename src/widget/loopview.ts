@@ -23,7 +23,7 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
         dropShadow: { x: 5, y: 5, blur: 10, color: "gray" },
       }),
       fit: { x: "left", y: "center" },
-      zIndex: 1,
+      zIndex: 100,
     }, {
       scale: 1.0,
       fit: { x: "center", y: "center" },
@@ -31,7 +31,7 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
         blur: 0,
         dropShadow: { x: 5, y: 5, blur: 10, color: "gray" }
       }),
-      zIndex: 2,
+      zIndex: 200,
     }, {
       scale: 0.5,
       fit: { x: "right", y: "center" },
@@ -39,11 +39,14 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
         blur: 5,
         dropShadow: { x: 5, y: 5, blur: 10, color: "gray" },
       }),
-      zIndex: 1,
+      zIndex: 100,
     }, {
       scale: 0.2,
       fit: { x: "center", y: "center" },
-      filter: new CSS.Filter({ blur: 5 }),
+      filter: new CSS.Filter({
+        blur: 5,
+        dropShadow: { x: 5, y: 5, blur: 10, color: "gray" },
+      }),
       zIndex: 0,
     },]
     this.childrenInitialOption = childrenInitialOption;
@@ -74,7 +77,7 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
       let preIndex = (i + pre) % this.boxes.length
       if (index >= this.tops.length - 1 && preIndex >= this.tops.length - 1) continue
       let option = index < this.tops.length - 1 ? this.tops[index] : this.tops[this.tops.length - 1]
-      //this.boxes[i].to(option, 0.5)
+      this.boxes[i].to(option, 0.5)
     }
     this.value.set(this.$count)
     return this
