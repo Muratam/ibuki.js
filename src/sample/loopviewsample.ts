@@ -172,20 +172,44 @@ function katexTest(p: Box, colorScheme: ColorScheme): Box {
     new Katex(p, text)
   });
 }
+function movableBottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
+  // TODO: show FPS
+  return new Box(p, {
+    fit: { x: "right", y: "bottom" },
+    height: p.height * 0.3,
+    width: p.width * 0.45,
+    colorScheme: colorScheme,
+    padding: 20,
+    fontSize: 40,
+    border: { width: 5, style: "solid", radius: 15 },
+  }).tree(p => {
+    new Text(p, "クリックすると動き出すやで")
+  }).on("click", function () {
+    this
+      .to({ fit: { x: "right", y: "center" }, }, 0.5)
+      .next({ fit: { x: "right", y: "top" } }, 0.5)
+      .next({ fit: { x: "center", y: "top" } }, 0.5)
+      .next({ fit: { x: "left", y: "top" } }, 0.5)
+      .next({ fit: { x: "left", y: "center" }, }, 0.5)
+      .next({ fit: { x: "left", y: "bottom" }, }, 0.5)
+      .next({ fit: { x: "center", y: "bottom" } }, 0.5)
+      .next({ fit: { x: "right", y: "bottom" } }, 0.5)
+  }).toRelativeOnHover({ scale: 0.8 }, 0.5)
+}
 function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
   // TODO: show FPS
   return new Box(p, {
-    fit: { x: "center", y: "bottom" },
+    fit: { x: "left", y: "bottom" },
     height: p.height * 0.3,
+    width: p.width * 0.45,
     colorScheme: colorScheme,
+    padding: 20,
+    fontSize: 40,
+    isDraggable:true,
     border: { width: 5, style: "solid", radius: 15 },
   }).tree(p => {
-    new DOM(p).$dom.innerHTML = `<button type="button" class="btn btn-secondary" data-toggle="tooltip" data-placement="right" title="Tooltip on right"></button>`
+    new Text(p, "ドラッグアンドドロップできるやで")
   }).on("click", function () {
-    this
-      .to({ fit: { x: "center", y: "center" }, }, 0.5)
-      .next({ fit: { x: "center", y: "top" } }, 0.5)
-      .next({ fit: { x: "center", y: "bottom" } }, 0.5)
   }).update(function () { }).popover("iikanji ", "これが Pop over ってやつやで", "top")
 }
 
@@ -214,14 +238,14 @@ export function threeBoxSampleScene(scene: Scene) {
       p => helloBox(p, store),
       p => informationBox(p, store),
       p => flexBoxInputTest(p, store, colorScheme),
-      // p => BSGridBoxInputTest(p, store, colorScheme),
       p => flexBoxMediaTest(p, store, new ColorScheme("#222222bb", "#abd", "#238")),
       p => markdownTest(p, colorScheme),
       p => katexTest(p, colorScheme),
       p => tableTest(p, store),
       p => iframeTest(p, store),
     ])
-  let bottom = bottomTest(scene, store, colorScheme)
+  movableBottomTest(scene, store, colorScheme)
+  bottomTest(scene, store, colorScheme)
   let wait = 0
   scene.update(() => { wait--; })
   scene.on("keydownall", key => {

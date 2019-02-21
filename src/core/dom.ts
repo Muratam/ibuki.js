@@ -65,7 +65,7 @@ export interface BoxOption extends DOMOption {
   x?: number
   y?: number
   fit?: FitType
-  draggable?: boolean // ドラッグできるか？
+  isDraggable?: boolean // ドラッグできるか？
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
   rotate?: number
@@ -282,7 +282,7 @@ export class Box extends DOM {
     }
     Box.deleteTransformValues(style) // transform にて変換したので(二重になるし)削除
     this.applyStyle(style)
-    if (option.draggable) this.applyDraggable()
+    if (option.isDraggable) this.applyDraggable()
     return style
   }
   static pickNum(s: string): number {
@@ -349,31 +349,42 @@ export class Box extends DOM {
   }
   applyDraggable() {
     // WARN: いっぱい登録すると重そう / タッチ未対応 / regist <-> remove できるようにしたい
-    let x = 0;
-    let y = 0;
+    let firstX = this.x
+    let firstY = this.y
+    let dragStartMouseX = 0;
+    let dragStartMouseY = 0;
     let dragState = 0
-    function dragStart(e: MouseEvent) {
-      // x = e.pageX - this.offsetLeft;
-      // y = e.pageY - this.offsetTop;
-
+    let to = (dx: number, dy: number) => {
+      console.log([dx, dy])
+      this.to({ x: firstX, y: firstY }, 0)
+    }
+    // this.$dom.onselect = e => false
+    let dragStart = (e) => {
+      if (e.type !== "mousedown") e = e.changedTouches[0];
+      dragStartMouseX = this.$scene.mouseX
+      dragStartMouseY = this.$scene.mouseY
       dragState++
     }
-    let dragging = (e: MouseEvent) => {
+    let dragging = (e) => {
       if (dragState === 0) return;
-      // this.left = e.pageX - x;
-      // this.top = e.pageY - y;
+      if (e.type !== "mousemove") e = e.changedTouches[0];
+      let dx = this.$scene.mouseX - dragStartMouseX
+      let dy = this.$scene.mouseY - dragStartMouseY
+      dx = 0
+      dy = 0
+      to(dx, dy)
     }
-    function dragEnd(e: MouseEvent) {
+    function dragEnd(e) {
       dragState = 0;
     }
     this.$dom.addEventListener("mousedown", dragStart)
-    // this.$dom.addEventListener("touchstart", dragStart)
+    this.$dom.addEventListener("touchstart", dragStart)
     document.body.addEventListener("mousemove", dragging)
-    // document.body.addEventListener("touchmove", dragging)
+    document.body.addEventListener("touchmove", dragging)
     this.$dom.addEventListener("mouseup", dragEnd)
-    // this.$dom.addEventListener("touchend", dragEnd)
+    this.$dom.addEventListener("touchend", dragEnd)
     document.body.addEventListener("mouseleave", dragEnd)
-    // document.body.addEventListener("touchleave", dragEnd)
+    document.body.addEventListener("touchleave", dragEnd)
   }
 
   // すぐに値を変更する(with transition)
@@ -509,9 +520,17 @@ export class Scene extends Box {
   public readonly $keyboard: KeyBoard;
   public readonly $css: GlobalCSS;
   public readonly $parent: World
+  private $mouseX: number = 0
+  public get mouseX(): number { return this.$mouseX }
+  private $mouseY: number = 0
+  public get mouseY(): number { return this.$mouseY }
   private reservedExecuteNextFrames: (() => any)[] = []
   reserveExecuteNextFrame(fun: () => any) {
     this.reservedExecuteNextFrames.push(fun)
+  }
+  trackMouse(e: MouseEvent) {
+    this.$mouseX = e.pageX * this.width / window.innerWidth;
+    this.$mouseY = e.pageY * this.height / window.innerHeight;
   }
   constructor(parent: World) {
     super(parent)
@@ -519,6 +538,7 @@ export class Scene extends Box {
     this.$keyboard = new KeyBoard(this.$updater)
     this.$css = new GlobalCSS();
     this.$scene = this
+    this.$mouseX = 0
     this.$createdFrame = 0;
     this.$updater.regist(() => {
       this.$createdFrame++;
@@ -526,6 +546,10 @@ export class Scene extends Box {
       this.reservedExecuteNextFrames = []
       return true;
     })
+    this.width = parent.width;
+    this.height = parent.height;
+    document.body.addEventListener("mousemove", this.trackMouse.bind(this))
+    document.body.addEventListener("touchmove", this.trackMouse.bind(this))
     jQuery(() => { jQuery('[data-toggle="tooltip"]').tooltip(); });
     jQuery(() => { jQuery('[data-toggle="popover"]').popover(); });
   }
@@ -534,6 +558,8 @@ export class Scene extends Box {
     this.$updater.destroy();
     this.$css.destroy();
     this.$keyboard.destroy();
+    document.body.removeEventListener("mousemove", this.trackMouse, false)
+    document.body.removeEventListener("touchmove", this.trackMouse, false)
   }
   gotoNextScene(seed: (scene: Scene) => any) {
     this.destroy()
@@ -555,7 +581,10 @@ export class World extends Box {
   private initializeWorld() {
     let inheritFontSize = { fontFamily: "inherit", fontSize: "100%" }
     new GlobalCSS().regist({
-      body: { margin: 0, padding: 0, overflow: "hidden", background: "#000" },
+      body: {
+        margin: 0, padding: 0, overflow: "hidden", background: "#000",
+        "overflow-wrap": "break-word"
+      },
       "*": {
         "box-sizing": "border-box",
         // contain: "content",

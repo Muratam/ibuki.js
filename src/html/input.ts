@@ -136,10 +136,18 @@ export class Input extends FitWidthDOM implements HasStoreValueWidgetInterface<s
   }
 }
 
-// button [基準: custom Color ] FitWidth  (x buttonGroup)
-// DropDown
-
 /*
+export interface ButtonOption extends FitWidthDOMOption {
+
+}
+
+export class Button extends FitWidthDOM {
+  // <button class="btn btn-primary" type="submit">Button</button>
+  constructor(parent: DOM, option: ButtonOption = {}) {
+    super(parent, { tag: "button", class: ["btn", "btn-primary"], ...option })
+  }
+}
+
 export interface FormOption {
   // TODO: with submit(button?)
   action?: string

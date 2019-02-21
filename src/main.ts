@@ -25,4 +25,4 @@ import { threeBoxSampleScene } from "./sample/loopviewsample"
 let world = new World().play(threeBoxSampleScene)
 // bootstrap -> effect <-> 弾幕画報 -> 超人録
 // PIXI.js && THREE.js も同じ枠組みで適用したら
-// text :overflow-wrap: break-word| left right center
+// fitwidthなButton/DropDownをBootStrapに頼らない形で作成すべき.
