@@ -1,11 +1,11 @@
 
 import { Color, ColorScheme } from "../core/color";
-import { Box, FitBox, DOM, Scene, Text } from "../core/dom";
+import { Box, FitBox, DOM, Scene, Text, Sprite } from "../core/dom";
 import { Input, InputOption, InputType } from "../html/input"
 import { FlexBox, Table } from "../html/container"
 import { toStore, DataStore } from "../core/store"
 import { ProgressBar, IFrame } from "../html/media";
-import { Alert, Badge, Spinner, HR } from "../html/notice"
+import { Alert, Badge, Spinner, HR, popover, tooltip } from "../html/notice"
 import { FAIcon } from "../widget/external/faicon"
 import { MarkDown } from "../widget/external/markdown"
 import { Katex } from "../widget/external/katex"
@@ -103,8 +103,8 @@ function flexBoxMediaTest(p: Box, store: DataStore, colorScheme: ColorScheme): B
     new HR(p)
     new DOM(p).tree(p => {
       new Badge(p, "Badge:", { label: store.pressedKey, href: store.pressedKey, modifier: "primary" })
-      new Badge(p, "Badge:", { pill: true, label: store.pressedKey, href: store.pressedKey, modifier: "warning" })
-        .tooltip("tooltip", "right")
+      tooltip(new Badge(p, "Badge:", { pill: true, label: store.pressedKey, href: store.pressedKey, modifier: "warning" })
+        , "tooltip", "right")
     })
     new Alert(p).tree(p => {
       new Text(p, "current link is ")
@@ -198,7 +198,7 @@ function movableBottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): 
 }
 function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
   // TODO: show FPS
-  return new Box(p, {
+  let result = new Box(p, {
     fit: { x: "left", y: "bottom" },
     height: p.height * 0.3,
     width: p.width * 0.45,
@@ -209,8 +209,9 @@ function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
     border: { width: 5, style: "solid", radius: 15 },
   }).tree(p => {
     new Text(p, "ドラッグアンドドロップできるやで")
-  }).on("click", function () {
-  }).update(function () { }).popover("iikanji ", "これが Pop over ってやつやで", "top")
+  })
+  popover(result, "iikanji ", "これが Pop over ってやつやで", "top")
+  return result
 }
 
 export function threeBoxSampleScene(scene: Scene) {
@@ -264,6 +265,15 @@ export function threeBoxSampleScene(scene: Scene) {
       wait = 20
     }
   })
+  new Sprite(scene, "me.jpg").update(function (i) {
+    this.x += 1
+    this.rotation += 0.01
+  })
+  new Box(scene, { width: 100, height: 100, colorScheme: "#fff" }).update(function (i) {
+    this.x += 1
+    this.rotation += 0.01
+  })
+
 }
 
 // try

@@ -1,5 +1,6 @@
 import { DOM, DOMOption, Text, FitWidthDOM, FitWidthDOMOption, TextSeed, TextOption } from "../core/dom";
 import { MayStore } from "../core/store";
+import { Placement } from "bootstrap";
 
 export type Modifier = "primary" | "secondary" | "success" | "danger" | "warning" | "info" | "light" | "dark"
 export interface BadgeOption extends TextOption {
@@ -64,4 +65,17 @@ export class HR extends DOM {
   constructor(parent: DOM) {
     super(parent, { tag: "hr" })
   }
+}
+
+export function tooltip(me: DOM, text: string, placement: Placement = "top") {
+  me.$dom.setAttribute("data-toggle", "tooltip")
+  me.$dom.setAttribute("data-placement", placement)
+  me.$dom.setAttribute("title", text)
+}
+export function popover(me: DOM, title: string, content: string, placement: Placement = "top", trigger: "hover" | "focus" | "click" = "hover") {
+  me.$dom.setAttribute("data-toggle", "popover")
+  me.$dom.setAttribute("data-trigger", trigger)
+  me.$dom.setAttribute("data-placement", placement)
+  me.$dom.setAttribute("title", title)
+  me.$dom.setAttribute("data-content", content)
 }

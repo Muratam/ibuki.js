@@ -40,19 +40,19 @@ export function flatten(style: Style<string>): string {
 }
 
 
-export class Transfrom implements CanTranslateCSS {
+export class TransformCSS implements CanTranslateCSS {
   y: number
   x: number
   scale: number
-  rotate: number
-  constructor(x: number, y: number, scale: number, rotate: number = 0) {
+  rotation: number
+  constructor(x: number, y: number, scale: number, rotation: number = 0) {
     this.x = x
     this.y = y
     this.scale = scale
-    this.rotate = rotate
+    this.rotation = rotation
   }
   toCSS(): string {
-    return `translate(${Math.floor(this.x)}px,${Math.floor(this.y)}px) scale(${this.scale}) rotate(${Math.floor(this.rotate)}deg) `
+    return `translate(${Math.floor(this.x)}px,${Math.floor(this.y)}px) scale(${this.scale}) rotate(${100 * this.rotation}deg) `
   }
 }
 export interface FilterOption {

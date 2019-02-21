@@ -69,23 +69,46 @@ export interface BoxOption extends DOMOption {
   isDraggable?: boolean // ドラッグできるか？
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
-  rotate?: number
+  rotation?: number
   scale?: number  // | Vec2
 }
 // implements
 // 一番の基本要素,各々がちょうど一つのdomに対応する.
-export class DOM {
-  public readonly $dom: HTMLElement = null;
-  public readonly $DOMId: number;
+export class IBukiMinElement {
   $scene: Scene;
   protected $createdFrame: number
+  public get createdFrame(): number { return this.$createdFrame }
   public get frame(): number { return this.$scene.$createdFrame - this.$createdFrame; }
+  constructor() { }
+  public update(fun: (this: this, i: number) => boolean | void | number) {
+    let f = fun.bind(this);
+    let i = 0;
+    this.$scene.$updater.regist(() => {
+      let result = f(i);
+      i++;
+      if (typeof result === "boolean") return result;
+      if (typeof result === "number") {
+        i = result
+        return true
+      }
+      return true
+    })
+    return this
+  }
+  public perFrame(step: number = 1, n: number = Infinity): Store<number> {
+    return this.$scene.$updater.perFrame(step, n)
+  }
+}
+export class DOM extends IBukiMinElement {
+  public readonly $dom: HTMLElement = null;
+  public readonly $DOMId: number;
   public readonly $parent: DOM = null; // 移ることがある？
   private $children: DOM[] = [];
   public get children() { return this.$children; }
   private static DOMMaxId: number = 0;
   public get id(): string { return this.$dom.id }
   constructor(parent: DOM, option: string | DOMOption = "") {
+    super()
     this.$dom = document.createElement(
       (typeof option === "string" ? option : option.tag) || "div");
     this.$DOMId = DOM.DOMMaxId++
@@ -107,25 +130,6 @@ export class DOM {
       this.applyStyle(this.parseDOMOption(option))
     }
   }
-  public update(fun: (this: this, i: number) => boolean | void | number) {
-    let f = fun.bind(this);
-    let i = 0;
-    this.$scene.$updater.regist(() => {
-      let result = f(i);
-      i++;
-      if (typeof result === "boolean") return result;
-      if (typeof result === "number") {
-        i = result
-        return true
-      }
-      return true
-    })
-    return this
-  }
-  public perFrame(step: number = 1, n: number = Infinity): Store<number> {
-    return this.$scene.$updater.perFrame(step, n)
-  }
-
   bloom(seed: TextSeed): DOM {
     if (typeof seed === "string") return new Text(this, seed)
     if (seed instanceof Store) return new Text(this, seed)
@@ -187,20 +191,6 @@ export class DOM {
     delete style.tag
     return style
   }
-  tooltip(text: string, placement: Placement = "top") {
-    this.$dom.setAttribute("data-toggle", "tooltip")
-    this.$dom.setAttribute("data-placement", placement)
-    this.$dom.setAttribute("title", text)
-    return this
-  }
-  popover(title: string, content: string, placement: Placement = "top", trigger: "hover" | "focus" | "click" = "hover") {
-    this.$dom.setAttribute("data-toggle", "popover")
-    this.$dom.setAttribute("data-trigger", trigger)
-    this.$dom.setAttribute("data-placement", placement)
-    this.$dom.setAttribute("title", title)
-    this.$dom.setAttribute("data-content", content)
-    return this
-  }
 }
 export class Text extends DOM implements HasValue<string> {
   private $text: string;
@@ -236,21 +226,33 @@ export class FitWidthDOM extends DOM {
 // 指定しなければ親と同じになる
 // PIXI.js と座標系を同じにしたい.
 export interface Transform {
-  width: number;
-  height: number;
-  x: number;
-  y: number;
-  scale: number;
-  rotate: number;
-
+  width?: number;
+  height?: number;
+  x?: number;
+  y?: number;
+  scale?: number;
+  rotation?: number;
 }
 export class Box extends DOM implements Transform {
-  width: number = undefined;
-  height: number = undefined;
-  x: number = 0;
-  y: number = 0;
-  scale: number = 1;
-  rotate: number = 0;
+  $width: number = undefined;
+  private needUpdate = false
+  public get width(): number { return this.$width }
+  public set width(val: number) { this.$width = val; this.needUpdate = true; }
+  $height: number = undefined;
+  public get height(): number { return this.$height }
+  public set height(val: number) { this.$height = val; this.needUpdate = true; }
+  $x: number = 0;
+  public get x(): number { return this.$x }
+  public set x(val: number) { this.$x = val; this.needUpdate = true; }
+  $y: number = 0;
+  public get y(): number { return this.$y }
+  public set y(val: number) { this.$y = val; this.needUpdate = true; }
+  $scale: number = 1;
+  public get scale(): number { return this.$scale }
+  public set scale(val: number) { this.$scale = val; this.needUpdate = true; }
+  $rotation: number = 0;
+  public get rotation(): number { return this.$rotation }
+  public set rotation(val: number) { this.$rotation = val; this.needUpdate = true; }
   public get contentWidth(): number {
     return this.width
       - (Box.pickNum(this.$dom.style.borderRightWidth) || 0) * 2
@@ -274,6 +276,11 @@ export class Box extends DOM implements Transform {
       console.assert(typeof this.width === "number" && typeof this.height === "number", "illegal initial World")
     }
     this.applyOption(option)
+    if (this.$scene) this.update(() => {
+      if (!this.needUpdate) return
+      this.applyOption({})
+      this.needUpdate = false;
+    })
   }
 
   applyOption(option: BoxOption) {
@@ -292,10 +299,10 @@ export class Box extends DOM implements Transform {
     result["transform-origin"] = `center center`
     if (result.x === undefined) result.x = this.x
     if (result.y === undefined) result.y = this.y
-    if (result.width === undefined) result.width = this.$parent.contentWidth
-    if (result.height === undefined) result.height = this.$parent.contentHeight
+    if (result.width === undefined) result.width = typeof this.width !== undefined ? this.width : this.$parent.contentWidth
+    if (result.height === undefined) result.height = typeof this.height !== undefined ? this.height : this.$parent.contentHeight
     if (result.scale === undefined) result.scale = this.scale
-    if (result.rotate === undefined) result.rotate = this.rotate
+    if (result.rotation === undefined) result.rotation = this.rotation
     if (option.fit) {
       console.assert(this.$parent, "fit option but no parent")
       // ひとまずtransform-originは `center center` . ただし,位置はleft top が 0 0
@@ -318,7 +325,7 @@ export class Box extends DOM implements Transform {
     }
     console.assert(result.width !== undefined && result.width !== null, "illegal width")
     console.assert(result.height !== undefined && result.height !== null, "illegal height")
-    result.transform = new CSS.Transfrom(result.x - result.width / 2, result.y - result.height / 2, result.scale, result.rotate)
+    result.transform = new CSS.TransformCSS(result.x - result.width / 2, result.y - result.height / 2, result.scale, result.rotation)
     return this.parseDOMOption(result);
   }
   private static pickNum(s: string): number {
@@ -328,7 +335,6 @@ export class Box extends DOM implements Transform {
     }
     return result
   }
-
   private applyTransformValues(style: CSS.Style<any>) {
     let parse = (key: string, init: number): number =>
       typeof style[key] === "number" ? style[key] : this[key] || init
@@ -346,7 +352,7 @@ export class Box extends DOM implements Transform {
     delete style.x
     delete style.y
     delete style.scale
-    delete style.rotate
+    delete style.rotation
     return style
   }
 }
@@ -357,7 +363,7 @@ export class FitBox extends Box {
   }
 }
 
-export class Scene extends Box {
+export class Scene extends FitBox {
   public readonly $updater: Updater;
   public readonly $keyboard: KeyBoard;
   public readonly $css: GlobalCSS;
@@ -367,6 +373,7 @@ export class Scene extends Box {
   private $mouseY: number = 0
   public get mouseY(): number { return this.$mouseY }
   private reservedExecuteNextFrames: (() => any)[] = []
+  public readonly stage: PIXI.Container
   reserveExecuteNextFrame(fun: () => any) {
     this.reservedExecuteNextFrames.push(fun)
   }
@@ -375,7 +382,7 @@ export class Scene extends Box {
     this.$mouseY = e.pageY * this.height / window.innerHeight;
   }
   constructor(parent: World) {
-    super(parent, { fit: { x: "left", y: "top" } })
+    super(parent)
     this.$updater = new Updater();
     this.$keyboard = new KeyBoard(this.$updater)
     this.$css = new GlobalCSS();
@@ -388,6 +395,7 @@ export class Scene extends Box {
       this.reservedExecuteNextFrames = []
       return true;
     })
+    this.stage = parent.pixi.app.stage;
     document.body.addEventListener("mousemove", this.trackMouse.bind(this))
     document.body.addEventListener("touchmove", this.trackMouse.bind(this))
     jQuery(() => { jQuery('[data-toggle="tooltip"]').tooltip(); });
@@ -407,7 +415,7 @@ export class Scene extends Box {
   }
 }
 // DOMの裏側に描画される.
-class PIXIBox extends Box {
+class PIXIBox extends FitBox {
   app: PIXI.Application
   $dom: HTMLCanvasElement
   constructor(parent: Box, option: BoxOption = {}) {
@@ -420,6 +428,39 @@ class PIXIBox extends Box {
     })
   }
 }
+export class Sprite extends IBukiMinElement implements Transform {
+  $width: number = undefined;
+  public get width(): number { return this.$width }
+  public set width(val: number) { this.$width = this.sprite.width = val }
+  $height: number = undefined;
+  public get height(): number { return this.$height }
+  public set height(val: number) { this.$height = this.sprite.height = val }
+  $x: number = 0;
+  public get x(): number { return this.$x }
+  public set x(val: number) { this.$x = this.sprite.x = val }
+  $y: number = 0;
+  public get y(): number { return this.$y }
+  public set y(val: number) { this.$y = this.sprite.y = val }
+  $scale: number = 1;
+  public get scale(): number { return this.$scale }
+  public set scale(val: number) { this.$scale = val; this.sprite.scale.set(val, val) }
+  $rotation: number = 0;
+  public get rotation(): number { return this.$rotation }
+  public set rotation(val: number) { this.$rotation = this.sprite.rotation = val }
+  sprite: PIXI.Sprite
+  constructor(scene: Scene, imageURL: string, option: Transform = {}) {
+    super()
+    // use PIXI.Loader.shared.add('bunny', 'me.jpg').load((loader, resources) => {
+    this.sprite = PIXI.Sprite.from(imageURL)
+    this.sprite.anchor.set(0.5)
+    this.$width = this.sprite.width
+    this.$height = this.sprite.height
+    for (let key in option) { this[key] = option[key] }
+    this.$scene = scene
+    this.$createdFrame = this.$scene.createdFrame
+    this.$scene.stage.addChild(this.sprite)
+  }
+}
 // 画面に自動でフィットするDOM/Sceneの全ての祖
 export class World extends Box {
   pixi: PIXIBox
@@ -430,21 +471,7 @@ export class World extends Box {
       isScrollable: false,
     })
     document.body.appendChild(this.$dom)
-    this.pixi = new PIXIBox(this, { fit: { x: "left", y: "top" } })
-    PIXI.Loader.shared.add('bunny', 'me.jpg').load((loader, resources) => {
-      {
-        const bunny = new PIXI.Sprite(resources.bunny.texture);
-        bunny.x = 0;
-        bunny.y = 0;
-        bunny.anchor.x = 0.5;
-        bunny.anchor.y = 0.5;
-        this.pixi.app.stage.addChild(bunny);
-        this.pixi.app.ticker.add(() => {
-          bunny.x += 1
-          bunny.rotation += 0.01;
-        });
-      }
-    });
+    this.pixi = new PIXIBox(this)
     this.initializeWorld()
     this.adjustWindow()
   }
