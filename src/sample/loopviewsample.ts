@@ -1,12 +1,11 @@
-/*
+
 import { Color, ColorScheme } from "../core/color";
-import { Box, DOM, Scene, FitWidthDOM } from "../core/dom";
-import { Text, Spinner, HR } from "../html/text";
+import { Box, DOM, Scene, Text } from "../core/dom";
 import { Input, InputOption, InputType } from "../html/input"
 import { FlexBox, Table } from "../html/container"
 import { toStore, DataStore } from "../core/store"
-import { ProgressBar, IFrame, Image } from "../html/media";
-import { Alert, Badge } from "../html/notice"
+import { ProgressBar, IFrame } from "../html/media";
+import { Alert, Badge, Spinner, HR } from "../html/notice"
 import { FAIcon } from "../widget/external/faicon"
 import { MarkDown } from "../widget/external/markdown"
 import { Katex } from "../widget/external/katex"
@@ -186,16 +185,16 @@ function movableBottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): 
   }).tree(p => {
     new Text(p, "クリックすると動き出すやで")
   }).on("click", function () {
-    this
-      .to({ fit: { x: "right", y: "center" }, }, 0.5)
-      .next({ fit: { x: "right", y: "top" } }, 0.5)
-      .next({ fit: { x: "center", y: "top" } }, 0.5)
-      .next({ fit: { x: "left", y: "top" } }, 0.5)
-      .next({ fit: { x: "left", y: "center" }, }, 0.5)
-      .next({ fit: { x: "left", y: "bottom" }, }, 0.5)
-      .next({ fit: { x: "center", y: "bottom" } }, 0.5)
-      .next({ fit: { x: "right", y: "bottom" } }, 0.5)
-  }).toRelativeOnHover({ scale: 0.8 }, 0.5)
+    // this
+    //   .to({ fit: { x: "right", y: "center" }, }, 0.5)
+    //   .next({ fit: { x: "right", y: "top" } }, 0.5)
+    //   .next({ fit: { x: "center", y: "top" } }, 0.5)
+    //   .next({ fit: { x: "left", y: "top" } }, 0.5)
+    //   .next({ fit: { x: "left", y: "center" }, }, 0.5)
+    //   .next({ fit: { x: "left", y: "bottom" }, }, 0.5)
+    //   .next({ fit: { x: "center", y: "bottom" } }, 0.5)
+    //   .next({ fit: { x: "right", y: "bottom" } }, 0.5)
+  })//.toRelativeOnHover({ scale: 0.8 }, 0.5)
 }
 function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
   // TODO: show FPS
@@ -206,7 +205,7 @@ function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
     colorScheme: colorScheme,
     padding: 20,
     fontSize: 40,
-    isDraggable:true,
+    isDraggable: true,
     border: { width: 5, style: "solid", radius: 15 },
   }).tree(p => {
     new Text(p, "ドラッグアンドドロップできるやで")
@@ -223,10 +222,7 @@ export function threeBoxSampleScene(scene: Scene) {
     posX: toStore(0)
   }
   let colorScheme = new ColorScheme("#222222bb", "#cdf", "#abd")
-  let backGround = new Box(scene, {
-    colorScheme: new ColorScheme("#181818")
-  })
-  let loopView = new ThreeLoopView(backGround,
+  let loopView = new ThreeLoopView(scene,
     {
       height: scene.height * 0.7,
       fit: { x: "center", y: "top" },
@@ -235,7 +231,6 @@ export function threeBoxSampleScene(scene: Scene) {
       border: { width: 5, style: "solid", radius: 15 },
       fontFamily: "Menlo",
     }).add([
-      p => new Image(new Box(p, { padding: 20 }), { src: "https://sagisawa.0am.jp/me.jpg" }),
       p => helloBox(p, store),
       p => informationBox(p, store),
       p => flexBoxInputTest(p, store, colorScheme),
@@ -273,4 +268,4 @@ export function threeBoxSampleScene(scene: Scene) {
 
 // try
 // new World().play(scene => threeBoxSampleScene(scene, threeLoopViewStore))
-*/
+

@@ -44,14 +44,3 @@ export class IFrame extends Box {
     this.$dom.src = option.src;
   }
 }
-export interface ImageOption extends BoxOption {
-  src: string
-  forceSize?: boolean
-}
-export class Image extends Box {
-  public readonly $dom: HTMLImageElement
-  constructor(parent: Box, option: ImageOption) {
-    super(parent, { ...option, tag: "img", applyWidthHeightOnlyForAttributes: true })
-    this.$dom.src = option.src;
-  }
-}
