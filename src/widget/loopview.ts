@@ -1,7 +1,7 @@
-import { Box, BoxOption, Seed } from "../core/dom";
-import { Store, HasStoreValueWidgetInterface } from "../core/store"
+import { Box, BoxOption } from "../core/dom";
+import { Store, HasStoreValue } from "../core/store"
 import * as CSS from "../core/style"
-export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> {
+export class ThreeLoopView extends Box implements HasStoreValue<number> {
   value = new Store<number>(0)
   private $count = 0
   assign(dst: Store<number>) {
@@ -52,7 +52,7 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
     },]
     this.childrenInitialOption = childrenInitialOption;
   }
-  add(seed: Seed<Box> | Seed<Box>[]) {
+  add(seed: ((p: Box) => Box) | ((p: Box) => Box)[]) {
     if (seed instanceof Array) {
       for (let s of seed) this.add(s)
       return this
@@ -64,7 +64,7 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
       ...option,
       ...this.childrenInitialOption,
       isScrollable: true,
-    }).toRelativeOnHover({ scale: 1.02, rotate: 5 }, 0.5)
+    })//.toRelativeOnHover({ scale: 1.02, rotate: 5 }, 0.5)
     seed(box)
     this.boxes.push(box)
     return this
@@ -78,7 +78,7 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
       let preIndex = (i + pre) % this.boxes.length
       if (index >= this.tops.length - 1 && preIndex >= this.tops.length - 1) continue
       let option = index < this.tops.length - 1 ? this.tops[index] : this.tops[this.tops.length - 1]
-      this.boxes[i].to(option, 0.5)
+      //this.boxes[i].to(option, 0.5)
     }
     this.value.set(this.$count)
     return this

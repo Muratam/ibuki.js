@@ -1,3 +1,4 @@
+/*
 import { Color, ColorScheme } from "../core/color";
 import { Box, DOM, Scene, FitWidthDOM } from "../core/dom";
 import { Text, Spinner, HR } from "../html/text";
@@ -272,3 +273,4 @@ export function threeBoxSampleScene(scene: Scene) {
 
 // try
 // new World().play(scene => threeBoxSampleScene(scene, threeLoopViewStore))
+*/

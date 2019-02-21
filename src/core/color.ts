@@ -82,12 +82,6 @@ export class ColorScheme implements CanTranslateCSS {
     if (colors.length === 1) return Color.parse(str)
     return new LinearGradient(colors.map(x => Color.parse(x)))
   }
-  static parseToColorScheme(color: Colors): ColorScheme {
-    if (color instanceof ColorScheme) return color
-    if (color instanceof LinearGradient) return new ColorScheme(color)
-    if (color instanceof Color) return new ColorScheme(color)
-    return new ColorScheme(color)
-  }
   addColor(color: Color | string): ColorScheme {
     if (typeof color === "string") color = Color.parse(color)
     return new ColorScheme(
@@ -96,6 +90,12 @@ export class ColorScheme implements CanTranslateCSS {
       this.accentColor.addColor(color))
   }
   constructor(baseColor: Colors = "#fff", mainColor: Colors = "#000", accentColor: Colors = "") {
+    if (baseColor instanceof ColorScheme) {
+      this.baseColor = baseColor.baseColor
+      this.mainColor = baseColor.mainColor
+      this.accentColor = baseColor.accentColor
+      return
+    }
     this.baseColor = ColorScheme.parse(baseColor)
     this.mainColor = ColorScheme.parse(mainColor)
     if (accentColor === "") this.accentColor = this.baseColor

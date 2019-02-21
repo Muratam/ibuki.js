@@ -1,20 +1,8 @@
-import { DOM, DOMOption, BoxOption, Box, FitWidthDOM, FitWidthDOMOption } from "../core/dom";
-import { Store, MayStore, assign } from "../core/store";
+import { DOM, BoxOption, Box, FitWidthDOM, FitWidthDOMOption } from "../core/dom";
+import { Store, MayStore } from "../core/store";
 import { ColorScheme } from "../core/color";
-// # Box でないサイズのもの
-// ゲーム画面なので,通常は固定サイズのboxに中身があるべきという考えを採用.
-// - DOM(!Box) -> DOM(!BOX) ... な階層はそもそも深くてよくないし.
-// - Text / Button / Input / Progress / Badge / Spinner
-// Boxとちがって,FitWidthDOMは親がBoxの場合にWidthをFitするかしないかを選べるだけである.
-// そしてそういうDOMは多い.いわば中間の存在.さらにBoxとちがって,floatしないメリットが有る
-// Button / input の中に 例えばspinnerなどを入れたい可能性もある.
-// Boot Strap Grid(12)System ? or 自分で置く ?
-
-
 // MEDIA :: audio / img / video
-
 export interface ProgressBarOption extends FitWidthDOMOption {
-  // Box と違って float しない.
   height?: number
   withLabel?: boolean
   striped?: boolean
@@ -32,7 +20,7 @@ export class ProgressBar extends FitWidthDOM {
     if (option.striped) classes = classes.concat(["progress-bar-striped", "progress-bar-animated"])
     super(parent, { ...option, tag: "div", class: classes })
     this.$dom.setAttribute("role", "progressbar")
-    assign(progress, x => {
+    Store.regist(progress, x => {
       this.$dom.style.width = `${x}%`
       this.$dom.setAttribute("aria-value-now", "" + x)
       if (option.withLabel) this.$dom.innerText = x + "%";
@@ -40,7 +28,7 @@ export class ProgressBar extends FitWidthDOM {
     this.$dom.setAttribute("aria-value-min", "0")
     this.$dom.setAttribute("aria-value-max", "" + max);
     if (option.colorScheme) {
-      let c = ColorScheme.parseToColorScheme(option.colorScheme)
+      let c = new ColorScheme(option.colorScheme)
       parent.$dom.style.backgroundColor = c.baseColor.toCSS()
       this.$dom.style.backgroundColor = c.mainColor.toCSS()
       this.$dom.style.color = c.accentColor.toCSS()

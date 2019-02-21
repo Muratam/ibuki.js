@@ -1,22 +1,14 @@
 import { Color, Colors, ColorScheme } from "./color";
 import * as CSS from "./style";
-import { Store, MayStore, assign } from "./store";
+import { Store, MayStore, HasValue } from "./store";
 import { Updater, KeyBoard, GlobalCSS, KeysType } from "./static"
 import "bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import * as jQuery from "jquery";
 import { Placement } from "bootstrap";
-export interface Vec2 {
-  x: number
-  y: number
-}
-export interface Rect {
-  top?: number
-  bottom?: number
-  left?: number
-  right?: number
-}
-type BorderStyle = "none" | "hidden" | "solid" | "double" |
+// types and interfaces
+// Border
+export type BorderStyle = "none" | "hidden" | "solid" | "double" |
   "groove" | "ridge" | "inset" | "outset" | "dashed" | "dotted"
 export interface BorderContentType {
   color?: Color,
@@ -30,6 +22,7 @@ export interface Border {
   left?: BorderContentType
   right?: BorderContentType
 }
+// Event
 export type Event =
   "focus" | "blur" | "select" | "change" |
   "load" | "dragdrop" |
@@ -38,11 +31,18 @@ export type Event =
   "keyupall" | "keydownall" | "keypressall" |
   "mouseout" | "mouseover" | "mouseup" |
   "mousemove" | "mousedown" | "mouseup"
+// Vec
+export interface Vec2 { x: number, y: number }
+export interface Rect {
+  top?: number,
+  bottom?: number
+  left?: number
+  right?: number
+}
 export type TextAlignType = "left" | "right" | "center" | "justify" | "justify-all" | "match-parent"
-export type Seed<T> = ((p: T) => T)
-export type SeedWithOption<T, O> = ((parent: T, option: O) => T)
-export type TagSeed = string | Seed<DOM> // そのタグで作成するか関数適用
-// 固定のサイズのBoxで全てを表現
+export type FitType = { x?: "left" | "center" | "right", y?: "top" | "center" | "bottom" }
+export type TextSeed = MayStore<string> | ((p: DOM) => DOM) // そのtextで作成するか関数適応
+export type TimingFunction = "ease" | "linear" | "ease-in" | "ease-out" | "ease-in-out"
 export interface DOMOption {
   // そのコンテナ内部でfloatするときの位置(後続のDOMに影響を与えたい場合はnull)
   tag?: string
@@ -60,7 +60,14 @@ export interface DOMOption {
   zIndex?: number | "auto"
   isScrollable?: boolean
 }
-export type FitType = { x?: "left" | "center" | "right", y?: "top" | "center" | "bottom" }
+export interface TextOption extends DOMOption {
+  color?: Color | string
+  isBold?: boolean
+  href?: MayStore<string>,
+  tag?: "span" | "code" | "pre" | "marquee" | "div"
+  edge?: { color: Color, width: number }
+}
+export interface FitWidthDOMOption extends DOMOption { dontFitWidth?: boolean }
 export interface BoxOption extends DOMOption {
   x?: number
   y?: number
@@ -73,7 +80,9 @@ export interface BoxOption extends DOMOption {
   display?: "none" | "block"
   applyWidthHeightOnlyForAttributes?: boolean
 }
-export interface ContainerOption extends BoxOption { }
+
+// implements
+
 // 一番の基本要素,各々がちょうど一つのdomに対応する.
 export class DOM {
   public readonly $dom: HTMLElement = null;
@@ -127,10 +136,12 @@ export class DOM {
     return this.$scene.$updater.perFrame(step, n)
   }
 
-  bloom(seed: TagSeed): DOM {
-    if (typeof seed === "string") return new DOM(this, seed)
+  bloom(seed: TextSeed): DOM {
+    if (typeof seed === "string") return new Text(this, seed)
+    if (seed instanceof Store) return new Text(this, seed)
     return seed(this)
   }
+
   on(name: Event, callback: (this: this, key?: KeysType) => void, bind = true) {
     let c = bind ? callback.bind(this) : callback
     if (name === "keydownall") this.$scene.$keyboard.onKeyDown(c)
@@ -166,10 +177,10 @@ export class DOM {
     }
     return this
   }
-  parseDOMOption(option: DOMOption): CSS.AnyStyle {
-    let style: CSS.AnyStyle = { ...option };
+  parseDOMOption(option: DOMOption): CSS.Style<any> {
+    let style: CSS.Style<any> = { ...option };
     if (style.colorScheme) {
-      let colorScheme = ColorScheme.parseToColorScheme(option.colorScheme)
+      let colorScheme = new ColorScheme(option.colorScheme)
       style.backgroundColor = colorScheme.baseColor
       style.color = colorScheme.mainColor
       style.borderColor = colorScheme.accentColor
@@ -201,10 +212,30 @@ export class DOM {
     return this
   }
 }
+export class Text extends DOM implements HasValue<string> {
+  private $text: string;
+  get value(): string { return this.$text; }
+  set value(val: string) {
+    this.$text = val.replace(" ", '\u00a0');
+    this.$dom.innerText = this.$text;
+  }
+  constructor(parent: DOM, text: MayStore<string>, option: TextOption = {}) {
+    super(parent, { ...option, tag: option.href ? "a" : "span" })
+    Store.regist(text, t => this.value = t)
+    if (option.href) Store.regist(option.href, t => this.$dom.setAttribute("href", t))
+    this.applyStyle({
+      color: typeof option.color === "string" ? Color.parse(option.color) : option.color,
+      font: { weight: option.isBold && "bold" },
+      ...(!option.edge ? {} : { "-webkit-text-stroke": option.edge })
+    })
+  }
+  static assign(parent: DOM, may: TextSeed, func: ((t: string) => any)) {
+    if (typeof may === "function") may(parent)
+    else Store.regist(may, func)
+  }
+}
 
-type TimingFunction = "ease" | "linear" | "ease-in" | "ease-out" | "ease-in-out"
 // 文字が右向きに流れるせいでWidthにのみFitするDOMという概念ができる.
-export interface FitWidthDOMOption extends DOMOption { dontFitWidth?: boolean }
 export class FitWidthDOM extends DOM {
   fitWidth() { if (this.$parent instanceof Box) this.$dom.style.width = this.$parent.contentWidth + "px" }
   constructor(parent: DOM, option: FitWidthDOMOption = {}) {
@@ -214,6 +245,7 @@ export class FitWidthDOM extends DOM {
 }
 // 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
+// PIXI.js と座標系を同じにしたい.
 export class Box extends DOM {
   // 全てローカル値. transform:
   width: number = undefined;
@@ -221,6 +253,14 @@ export class Box extends DOM {
   x: number = undefined;
   y: number = undefined;
   scale: number = 1;
+  rotate: number = 0;
+  static pickNum(s: string): number {
+    let result: number = null
+    for (let c of s) {
+      if ("0" <= c && c <= "9") result = (result || 0) * 10 + (+c)
+    }
+    return result
+  }
   public get contentWidth(): number {
     return this.width
       - (Box.pickNum(this.$dom.style.borderRightWidth) || 0) * 2
@@ -233,18 +273,21 @@ export class Box extends DOM {
   }
   public readonly $parent: Box;
   constructor(parent: Box, option: BoxOption = {}) {
-    super(parent, Box.copyDeletedTransformValues(option))
+    super(parent, option)
+    // super(parent, Box.copyDeletedTransformValues(option))
     // 全ての transform 値を number に保証
-    if (parent !== null) {
+    if (parent !== null) {/*
       this.width = parent.contentWidth
       this.height = parent.contentHeight
+      */
     } else {
       this.width = option.width
       this.height = option.height
       console.assert(typeof this.width === "number" && typeof this.height === "number", "illegal initial World")
     }
-    this.applyOptionOnCurrentState(option)
+    //this.applyOptionOnCurrentState(option)
   }
+  /*
   get currentTransform(): BoxOption {
     return {
       width: this.width,
@@ -284,13 +327,6 @@ export class Box extends DOM {
     this.applyStyle(style)
     if (option.isDraggable) this.applyDraggable()
     return style
-  }
-  static pickNum(s: string): number {
-    let result: number = null
-    for (let c of s) {
-      if ("0" <= c && c <= "9") result = (result || 0) * 10 + (+c)
-    }
-    return result
   }
   parseBoxOptionOnCurrentTransform(option: BoxOption): CSS.AnyStyle {
     let transform = this.currentTransform;
@@ -513,6 +549,7 @@ export class Box extends DOM {
     })
     return this
   }
+  */
 }
 
 export class Scene extends Box {
@@ -619,3 +656,4 @@ export class World extends Box {
     return this
   }
 }
+

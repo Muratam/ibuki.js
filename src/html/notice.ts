@@ -1,7 +1,5 @@
-import { Color } from "../core/color";
-import { DOM, DOMOption, FitWidthDOM, FitWidthDOMOption } from "../core/dom";
-import { MayStore, assign, HasValueWidgetInterface, Store } from "../core/store";
-import { TextOption, Text, TextSeed, textAssign } from "./text"
+import { DOM, DOMOption, Text, FitWidthDOM, FitWidthDOMOption, TextSeed, TextOption } from "../core/dom";
+import { MayStore } from "../core/store";
 
 export type Modifier = "primary" | "secondary" | "success" | "danger" | "warning" | "info" | "light" | "dark"
 export interface BadgeOption extends TextOption {
@@ -16,7 +14,7 @@ export class Badge extends Text {
     if (option.modifier) this.$dom.classList.add(`badge-${option.modifier}`)
     if (option.pill) this.$dom.classList.add("badge-pill")
     if (option.label) {
-      let label = Text.bloom(this, option.label)
+      let label = this.bloom(option.label)
       label.$dom.classList.add("badge-light")
       label.$dom.classList.add("badge")
     }
@@ -51,5 +49,19 @@ export class Alert extends FitWidthDOM {
       "data-dismiss": "alert",
       "aria-label": "Close"
     })
+  }
+}
+interface SpinnerOption extends DOMOption {
+  type?: "border" | "grow"
+}
+export class Spinner extends DOM {
+  constructor(parent: DOM, option: SpinnerOption = {}) {
+    super(parent, option)
+    this.$dom.classList.add(`spinner-${option.type === "grow" ? "grow" : "border"}`)
+  }
+}
+export class HR extends DOM {
+  constructor(parent: DOM) {
+    super(parent, { tag: "hr" })
   }
 }

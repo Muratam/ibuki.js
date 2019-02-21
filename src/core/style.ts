@@ -1,15 +1,7 @@
-import { Store, MayStore, assign } from "./store"
-
-export interface AnyStyle { [key: string]: any }
-export interface Style { [key: string]: string }
-export interface NumberStyle { [key: string]: number }
-
-export interface CanTranslateCSS {
-  toCSS(): string
-  // multiply(target: CanTranslateCSS): CanTranslateCSS
-}
-export function toNormalizedStyle(style: AnyStyle): AnyStyle {
-  let result: AnyStyle = {}
+export interface Style<T> { [key: string]: T }
+export interface CanTranslateCSS { toCSS(): string }
+export function toNormalizedStyle(style: Style<any>): Style<any> {
+  let result: Style<any> = {}
   let isOK = false;
   for (let key in style) {
     let val = style[key]
@@ -26,9 +18,9 @@ export function toNormalizedStyle(style: AnyStyle): AnyStyle {
   if (!isOK) return {};
   return result
 }
-export function parse(style: AnyStyle): Style {
+export function parse(style: Style<any>): Style<any> {
   let flattened = toNormalizedStyle(style)
-  let result: Style = {}
+  let result: Style<string> = {}
   for (let key in flattened) {
     let val = flattened[key]
     if (typeof val === "number") {
@@ -41,7 +33,7 @@ export function parse(style: AnyStyle): Style {
   return result
 }
 
-export function flatten(style: Style): string {
+export function flatten(style: Style<string>): string {
   let result = "";
   for (let key in style) result += `${key}:${style[key]};`
   return result;
