@@ -22,13 +22,11 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
         blur: 5,
         dropShadow: { x: 5, y: 5, blur: 10, color: "gray" },
       }),
-      x: -this.width * 0.3,
-      y: 0,
+      fit: { x: "left", y: "center" },
       zIndex: 1,
     }, {
       scale: 1.0,
-      x: 0,
-      y: 0,
+      fit: { x: "center", y: "center" },
       filter: new CSS.Filter({
         blur: 0,
         dropShadow: { x: 5, y: 5, blur: 10, color: "gray" }
@@ -36,8 +34,7 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
       zIndex: 2,
     }, {
       scale: 0.5,
-      x: this.width * 0.3,
-      y: 0,
+      fit: { x: "right", y: "center" },
       filter: new CSS.Filter({
         blur: 5,
         dropShadow: { x: 5, y: 5, blur: 10, color: "gray" },
@@ -45,8 +42,7 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
       zIndex: 1,
     }, {
       scale: 0.2,
-      x: 0,
-      y: 0,
+      fit: { x: "center", y: "center" },
       filter: new CSS.Filter({ blur: 5 }),
       zIndex: 0,
     },]

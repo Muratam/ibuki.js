@@ -1,6 +1,6 @@
 
 import { Color, ColorScheme } from "../core/color";
-import { Box, DOM, Scene, Text } from "../core/dom";
+import { Box, FitBox, DOM, Scene, Text } from "../core/dom";
 import { Input, InputOption, InputType } from "../html/input"
 import { FlexBox, Table } from "../html/container"
 import { toStore, DataStore } from "../core/store"
@@ -26,13 +26,13 @@ function helloBox(p: Box, store: DataStore): Box {
   文字が見えるでしょう？？
   これはただのテキストですが後で見ていくように様々なwidgetを活用することができます！
   `.replace(/\n/g, "")
-  return new Box(p, { textAlign: "left", padding: 30 }).tree(p => {
+  return new FitBox(p, { textAlign: "left", padding: 30 }).tree(p => {
     new Text(p, text)
   })
 }
 
 function informationBox(p: Box, store: DataStore): Box {
-  return new Box(p, {
+  return new FitBox(p, {
     textAlign: "center",
     fontSize: 30,
     padding: 30
@@ -148,7 +148,7 @@ function tableTest(p: Box, store: DataStore): Box {
   });
 }
 function iframeTest(p: Box, store: DataStore): Box {
-  return new Box(p, {
+  return new FitBox(p, {
     padding: 20,
   }).tree(p => {
     new Text(p, "iframe Test Box\n", {})
@@ -156,7 +156,7 @@ function iframeTest(p: Box, store: DataStore): Box {
   });
 }
 function markdownTest(p: Box, colorScheme: ColorScheme): Box {
-  return new Box(p, {
+  return new FitBox(p, {
     padding: 20,
   }).tree(p => {
     let text = new Input(p, { type: "textarea", label: "realtime markdown" }, { colorScheme: colorScheme }).value
@@ -164,7 +164,7 @@ function markdownTest(p: Box, colorScheme: ColorScheme): Box {
   });
 }
 function katexTest(p: Box, colorScheme: ColorScheme): Box {
-  return new Box(p, {
+  return new FitBox(p, {
     padding: 20,
   }).tree(p => {
     new Text(p, "realtime katex")

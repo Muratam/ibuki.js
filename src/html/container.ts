@@ -1,4 +1,4 @@
-import { Box, BoxOption, DOM, TextSeed, Text } from "../core/dom";
+import { Box, FitBox, BoxOption, DOM, TextSeed, Text } from "../core/dom";
 export interface FlexBoxOption extends BoxOption {
   flexDirection?: "row" | "row-reverse" | "column" | "column-reverse"
   flexWrap?: "nowrap" | "wrap" | "wrap-reverse"
@@ -8,7 +8,7 @@ export interface FlexBoxOption extends BoxOption {
   // 子要素には order / flex-grow / flex-shrink / flex-basis / align-self があるが
 }
 
-export class FlexBox extends Box {
+export class FlexBox extends FitBox {
   constructor(parent: Box, option: FlexBoxOption) {
     super(parent, option)
     this.applyStyle({ display: "flex" })
@@ -22,7 +22,7 @@ export interface TableOption extends BoxOption {
   borderCollapse?: "collapse" | "separate"
 }
 type ContainerOptionFunc = ((x: number, y: number) => BoxOption)
-export class Table extends Box {
+export class Table extends FitBox {
   private ySize: number = 0;
   private containerOptionFunc: ContainerOptionFunc
   constructor(parent: Box, option: TableOption = {}, containerOptionFunc: ContainerOptionFunc = (x, y) => ({})) {

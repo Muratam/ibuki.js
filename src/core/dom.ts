@@ -235,21 +235,22 @@ export class FitWidthDOM extends DOM {
 // 固定のwidth / height を持つもの
 // 指定しなければ親と同じになる
 // PIXI.js と座標系を同じにしたい.
-export class Box extends DOM {
-  // 全てローカル値. transform:
+export interface Transform {
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  scale: number;
+  rotate: number;
+
+}
+export class Box extends DOM implements Transform {
   width: number = undefined;
   height: number = undefined;
-  x: number = undefined;
-  y: number = undefined;
+  x: number = 0;
+  y: number = 0;
   scale: number = 1;
   rotate: number = 0;
-  static pickNum(s: string): number {
-    let result: number = null
-    for (let c of s) {
-      if ("0" <= c && c <= "9") result = (result || 0) * 10 + (+c)
-    }
-    return result
-  }
   public get contentWidth(): number {
     return this.width
       - (Box.pickNum(this.$dom.style.borderRightWidth) || 0) * 2
@@ -262,8 +263,7 @@ export class Box extends DOM {
   }
   public readonly $parent: Box;
   constructor(parent: Box, option: BoxOption = {}) {
-    super(parent, option)
-    // super(parent, Box.copyDeletedTransformValues(option))
+    super(parent, Box.deleteTransformKeys({ ...option }))
     // 全ての transform 値を number に保証
     if (parent !== null) {
       this.width = parent.contentWidth
@@ -273,89 +273,63 @@ export class Box extends DOM {
       this.height = option.height
       console.assert(typeof this.width === "number" && typeof this.height === "number", "illegal initial World")
     }
-    this.applyOptionOnCurrentState(option)
+    this.applyOption(option)
   }
 
-  get currentTransform(): BoxOption {
-    return {
-      width: this.width,
-      height: this.height,
-      scale: this.scale,
-      x: this.x,
-      y: this.y,
-    }
-  }
-  // private percentages: CSS.NumberStyle = {}
-  // private realStyles: CSS.NumberStyle = {} // width / height / scale / x / y の他
-
-  applyOptionOnCurrentState(option: BoxOption): CSS.Style<any> {
+  applyOption(option: BoxOption) {
     // option を読み込み,自身に(上書きができれば)適応
-    let style = this.parseBoxOptionOnCurrentTransform(option)
+    let style = this.parseBoxOption(option)
     this.applyTransformValues(style)
-
-    // this.percentages を style にだけ適応する
-    // for (let k in { ...style, ...this.percentages }) {
-    //   if (typeof style[k] !== "number" && typeof this.percentages[k] !== "number") continue
-    //   // WARN: color の乗算 階層オブジェクト(border:{})には未対応
-    //   // transform 系は既にapplyTransfromValuesで適応されている
-    //   if (k == "x") {
-    //     style.transform.x = (this.percentages[k] || 0) * this.width + this[k]
-    //   } else if (k === "y") {
-    //     style.transform.y = (this.percentages[k] || 0) * this.height + this[k]
-    //   } else if (k === "scale") {
-    //     style.transform[k] = (this.percentages[k] || 1) * this[k]
-    //   } else if (k === "rotate") {
-    //     style.transform[k] = (this.percentages[k] || 0) + (style[k] || 0)
-    //   } else if (k === "width" || k == "height") {
-    //     style[k] = (this.percentages[k] || 1) * this[k]
-    //   } else {
-    //     this.realStyles[k] = style[k] || 0
-    //     style[k] = (this.percentages[k] || 1) * (style[k] || 0)
-    //   }
-    // }
-    Box.deleteTransformValues(style) // transform にて変換したので(二重になるし)削除
-
+    Box.deleteTransformKeys(style) // transform にて変換したので(二重になるし)削除
     this.applyStyle(style)
     // if (option.isDraggable) this.applyDraggable()
-    return style
-
+    return this
   }
 
-  parseBoxOptionOnCurrentTransform(option: BoxOption): CSS.Style<any> {
-    let transform = this.currentTransform;
-    let result: CSS.Style<any> = { ...transform, ...option }
-    result.position = "absolute" // 無いと後続の要素の位置がバグる
-    result["transform-origin"] = `center center` // これができると rotation / scaleがいい感じになる
-    if (this.$parent) {
-      if (option.fit) {
-        // 中心は `center center` である
-        // 倍率が1倍のときにジャストフィットするような位置
-        if (option.fit.x === "right") {
-          result.x = this.$parent.contentWidth / 2 - result.width / 2
-        } else if (option.fit.x === "left") {
-          result.x = -(this.$parent.contentWidth / 2 - result.width / 2);
-        } else {
-          result.x = 0
-        }
-        if (option.fit.y === "bottom") {
-          result.y = this.$parent.contentHeight / 2 - result.height / 2
-        } else if (option.fit.y === "top") {
-          result.y = -(this.$parent.contentHeight / 2 - result.height / 2);
-        } else {
-          result.y = 0
-        }
-        delete result.fit
+  private parseBoxOption(option: BoxOption): CSS.Style<any> {
+    let result: CSS.Style<any> = { ...option }
+    result.position = "absolute"
+    result["transform-origin"] = `center center`
+    if (result.x === undefined) result.x = this.x
+    if (result.y === undefined) result.y = this.y
+    if (result.width === undefined) result.width = this.$parent.contentWidth
+    if (result.height === undefined) result.height = this.$parent.contentHeight
+    if (result.scale === undefined) result.scale = this.scale
+    if (result.rotate === undefined) result.rotate = this.rotate
+    if (option.fit) {
+      console.assert(this.$parent, "fit option but no parent")
+      // ひとまずtransform-originは `center center` . ただし,位置はleft top が 0 0
+      // 倍率が1倍のときにジャストフィットするような位置
+      if (option.fit.x === "right") {
+        result.x = this.$parent.contentWidth - result.width / 2
+      } else if (option.fit.x === "center") {
+        result.x = this.$parent.contentWidth / 2
+      } else {
+        result.x = result.width / 2;
       }
-      if (option.fit || typeof option.x === "number")
-        result.x = (result.x || 0) + this.$parent.contentWidth / 2 - result.width / 2
-      if (option.fit || typeof option.y === "number")
-        result.y = (result.y || 0) + this.$parent.contentHeight / 2 - result.height / 2
+      if (option.fit.y === "bottom") {
+        result.y = this.$parent.contentHeight - result.height / 2
+      } else if (option.fit.y === "center") {
+        result.y = this.$parent.contentHeight / 2;
+      } else {
+        result.y = result.height / 2
+      }
+      delete result.fit
     }
-    result.transform = new CSS.Transfrom(result.x, result.y, result.scale, result.rotate)
+    console.assert(result.width !== undefined && result.width !== null, "illegal width")
+    console.assert(result.height !== undefined && result.height !== null, "illegal height")
+    result.transform = new CSS.Transfrom(result.x - result.width / 2, result.y - result.height / 2, result.scale, result.rotate)
     return this.parseDOMOption(result);
   }
+  private static pickNum(s: string): number {
+    let result: number = null
+    for (let c of s) {
+      if ("0" <= c && c <= "9") result = (result || 0) * 10 + (+c)
+    }
+    return result
+  }
 
-  applyTransformValues(style: CSS.Style<any>) {
+  private applyTransformValues(style: CSS.Style<any>) {
     let parse = (key: string, init: number): number =>
       typeof style[key] === "number" ? style[key] : this[key] || init
     let apply = (key: string, init: number) => this[key] = parse(key, init)
@@ -367,15 +341,19 @@ export class Box extends DOM {
     apply("y", 0)
     apply("x", 0)
   }
-  static copyDeletedTransformValues(option: BoxOption): BoxOption {
-    let result = { ...option }
-    Box.deleteTransformValues(result)
-    return result
-  }
-  static deleteTransformValues(style: CSS.Style<any>) {
+  private static deleteTransformKeys(style: CSS.Style<any>): CSS.Style<any> {
+    // width と height は適応してもらう
     delete style.x
     delete style.y
     delete style.scale
+    delete style.rotate
+    return style
+  }
+}
+// 0,0 を本当に 0,0 にすると使いにくいことが多いので
+export class FitBox extends Box {
+  constructor(parent: Box, option: BoxOption = {}) {
+    super(parent, { fit: { x: "left", y: "top" }, ...option })
   }
 }
 
@@ -397,7 +375,7 @@ export class Scene extends Box {
     this.$mouseY = e.pageY * this.height / window.innerHeight;
   }
   constructor(parent: World) {
-    super(parent, { zIndex: 50 })
+    super(parent, { fit: { x: "left", y: "top" } })
     this.$updater = new Updater();
     this.$keyboard = new KeyBoard(this.$updater)
     this.$css = new GlobalCSS();
@@ -433,7 +411,7 @@ class PIXIBox extends Box {
   app: PIXI.Application
   $dom: HTMLCanvasElement
   constructor(parent: Box, option: BoxOption = {}) {
-    super(parent, { tag: "canvas" })
+    super(parent, { tag: "canvas", ...option })
     this.app = new PIXI.Application({
       width: this.width, height: this.height,
       antialias: true,
@@ -452,12 +430,12 @@ export class World extends Box {
       isScrollable: false,
     })
     document.body.appendChild(this.$dom)
-    this.pixi = new PIXIBox(this)
+    this.pixi = new PIXIBox(this, { fit: { x: "left", y: "top" } })
     PIXI.Loader.shared.add('bunny', 'me.jpg').load((loader, resources) => {
       {
         const bunny = new PIXI.Sprite(resources.bunny.texture);
-        bunny.x = this.width * 0.4;
-        bunny.y = this.height / 2;
+        bunny.x = 0;
+        bunny.y = 0;
         bunny.anchor.x = 0.5;
         bunny.anchor.y = 0.5;
         this.pixi.app.stage.addChild(bunny);
