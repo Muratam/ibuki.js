@@ -265,10 +265,6 @@ export function threeBoxSampleScene(scene: Scene) {
       wait = 20
     }
   })
-  new Box(scene, { width: 100, height: 100, colorScheme: "#fff" }).update(function (i) {
-    this.x += 1
-    this.rotation += 0.01
-  })
 }
 
 // try

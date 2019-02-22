@@ -35,6 +35,7 @@ export class Color implements CanTranslateCSS {
     }
     return "#" + tr(this.r) + tr(this.g) + tr(this.b) + tr(this.a);
   }
+
   addColor(c: Color | string): Color {
     if (typeof c === "string") c = Color.parse(c)
     return new Color(this.r + c.r, this.g + c.g, this.b + c.b, this.a + c.a)
@@ -102,19 +103,18 @@ export class ColorScheme implements CanTranslateCSS {
     else this.accentColor = ColorScheme.parse(accentColor)
   }
   // o:src x:dst -> src のまま / 他は補完
-  complement(src: ColorScheme, per: number): ColorScheme {
+  add(src: ColorScheme): ColorScheme {
     let result = new ColorScheme(this)
-    if (src === undefined) return result
     for (let key in ["baseColor", "accentColor", "mainColor"]) {
       if (src[key] instanceof LinearGradient || this[key] instanceof LinearGradient)
         console.assert("LinearGradient is not suppoerted for animation...")
       let a = src[key]
       let b = this[key]
       result[key] = new Color(
-        per * b.r + (1 - per) * (a.r || 0),
-        per * b.g + (1 - per) * (a.g || 0),
-        per * b.b + (1 - per) * (a.b || 0),
-        per * b.a + (1 - per) * (a.a || 0)
+        b.r + a.r,
+        b.g + a.g,
+        b.b + a.b,
+        b.a + a.a
       )
     }
     return result

@@ -5,7 +5,6 @@ import { Updater, KeyBoard, GlobalCSS, KeysType } from "./static"
 import "bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import * as jQuery from "jquery";
-import * as PIXI from 'pixi.js'
 
 // types and interfaces
 export type BorderStyle = "none" | "hidden" | "solid" | "double" | "groove" | "ridge" | "inset" | "outset" | "dashed" | "dotted"
@@ -68,7 +67,7 @@ export interface BoxOption extends DOMOption {
   isDraggable?: boolean // ドラッグできるか？
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
-  rotation?: number
+  rotate?: number
   scale?: number  // | Vec2
 }
 // implements
@@ -226,7 +225,22 @@ export interface Transform {
   x?: number;
   y?: number;
   scale?: number;
-  rotation?: number;
+  rotate?: number;
+}
+export interface Transition {
+  duration?: number,
+  timingFunction?: TimingFunction,
+  delay?: number
+}
+
+function fillTransition(base: Transition): Transition {
+  return {
+    ...{
+      duration: 1,
+      timingFunction: "ease",
+      delay: 0
+    }, ...base,
+  }
 }
 export class Box extends DOM implements Transform {
   $width: number = undefined;
@@ -245,9 +259,9 @@ export class Box extends DOM implements Transform {
   $scale: number = 1;
   public get scale(): number { return this.$scale }
   public set scale(val: number) { this.$scale = val; this.needUpdate = true; }
-  $rotation: number = 0;
-  public get rotation(): number { return this.$rotation }
-  public set rotation(val: number) { this.$rotation = val; this.needUpdate = true; }
+  $rotate: number = 0;
+  public get rotate(): number { return this.$rotate }
+  public set rotate(val: number) { this.$rotate = val; this.needUpdate = true; }
   public get contentWidth(): number {
     return this.width
       - (Box.pickNum(this.$dom.style.borderRightWidth) || 0) * 2
@@ -277,13 +291,22 @@ export class Box extends DOM implements Transform {
       this.needUpdate = false;
     })
   }
-  applyOption(option: BoxOption) {
-    // option を読み込み,自身に(上書きができれば)適応
+  // option を読み込み,自身に(上書きができれば)適応
+  // transition もするが,複数のtransitionを行うと不整合になる可能性がある.
+  applyOption(option: BoxOption, transition: Transition = undefined) {
     let style = this.parseBoxOption(option)
     this.setValues(style)
+    style = { ...style, ...this.parseBoxOption(this.getValues()) } // percent適応値で上書き
     Box.deleteTransformKeys(style) // transform にて変換したので(二重になるし)削除
     this.applyStyle(style)
-    // if (option.isDraggable) this.applyDraggable()
+    if (transition) {
+      let { duration, timingFunction, delay } = fillTransition(transition)
+      let transitions: string[] = []
+      for (let key in style)
+        transitions.push(`${key} ${duration}s ${timingFunction} ${delay}s `)
+      this.$dom.style.transition = transitions.join(",")
+    }
+    if (option.isDraggable) this.applyDraggable()
     return this
   }
 
@@ -296,7 +319,9 @@ export class Box extends DOM implements Transform {
     if (result.width === undefined) result.width = typeof this.width !== undefined ? this.width : this.$parent.contentWidth
     if (result.height === undefined) result.height = typeof this.height !== undefined ? this.height : this.$parent.contentHeight
     if (result.scale === undefined) result.scale = this.scale
-    if (result.rotation === undefined) result.rotation = this.rotation
+    if (result.rotate === undefined) result.rotate = this.rotate
+    console.assert(result.width !== undefined && result.width !== null, "illegal width")
+    console.assert(result.height !== undefined && result.height !== null, "illegal height")
     if (option.fit) {
       console.assert(this.$parent, "fit option but no parent")
       // ひとまずtransform-originは `center center` . ただし,位置はleft top が 0 0
@@ -317,9 +342,7 @@ export class Box extends DOM implements Transform {
       }
       delete result.fit
     }
-    console.assert(result.width !== undefined && result.width !== null, "illegal width")
-    console.assert(result.height !== undefined && result.height !== null, "illegal height")
-    result.transform = new CSS.TransformCSS(result.x - result.width / 2, result.y - result.height / 2, result.scale, result.rotation)
+    result.transform = new CSS.TransformCSS(result.x - result.width / 2, result.y - result.height / 2, result.scale, result.rotate)
     return this.parseDOMOption(result);
   }
   private static pickNum(s: string): number {
@@ -329,36 +352,94 @@ export class Box extends DOM implements Transform {
     }
     return result
   }
+  private applyDraggable() {
+    // WARN: いっぱい登録すると重そう / タッチ未対応 / regist <-> remove できるようにしたい
+    let firstX = this.x
+    let firstY = this.y
+    let dragStartMouseX = 0;
+    let dragStartMouseY = 0;
+    let dragState = 0
+    let to = (dx: number, dy: number) => {
+      console.log([dx, dy])
+      this.to({ x: firstX, y: firstY }, 0)
+    }
+    // this.$dom.onselect = e => false
+    let dragStart = (e) => {
+      if (e.type !== "mousedown") e = e.changedTouches[0];
+      dragStartMouseX = this.$scene.mouseX
+      dragStartMouseY = this.$scene.mouseY
+      dragState++
+    }
+    let dragging = (e) => {
+      if (dragState === 0) return;
+      if (e.type !== "mousemove") e = e.changedTouches[0];
+      let dx = this.$scene.mouseX - dragStartMouseX
+      let dy = this.$scene.mouseY - dragStartMouseY
+      dx = 0
+      dy = 0
+      to(dx, dy)
+    }
+    function dragEnd(e) {
+      dragState = 0;
+    }
+    this.$dom.addEventListener("mousedown", dragStart)
+    this.$dom.addEventListener("touchstart", dragStart)
+    document.body.addEventListener("mousemove", dragging)
+    document.body.addEventListener("touchmove", dragging)
+    this.$dom.addEventListener("mouseup", dragEnd)
+    this.$dom.addEventListener("touchend", dragEnd)
+    document.body.addEventListener("mouseleave", dragEnd)
+    document.body.addEventListener("touchleave", dragEnd)
+  }
+
   colorScheme: ColorScheme = undefined
   filter: CSS.Filter = undefined
   zIndex: number = 0
+  private percentages: CSS.Style<any> = {}
+  private setPercentages(style: BoxOption) {
+    this.percentages = {}
+    let apply = (key: string) => {
+      if (style[key] !== undefined || style[key] !== null || typeof style[key] !== "string") {
+        this.percentages[key] = style[key]
+      }
+    }
+    for (let key of this.keys) apply(key)
+  }
   private setValues(style: CSS.Style<any>) {
-    let parse = (key: string, init: number): number =>
-      typeof style[key] === "number" ? style[key] : this[key] || init
-    let apply = (key: string, init: number) => this[key] = parse(key, init)
+    let apply = (key: string, init: number) => {
+      this[key] =
+        typeof style[key] === "number"
+          ? style[key]
+          : this[key] || init
+    }
     if (this.$parent !== null) {
       apply("width", this.$parent.width)
       apply("height", this.$parent.height)
     }
     apply("scale", 1.0)
+    apply("rotate", 0.0)
     apply("y", 0)
     apply("x", 0)
     if (style.colorScheme) this.colorScheme = new ColorScheme(style.colorScheme)
     if (style.filter) this.filter = style.filter
     if (style.zIndex) this.zIndex = style.zIndex
   }
+  private keys = ["x", "y", "scale", "width", "height", "rotate", "colorScheme", "filter", "zIndex"]
   private getValues(): BoxOption {
-    let result: BoxOption = {
-      x: this.x,
-      y: this.y,
-      scale: this.scale,
-      width: this.width,
-      height: this.height,
-      rotation: this.rotation,
+    let result: BoxOption = {}
+    let set = (key: string) => {
+      if (this[key] === undefined) return
+      if (key === "x" || key === "y" || key === "rotate") {
+        result[key] = this[key] +
+          (this.percentages[key] === undefined ? 0 : this.percentages[key])
+      } else if (key === "colorScheme") {
+        result[key] = this[key]// TODO:
+      } else if (key === "filter") {
+        result[key] = this[key] // TODO:
+      } else result[key] = this[key] *
+        (this.percentages[key] === undefined ? 1 : this.percentages[key])
     }
-    if (this.colorScheme) result.colorScheme = this.colorScheme
-    if (this.filter) result.filter = this.filter
-    if (this.zIndex) result.zIndex = this.zIndex
+    for (let key of this.keys) set(key)
     return result
   }
 
@@ -367,57 +448,49 @@ export class Box extends DOM implements Transform {
     delete style.x
     delete style.y
     delete style.scale
-    delete style.rotation
+    delete style.rotate
     return style
   }
-  // o:src x:dst -> src のまま / 他は補完
-  complement(srcOp: BoxOption, dstOp: BoxOption, per: number): BoxOption {
-    let result: BoxOption = {}
-    let src = this.parseBoxOption(srcOp)
-    let dst = this.parseBoxOption(dstOp)
-    for (let key in { ...src, ...dst }) {
-      if (dst[key] === undefined) {
-        continue
-      } else if (dst[key].complement) {
-        result[key] = dst[key].complement(src[key], per)
-      } else if (typeof dst[key] !== "number") {
-        result[key] = dst[key]
-      } else {
-        result[key] = dst[key] * per + (1 - per) * (src[key] || 0)
-      }
-    }
-    return result
-  }
+
   private callBacks: { [key: number]: () => any } = {}
   private transitionMaxId = 0
-
-  to(dst: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, id: number = undefined) {
-    let src = this.getValues()
-    if (timingFunction !== "linear" && timingFunction !== "ease") console.assert(false, "not implemented")
-    if (id === undefined) {
+  // すぐに値を変更する(with transition)
+  // transform : translate scale rotate を独立に変更することはできない.
+  // すなわち,今のtransitionを破壊的に変更するか,終了を待ってtransitionするか,しかない
+  to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, id: number = null) {
+    // 構築された最初のフレームでは無効なので
+    if (this.frame === 0) {
+      this.$scene.reserveExecuteNextFrame(() => {
+        this.to(option, duration, timingFunction, delay)
+      })
+      return
+    }
+    this.applyOption(option, { duration, timingFunction, delay })
+    if (id === null) {
       this.transitionMaxId++;
       id = this.transitionMaxId;
     }
-    this.update(millisec => {
-      // 割り込み percent ease を無視
-      let j = millisec / 1000.0 - delay
-      if (j < 0) return;
-      if (j >= duration) {
-        this.applyOption(dst)
+    this.update(milliSec => {
+      if (milliSec / 1000.0 >= duration) {
         if (this.callBacks[id]) {
           this.callBacks[id]()
           delete this.callBacks[id]
         }
         return false;
       }
-      let t = j / duration
-      if (timingFunction === "ease") t = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
-      this.applyOption(this.complement(src, dst, t))
+      return true;
     })
     return this
   }
   // 最後に登録した to / next が 終わってから発火する
   next(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0) {
+    // 構築された最初のフレームでは無効なので
+    if (this.frame === 0) {
+      this.$scene.reserveExecuteNextFrame(() => {
+        this.next(option, duration, timingFunction, delay)
+      })
+      return
+    }
     this.transitionMaxId++;
     let id = this.transitionMaxId
     if (!this.callBacks[id - 1]) {
@@ -425,6 +498,77 @@ export class Box extends DOM implements Transform {
         this.to(option, duration, timingFunction, delay, id)
       }
     } else console.assert("illegal transition maxid")
+    return this
+  }
+  // 複数の toRelativeを適応すると既存設定値も消される.
+  toRelative(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0) {
+    this.setPercentages(option)
+    this.to({}, duration, timingFunction, delay)
+  }
+  private stopped: { [key: number]: boolean } = {}
+  endRepeat(id: number) { this.stopped[id] = true }
+  restartRepeat(id: number) {
+    console.assert(this.stopped[id] !== undefined, "illegal resume animation")
+    this.stopped[id] = false
+  }
+  private playMaxId = 0
+  repeatRelative(destination: BoxOption | BoxOption[], insertBaseState = true, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity, allowEndDstState = false): number {
+    // percentage
+    let dst: BoxOption[] = destination instanceof Array ? destination : [destination];
+    let per = Math.floor(duration * 60) || 1
+    let state = 1
+    let itcnt = 0;
+    let id = this.playMaxId
+    this.playMaxId++
+    let i = 0
+    this.update(() => {
+      if (this.stopped[id]) {
+        if (allowEndDstState || state === 0) {
+          i = 0;
+          return;
+        }
+      }
+      if (i % per !== 0) {
+        i++;
+        return;
+      }
+      i++;
+      state = (state + 1) % (1 + dst.length)
+      if (state === 0 && !insertBaseState) state = 1;
+      this.toRelative(state === 0 ? {} : dst[state - 1])
+      itcnt++;
+      if (itcnt === iterationCount) {
+        itcnt = 0
+        i = 0
+        this.endRepeat(id)
+        return
+      }
+    })
+    return id
+  }
+  // ある状態のときだけとかできるように
+  repeatRelativeOnHover(destination: BoxOption | BoxOption[], insertBaseState = true, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
+    let id = null;
+    this.on("mouseover", () => {
+      this.$dom.style.cursor = "pointer"
+      if (id !== null) this.restartRepeat(id)
+      else id = this.repeatRelative(destination, insertBaseState, duration, timingFunction, delay, iterationCount)
+    })
+    this.on("mouseout", () => {
+      this.$dom.style.cursor = "default"
+      this.endRepeat(id)
+    })
+    return this
+  }
+  toRelativeOnHover(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
+    this.on("mouseover", () => {
+      this.$dom.style.cursor = "pointer"
+      this.toRelative(option, duration, timingFunction, delay)
+    })
+    this.on("mouseout", () => {
+      this.$dom.style.cursor = "default"
+      this.toRelative({}, duration, timingFunction, delay)
+    })
     return this
   }
 

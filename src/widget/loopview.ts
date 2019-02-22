@@ -63,7 +63,7 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
       ...option,
       ...this.childrenInitialOption,
       isScrollable: true,
-    })//.toRelativeOnHover({ scale: 1.02, rotate: 5 }, 0.5)
+    }).toRelativeOnHover({ scale: 1.02, rotate: 0.1 }, 0.5)
     seed(box)
     this.boxes.push(box)
     return this

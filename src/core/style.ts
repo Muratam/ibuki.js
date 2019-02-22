@@ -1,5 +1,8 @@
 export interface Style<T> { [key: string]: T }
-export interface CanTranslateCSS { toCSS(): string }
+export interface CanTranslateCSS {
+  toCSS(): string,
+  getProperties?(): string[]
+}
 export function toNormalizedStyle(style: Style<any>): Style<any> {
   let result: Style<any> = {}
   let isOK = false;
@@ -45,7 +48,7 @@ export class TransformCSS implements CanTranslateCSS {
   x: number
   scale: number
   rotation: number
-  constructor(x: number, y: number, scale: number, rotation: number = 0) {
+  constructor(x: number, y: number, scale: number, rotation: number) {
     this.x = x
     this.y = y
     this.scale = scale
@@ -104,3 +107,4 @@ export class Filter implements CanTranslateCSS {
     return result
   }
 }
+
