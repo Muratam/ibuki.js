@@ -205,10 +205,12 @@ function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
     colorScheme: colorScheme,
     padding: 20,
     fontSize: 40,
-    isDraggable: true,
     border: { width: 5, style: "solid", radius: 15 },
   }).tree(p => {
     new Text(p, "ドラッグアンドドロップできるやで")
+  }).onDrag(function (x, y) {
+    this.x = x;
+    this.y = y;
   })
   popover(result, "iikanji ", "これが Pop over ってやつやで", "top")
   return result

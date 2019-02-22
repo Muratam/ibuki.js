@@ -64,7 +64,6 @@ export interface BoxOption extends DOMOption {
   x?: number
   y?: number
   fit?: FitType
-  isDraggable?: boolean // ドラッグできるか？
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
   rotate?: number
@@ -129,7 +128,6 @@ export class DOM extends IBukiMinElement {
     if (seed instanceof Store) return new Text(this, seed)
     return seed(this)
   }
-
   on(name: Event, callback: (this: this, key?: KeysType) => void, bind = true) {
     let c = bind ? callback.bind(this) : callback
     if (name === "keydownall") this.$scene.$keyboard.onKeyDown(c)
@@ -262,6 +260,11 @@ export class Box extends DOM implements Transform {
   $rotate: number = 0;
   public get rotate(): number { return this.$rotate }
   public set rotate(val: number) { this.$rotate = val; this.needUpdate = true; }
+  colorScheme: ColorScheme = undefined
+  filter: CSS.Filter = undefined
+  zIndex: number = 0
+  private keys = ["x", "y", "scale", "width", "height", "rotate", "colorScheme", "filter", "zIndex"]
+
   public get contentWidth(): number {
     return this.width
       - (Box.pickNum(this.$dom.style.borderRightWidth) || 0) * 2
@@ -306,7 +309,6 @@ export class Box extends DOM implements Transform {
         transitions.push(`${key} ${duration}s ${timingFunction} ${delay}s `)
       this.$dom.style.transition = transitions.join(",")
     }
-    if (option.isDraggable) this.applyDraggable()
     return this
   }
 
@@ -352,49 +354,7 @@ export class Box extends DOM implements Transform {
     }
     return result
   }
-  private applyDraggable() {
-    // WARN: いっぱい登録すると重そう / タッチ未対応 / regist <-> remove できるようにしたい
-    let firstX = this.x
-    let firstY = this.y
-    let dragStartMouseX = 0;
-    let dragStartMouseY = 0;
-    let dragState = 0
-    let to = (dx: number, dy: number) => {
-      console.log([dx, dy])
-      this.to({ x: firstX, y: firstY }, 0)
-    }
-    // this.$dom.onselect = e => false
-    let dragStart = (e) => {
-      if (e.type !== "mousedown") e = e.changedTouches[0];
-      dragStartMouseX = this.$scene.mouseX
-      dragStartMouseY = this.$scene.mouseY
-      dragState++
-    }
-    let dragging = (e) => {
-      if (dragState === 0) return;
-      if (e.type !== "mousemove") e = e.changedTouches[0];
-      let dx = this.$scene.mouseX - dragStartMouseX
-      let dy = this.$scene.mouseY - dragStartMouseY
-      dx = 0
-      dy = 0
-      to(dx, dy)
-    }
-    function dragEnd(e) {
-      dragState = 0;
-    }
-    this.$dom.addEventListener("mousedown", dragStart)
-    this.$dom.addEventListener("touchstart", dragStart)
-    document.body.addEventListener("mousemove", dragging)
-    document.body.addEventListener("touchmove", dragging)
-    this.$dom.addEventListener("mouseup", dragEnd)
-    this.$dom.addEventListener("touchend", dragEnd)
-    document.body.addEventListener("mouseleave", dragEnd)
-    document.body.addEventListener("touchleave", dragEnd)
-  }
 
-  colorScheme: ColorScheme = undefined
-  filter: CSS.Filter = undefined
-  zIndex: number = 0
   private percentages: CSS.Style<any> = {}
   private setPercentages(style: BoxOption) {
     this.percentages = {}
@@ -424,7 +384,6 @@ export class Box extends DOM implements Transform {
     if (style.filter) this.filter = style.filter
     if (style.zIndex) this.zIndex = style.zIndex
   }
-  private keys = ["x", "y", "scale", "width", "height", "rotate", "colorScheme", "filter", "zIndex"]
   private getValues(): BoxOption {
     let result: BoxOption = {}
     let set = (key: string) => {
@@ -451,6 +410,47 @@ export class Box extends DOM implements Transform {
     delete style.rotate
     return style
   }
+  onDrag(fun: (this: this, x: number, y: number) => any) {
+    // WARN: いっぱい登録すると重そう / タッチ未対応 / regist <-> remove できるようにしたい
+    let dragStartMyX = 0
+    let dragStartMyY = 0
+    let dragStartMouseX = 0;
+    let dragStartMouseY = 0;
+    let dragState = 0
+    // this.$dom.onselect = e => false
+    let dragStart = (e) => {
+      dragStartMyX = this.x
+      dragStartMyY = this.y
+      dragStartMouseX = this.$scene.mouseX
+      dragStartMouseY = this.$scene.mouseY
+      dragState++
+      this.applyStyle({ userSelect: "none" })
+    }
+    let dragging = (e) => {
+      if (dragState === 0) return;
+      fun.bind(this)(dragStartMyX + this.$scene.mouseX - dragStartMouseX, dragStartMyY + this.$scene.mouseY - dragStartMouseY)
+    }
+    let dragEnd = (e) => {
+      dragState = 0;
+      this.applyStyle({ userSelect: "auto" })
+    }
+    this.on("mouseover", () => {
+      this.$dom.style.cursor = "pointer"
+    })
+    this.on("mouseout", () => {
+      this.$dom.style.cursor = "default"
+    })
+    this.$dom.addEventListener("mousedown", dragStart)
+    this.$dom.addEventListener("touchstart", dragStart)
+    document.body.addEventListener("mousemove", dragging)
+    document.body.addEventListener("touchmove", dragging)
+    this.$dom.addEventListener("mouseup", dragEnd)
+    this.$dom.addEventListener("touchend", dragEnd)
+    document.body.addEventListener("mouseleave", dragEnd)
+    document.body.addEventListener("touchleave", dragEnd)
+    return this
+  }
+
 
   private callBacks: { [key: number]: () => any } = {}
   private transitionMaxId = 0
@@ -594,8 +594,11 @@ export class Scene extends FitBox {
     this.reservedExecuteNextFrames.push(fun)
   }
   trackMouse(e: MouseEvent) {
-    this.$mouseX = e.pageX * this.width / window.innerWidth;
-    this.$mouseY = e.pageY * this.height / window.innerHeight;
+    let ratio = Math.min(
+      window.innerWidth / this.width,
+      window.innerHeight / this.height);
+    this.$mouseX = e.pageX / ratio
+    this.$mouseY = e.pageY / ratio
   }
   constructor(parent: World) {
     super(parent)
@@ -661,16 +664,14 @@ export class World extends Box {
     window.addEventListener("resize", () => this.adjustWindow())
   }
   private adjustWindow() {
-    let pWidth = window.innerWidth;
-    let wRatio = pWidth / this.width;
-    let pHeight = window.innerHeight;
-    let hRatio = pHeight / this.height;
+    let wRatio = window.innerWidth / this.width;
+    let hRatio = window.innerHeight / this.height;
     let ratio = Math.min(wRatio, hRatio);
     this.applyStyle({
       position: "relative",
       background: "#000",
-      top: Math.max(0, (pHeight - this.height * ratio) / 2),
-      left: Math.max(0, (pWidth - this.width * ratio) / 2),
+      top: Math.max(0, (window.innerHeight - this.height * ratio) / 2),
+      left: Math.max(0, (window.innerWidth - this.width * ratio) / 2),
       width: this.width,
       height: this.height,
       transformOrigin: "0px 0px",
