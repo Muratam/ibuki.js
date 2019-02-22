@@ -1,79 +1,69 @@
-
-import { Color, ColorScheme } from "../core/color";
-import { Box, FitBox, DOM, Scene, Text } from "../core/dom";
-import { Input, InputOption, InputType } from "../html/input"
-import { FlexBox, Table } from "../html/container"
-import { toStore, DataStore } from "../core/store"
-import { ProgressBar, IFrame } from "../html/media";
-import { Alert, Badge, Spinner, HR, popover, tooltip } from "../html/notice"
-import { FAIcon } from "../widget/external/faicon"
-import { MarkDown } from "../widget/external/markdown"
-import { Katex } from "../widget/external/katex"
-import { ThreeLoopView } from "../widget/loopview"
-import * as CSS from "../core/style"
-
-function helloBox(p: Box, store: DataStore): Box {
+import * as I from ".."
+import { FAIcon } from "./faicon"
+import { MarkDown } from "./markdown"
+import { Katex } from "./katex"
+function helloBox(p: I.Box, store: I.DataStore): I.Box {
   let text = ` hello ibuki.ts !!
-  ibuki.ts は DOM をメインに迎えた新しいゲームエンジンです!!
+  ibuki.ts は I.$1 をメインに迎えた新しいゲームエンジンです!!
   ギャルゲーやボドゲなど、あまりキャラクターは動き回らないけど
   テキストや UI のアニメーションがたくさん欲しいようなゲームなどにターゲットを当てています.
   ibuki.ts は vue.js / jquery / ゲームエンジン構成法 のハイブリッドです.
   通常のゲームエンジンがターゲットとする canvas / webgl ではなく
-  あえて vue.js / jquery のように DOM を対象にすることで,
-  豊富な DOM 資源を活用することができます！
+  あえて vue.js / jquery のように I.$1 を対象にすることで,
+  豊富な I.$1 資源を活用することができます！
   例えばこのBox一つとっても,
   ブラウザの標準スクロールやcanvasのtextでは描画できないキレイな
   文字が見えるでしょう？？
   これはただのテキストですが後で見ていくように様々なwidgetを活用することができます！
   `.replace(/\n/g, "")
-  return new FitBox(p, { textAlign: "left", padding: 30 }).tree(p => {
-    new Text(p, text)
+  return new I.FitBox(p, { textAlign: "left", padding: 30 }).tree(p => {
+    new I.Text(p, text)
   })
 }
 
-function informationBox(p: Box, store: DataStore): Box {
-  return new FitBox(p, {
+function informationBox(p: I.Box, store: I.DataStore): I.Box {
+  return new I.FitBox(p, {
     textAlign: "center",
     fontSize: 30,
     padding: 30
   }).tree(p => {
-    new Text(p, "information box\n")
-    new Text(p, store.sec.to(x => "Frame : " + x + "\n"), { color: "#afb" })
-    new Text(p, store.pressedKey.to(x => "Key : " + x + "\n"), { color: "#afb" })
-    new Text(p, store.event.to(x => "Mouse : " + x + "\n"), { color: "#afb" })
-    new FAIcon(p, "faIgloo", { color: Color.parse("#fab") })
-    new Spinner(p)
-    new Spinner(p, { type: "grow" })
-    new Text(p, "\n")
-    new Text(p, store.pressedKey, { href: store.pressedKey })
+    new I.Text(p, "information box\n")
+    new I.Text(p, store.sec.to(x => "Frame : " + x + "\n"), { color: "#afb" })
+    new I.Text(p, store.pressedKey.to(x => "Key : " + x + "\n"), { color: "#afb" })
+    new I.Text(p, store.event.to(x => "Mouse : " + x + "\n"), { color: "#afb" })
+    new FAIcon(p, "faIgloo", { color: I.Color.parse("#fab") })
+    new I.Spinner(p)
+    new I.Spinner(p, { type: "grow" })
+    new I.Text(p, "\n")
+    new I.Text(p, store.pressedKey, { href: store.pressedKey })
   }).on("mouseover", () => { store.event.set("mouseover") })
     .on("mouseout", () => { store.event.set("mouseout") })
     .on("mousemove", () => { store.event.set("mousemove") })
 }
-function flexBoxInputTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
-  return new FlexBox(p, {
+function flexBoxInputTest(p: I.Box, store: I.DataStore, colorScheme: I.ColorScheme): I.Box {
+  return new I.FlexBox(p, {
     flexDirection: "column",
     alignItems: "flex-start",
     padding: 20,
   }).tree(p => {
-    new Text(p, "Input with flexBox\n", {})
-    function create(type: InputType, option: InputOption) {
-      let input = toStore("")
-      return new Input(p, {
+    new I.Text(p, "I.Input with flexBox\n", {})
+    function create(type: I.InputType, option: I.InputOption) {
+      let input = I.toStore("")
+      return new I.Input(p, {
         type: type,
         ...option,
         label: input.to(x => type + " -> " + x)
       }, { colorScheme: colorScheme }).assign(input)
     }
     create("text", { placeholder: "reactive input here" }).assign(store.inputted)
-    let preLabel = toStore("")
+    let preLabel = I.toStore("")
     create("text", { prependLabel: preLabel }).assign(preLabel)
-    let valid = toStore(true)
+    let valid = I.toStore(true)
     create("text", { prependLabel: "size < 4", valid: valid }).value.regist(x => valid.set(x.length < 4))
     create("select", { options: ["ro", "ro", "to", "ro"] })
     create("select", { options: ["ro", "ro", "to", "ro"], multiple: true })
     create("text", { placeholder: "readonly", readonly: true }).assign(store.inputted)
-    let inputTypes: InputType[] = [
+    let inputTypes: I.InputType[] = [
       "password", "color", "range",
       "checkbox", "file", "time",
       "date", "email",
@@ -81,54 +71,54 @@ function flexBoxInputTest(p: Box, store: DataStore, colorScheme: ColorScheme): B
       "url", "radio", "number",
     ]
     for (let s of inputTypes) create(s, {})
-    new Input(p, { placeholder: "normal text" }, { colorScheme: colorScheme })
-    new Input(p, { placeholder: "dontFit" }, { colorScheme: colorScheme, dontFitWidth: true })
-    new Input(p, { placeholder: "dontFit", label: "dontFit" }, { colorScheme: colorScheme, dontFitWidth: true })
+    new I.Input(p, { placeholder: "normal text" }, { colorScheme: colorScheme })
+    new I.Input(p, { placeholder: "dontFit" }, { colorScheme: colorScheme, dontFitWidth: true })
+    new I.Input(p, { placeholder: "dontFit", label: "dontFit" }, { colorScheme: colorScheme, dontFitWidth: true })
   });
 }
-function flexBoxMediaTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
-  return new FlexBox(p, {
+function flexBoxMediaTest(p: I.Box, store: I.DataStore, colorScheme: I.ColorScheme): I.Box {
+  return new I.FlexBox(p, {
     flexDirection: "column",
     alignItems: "flex-start",
     padding: 20,
   }).tree(p => {
-    new Text(p, store.sec.to(x => `Media With FlexBox  : ${x % 100}%`), {})
-    new ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 1, withLabel: false }, 100)
-    new Text(p, "striped", {})
-    new ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 10, withLabel: false, striped: true }, 100)
-    new Text(p, "display percentage", {})
-    new ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 20, withLabel: true }, 100)
-    new Text(p, "custom color", {})
-    new ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 30, withLabel: true, colorScheme, striped: true }, 100)
-    new HR(p)
-    new DOM(p).tree(p => {
-      new Badge(p, "Badge:", { label: store.pressedKey, href: store.pressedKey, modifier: "primary" })
-      tooltip(new Badge(p, "Badge:", { pill: true, label: store.pressedKey, href: store.pressedKey, modifier: "warning" })
+    new I.Text(p, store.sec.to(x => `Media With I.FlexBox  : ${x % 100}%`), {})
+    new I.ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 1, withLabel: false }, 100)
+    new I.Text(p, "striped", {})
+    new I.ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 10, withLabel: false, striped: true }, 100)
+    new I.Text(p, "display percentage", {})
+    new I.ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 20, withLabel: true }, 100)
+    new I.Text(p, "custom color", {})
+    new I.ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 30, withLabel: true, colorScheme, striped: true }, 100)
+    new I.HR(p)
+    new I.DOM(p).tree(p => {
+      new I.Badge(p, "Badge:", { label: store.pressedKey, href: store.pressedKey, modifier: "primary" })
+      I.tooltip(new I.Badge(p, "Badge:", { pill: true, label: store.pressedKey, href: store.pressedKey, modifier: "warning" })
         , "tooltip", "right")
     })
-    new Alert(p).tree(p => {
-      new Text(p, "current link is ")
-      new Text(p, store.pressedKey, { href: store.pressedKey })
-      new Text(p, "!!!")
-      new HR(p)
-      new Text(p, "current link is ")
-      new Text(p, store.pressedKey, { href: store.pressedKey })
-      new Text(p, "!!!")
+    new I.Alert(p).tree(p => {
+      new I.Text(p, "current link is ")
+      new I.Text(p, store.pressedKey, { href: store.pressedKey })
+      new I.Text(p, "!!!")
+      new I.HR(p)
+      new I.Text(p, "current link is ")
+      new I.Text(p, store.pressedKey, { href: store.pressedKey })
+      new I.Text(p, "!!!")
     })
   })
 }
 
-function tableTest(p: Box, store: DataStore): Box {
-  return new FlexBox(p, {
+function tableTest(p: I.Box, store: I.DataStore): I.Box {
+  return new I.FlexBox(p, {
     flexDirection: "column",
     alignItems: "flex-start",
     padding: 20,
   }).tree(p => {
-    new Table(p, {}, (x, y) => {
-      if (y % 2 === 0) return { colorScheme: new ColorScheme("#cdf", "#222222bb", "#abd") }
+    new I.Table(p, {}, (x, y) => {
+      if (y % 2 === 0) return { colorScheme: new I.ColorScheme("#cdf", "#222222bb", "#abd") }
       return {}
     }).addContents([
-      ["Table", "Test", "Box"],
+      ["Table", "Test", "I.Box"],
       ["please", "mouse", "hover"],
       [store.event, store.event, store.event],
       [store.event, store.event, store.event],
@@ -147,34 +137,34 @@ function tableTest(p: Box, store: DataStore): Box {
       .on("mousemove", () => { store.event.set("mousemove") })
   });
 }
-function iframeTest(p: Box, store: DataStore): Box {
-  return new FitBox(p, {
+function iframeTest(p: I.Box, store: I.DataStore): I.Box {
+  return new I.FitBox(p, {
     padding: 20,
   }).tree(p => {
-    new Text(p, "iframe Test Box\n", {})
-    new IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html", height: p.height * 0.7 })
+    new I.Text(p, "iframe Test I.Box\n", {})
+    new I.IFrame(p, { src: "https://www.openstreetmap.org/export/embed.html", height: p.height * 0.7 })
   });
 }
-function markdownTest(p: Box, colorScheme: ColorScheme): Box {
-  return new FitBox(p, {
+function markdownTest(p: I.Box, colorScheme: I.ColorScheme): I.Box {
+  return new I.FitBox(p, {
     padding: 20,
   }).tree(p => {
-    let text = new Input(p, { type: "textarea", label: "realtime markdown" }, { colorScheme: colorScheme }).value
+    let text = new I.Input(p, { type: "textarea", label: "realtime markdown" }, { colorScheme: colorScheme }).value
     new MarkDown(p, text)
   });
 }
-function katexTest(p: Box, colorScheme: ColorScheme): Box {
-  return new FitBox(p, {
+function katexTest(p: I.Box, colorScheme: I.ColorScheme): I.Box {
+  return new I.FitBox(p, {
     padding: 20,
   }).tree(p => {
-    new Text(p, "realtime katex")
-    let text = new Input(p, { type: "textarea" }, { colorScheme: colorScheme }).value
+    new I.Text(p, "realtime katex")
+    let text = new I.Input(p, { type: "textarea" }, { colorScheme: colorScheme }).value
     new Katex(p, text)
   });
 }
-function movableBottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
+function movableBottomTest(p: I.Box, store: I.DataStore, colorScheme: I.ColorScheme): I.Box {
   // TODO: show FPS
-  return new Box(p, {
+  return new I.Box(p, {
     fit: { x: "right", y: "bottom" },
     height: p.height * 0.3,
     width: p.width * 0.45,
@@ -183,7 +173,7 @@ function movableBottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): 
     fontSize: 40,
     border: { width: 5, style: "solid", radius: 15 },
   }).tree(p => {
-    new Text(p, "クリックすると動き出すやで")
+    new I.Text(p, "クリックすると動き出すやで")
   }).on("click", function () {
     this
       .to({ fit: { x: "right", y: "center" }, }, 0.5)
@@ -196,9 +186,9 @@ function movableBottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): 
       .next({ fit: { x: "right", y: "bottom" } }, 0.5)
   })//.toRelativeOnHover({ scale: 0.8 }, 0.5)
 }
-function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
+function bottomTest(p: I.Box, store: I.DataStore, colorScheme: I.ColorScheme): I.Box {
   // TODO: show FPS
-  let result = new Box(p, {
+  let result = new I.Box(p, {
     fit: { x: "left", y: "bottom" },
     height: p.height * 0.3,
     width: p.width * 0.45,
@@ -207,25 +197,25 @@ function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
     fontSize: 40,
     border: { width: 5, style: "solid", radius: 15 },
   }).tree(p => {
-    new Text(p, "ドラッグアンドドロップできるやで")
+    new I.Text(p, "ドラッグアンドドロップできるやで")
   }).onDrag(function (x, y) {
     this.x = x;
     this.y = y;
   })
-  popover(result, "iikanji ", "これが Pop over ってやつやで", "top")
+  I.popover(result, "iikanji ", "これが Pop over ってやつやで", "top")
   return result
 }
 
-export function threeBoxSampleScene(scene: Scene) {
+export function threeBoxSampleScene(scene: I.Scene) {
   let store = {
-    inputted: toStore(""),
+    inputted: I.toStore(""),
     sec: scene.perFrame(1),
-    pressedKey: toStore(""),
-    event: toStore(""),
-    posX: toStore(0)
+    pressedKey: I.toStore(""),
+    event: I.toStore(""),
+    posX: I.toStore(0)
   }
-  let colorScheme = new ColorScheme("#222222bb", "#cdf", "#abd")
-  let loopView = new ThreeLoopView(scene,
+  let colorScheme = new I.ColorScheme("#222222bb", "#cdf", "#abd")
+  let loopView = new I.ThreeLoopView(scene,
     {
       height: scene.height * 0.7,
       fit: { x: "center", y: "top" },
@@ -237,7 +227,7 @@ export function threeBoxSampleScene(scene: Scene) {
       p => helloBox(p, store),
       p => informationBox(p, store),
       p => flexBoxInputTest(p, store, colorScheme),
-      p => flexBoxMediaTest(p, store, new ColorScheme("#222222bb", "#abd", "#238")),
+      p => flexBoxMediaTest(p, store, new I.ColorScheme("#222222bb", "#abd", "#238")),
       p => markdownTest(p, colorScheme),
       p => katexTest(p, colorScheme),
       p => tableTest(p, store),

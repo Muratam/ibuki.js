@@ -1,5 +1,4 @@
-import { DOM, DOMOption, BoxOption } from "../../core/dom";
-import { MayStore } from "../../core/store";
+import { DOM, DOMOption, BoxOption, MayStore } from "..";
 let katexTranslater = require("katex")
 
 export class Katex extends DOM {

@@ -1,5 +1,4 @@
-import { DOM, DOMOption, BoxOption } from "../../core/dom";
-import { MayStore } from "../../core/store";
+import { DOM, DOMOption, BoxOption, MayStore } from "..";
 let markdownTranslater = require("markdown").markdown;
 
 export class MarkDown extends DOM {
