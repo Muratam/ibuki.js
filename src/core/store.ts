@@ -41,8 +41,7 @@ export class Store<T extends Primitive> {
     this.regist((now: T) => { dst.set(now) })
   }
   to<S extends Primitive>(func: (t: T) => S): Store<S> {
-    let currentComputed = func(this.data);
-    let result = new Store<S>(currentComputed);
+    let result = new Store<S>(func(this.data));
     this.regist(t => { result.set(func(t)) })
     return result
   }

@@ -66,6 +66,11 @@ export class HR extends DOM {
     super(parent, { tag: "hr" })
   }
 }
+export class BR extends DOM {
+  constructor(parent: DOM) {
+    super(parent, { tag: "br" })
+  }
+}
 
 export function tooltip(me: DOM, text: string, placement: Placement = "top") {
   me.$dom.setAttribute("data-toggle", "tooltip")

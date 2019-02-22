@@ -28,9 +28,13 @@ function informationBox(p: I.Box, store: I.DataStore): I.Box {
     padding: 30
   }).tree(p => {
     new I.Text(p, "information box\n")
-    new I.Text(p, store.sec.to(x => "Frame : " + x + "\n"), { color: "#afb" })
-    new I.Text(p, store.pressedKey.to(x => "Key : " + x + "\n"), { color: "#afb" })
-    new I.Text(p, store.event.to(x => "Mouse : " + x + "\n"), { color: "#afb" })
+    // 改行を含めたtoがやばい
+    new I.Text(p, store.sec.to(x => `Frame : ${x} `), { color: "#afb" })
+    new I.BR(p)
+    new I.Text(p, store.pressedKey.to(x => `Key :  ${x} `), { color: "#afb" })
+    new I.BR(p)
+    new I.Text(p, store.event.to(x => `Mouse : ${x}  `), { color: "#afb" })
+    new I.BR(p)
     new FAIcon(p, "faIgloo", { color: I.Color.parse("#fab") })
     new I.Spinner(p)
     new I.Spinner(p, { type: "grow" })
@@ -233,6 +237,7 @@ export function threeBoxSampleScene(scene: I.Scene) {
       p => katexTest(p, colorScheme),
       p => tableTest(p, store),
       p => iframeTest(p, store),
+
     ])
   movableBottomTest(scene, store, colorScheme)
   bottomTest(scene, store, colorScheme)

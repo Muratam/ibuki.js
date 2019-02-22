@@ -192,6 +192,7 @@ export class Text extends DOM implements HasValue<string> {
     this.$text = val.replace(" ", '\u00a0');
     this.$dom.innerText = this.$text;
   }
+  // text には改行をいれたStoreを含めないこと(DOMGCが増えてパフォーマンスがかなり落ちる)
   constructor(parent: DOM, text: MayStore<string>, option: TextOption = {}) {
     super(parent, { ...option, tag: option.href ? "a" : "span" })
     Store.regist(text, t => this.value = t)
