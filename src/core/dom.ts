@@ -68,6 +68,7 @@ export interface BoxOption extends DOMOption {
   height?: number // null なら親と同じ
   rotate?: number
   scale?: number  // | Vec2
+  state?: string
 }
 // implements
 // 一番の基本要素,各々がちょうど一つのdomに対応する.
@@ -237,32 +238,54 @@ function fillTransition(base: Transition): Transition {
       duration: 1,
       timingFunction: "ease",
       delay: 0
-    }, ...base,
+    }, ...(base === undefined ? {} : base),
   }
 }
 export class Box extends DOM implements Transform {
-  $width: number = undefined;
+  private $width: number = undefined;
   private needUpdate = false
   public get width(): number { return this.$width }
   public set width(val: number) { this.$width = val; this.needUpdate = true; }
-  $height: number = undefined;
+  private $height: number = undefined;
   public get height(): number { return this.$height }
   public set height(val: number) { this.$height = val; this.needUpdate = true; }
-  $x: number = 0;
+  private $x: number = 0;
   public get x(): number { return this.$x }
   public set x(val: number) { this.$x = val; this.needUpdate = true; }
-  $y: number = 0;
+  private $y: number = 0;
   public get y(): number { return this.$y }
   public set y(val: number) { this.$y = val; this.needUpdate = true; }
-  $scale: number = 1;
+  private $scale: number = 1;
   public get scale(): number { return this.$scale }
   public set scale(val: number) { this.$scale = val; this.needUpdate = true; }
-  $rotate: number = 0;
+  private $rotate: number = 0;
   public get rotate(): number { return this.$rotate }
   public set rotate(val: number) { this.$rotate = val; this.needUpdate = true; }
-  colorScheme: ColorScheme = undefined
-  filter: CSS.Filter = undefined
-  zIndex: number = 0
+  private $colorScheme: ColorScheme = undefined
+  public get colorScheme(): ColorScheme {
+    // if (this.$colorScheme !== undefined)
+    return this.$colorScheme
+    // if (!this.$parent) return new ColorScheme()
+    // return this.$parent.colorScheme
+  }
+  public set colorScheme(val: ColorScheme) { this.$colorScheme = val; this.needUpdate = true; }
+  private $filter: CSS.Filter = undefined
+  public get filter(): CSS.Filter {
+    // if (this.$filter !== undefined)
+    return this.$filter
+    // if (!this.$parent) return new CSS.Filter({})
+    // return this.$parent.filter
+  }
+  public set filter(val: CSS.Filter) { this.$filter = val; this.needUpdate = true; }
+  private $zIndex: number = undefined
+  public get zIndex(): number {
+    // if (this.$zIndex !== undefined)
+    return this.$zIndex
+    // if (!this.$parent) return 0
+    // return this.$parent.zIndex
+  }
+  public set zIndex(val: number) { this.$zIndex = val; this.needUpdate = true; }
+
   private keys = ["x", "y", "scale", "width", "height", "rotate", "colorScheme", "filter", "zIndex"]
 
   public get contentWidth(): number {
@@ -296,7 +319,7 @@ export class Box extends DOM implements Transform {
   }
   // option を読み込み,自身に(上書きができれば)適応
   // transition もするが,複数のtransitionを行うと不整合になる可能性がある.
-  applyOption(option: BoxOption, transition: Transition = undefined) {
+  public applyOption(option: BoxOption, transition: Transition = undefined) {
     let style = this.parseBoxOption(option)
     this.setValues(style)
     style = { ...style, ...this.parseBoxOption(this.getValues()) } // percent適応値で上書き
@@ -383,6 +406,7 @@ export class Box extends DOM implements Transform {
     if (style.colorScheme) this.colorScheme = new ColorScheme(style.colorScheme)
     if (style.filter) this.filter = style.filter
     if (style.zIndex) this.zIndex = style.zIndex
+    if (style.state) this.state = style.state
   }
   private getValues(): BoxOption {
     let result: BoxOption = {}
@@ -411,13 +435,11 @@ export class Box extends DOM implements Transform {
     return style
   }
   onDrag(fun: (this: this, x: number, y: number) => any) {
-    // WARN: いっぱい登録すると重そう / タッチ未対応 / regist <-> remove できるようにしたい
     let dragStartMyX = 0
     let dragStartMyY = 0
     let dragStartMouseX = 0;
     let dragStartMouseY = 0;
     let dragState = 0
-    // this.$dom.onselect = e => false
     let dragStart = (e) => {
       dragStartMyX = this.x
       dragStartMyY = this.y
@@ -434,12 +456,8 @@ export class Box extends DOM implements Transform {
       dragState = 0;
       this.applyStyle({ userSelect: "auto" })
     }
-    this.on("mouseover", () => {
-      this.$dom.style.cursor = "pointer"
-    })
-    this.on("mouseout", () => {
-      this.$dom.style.cursor = "default"
-    })
+    this.on("mouseover", () => { this.$dom.style.cursor = "pointer" })
+    this.on("mouseout", () => { this.$dom.style.cursor = "default" })
     this.$dom.addEventListener("mousedown", dragStart)
     this.$dom.addEventListener("touchstart", dragStart)
     document.body.addEventListener("mousemove", dragging)
@@ -451,59 +469,50 @@ export class Box extends DOM implements Transform {
     return this
   }
 
-
+  public state = ""
   private callBacks: { [key: number]: () => any } = {}
   private transitionMaxId = 0
   // すぐに値を変更する(with transition)
   // transform : translate scale rotate を独立に変更することはできない.
   // すなわち,今のtransitionを破壊的に変更するか,終了を待ってtransitionするか,しかない
-  to(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, id: number = null) {
+  to(option: BoxOption, transition: Transition = undefined, id: number = null) {
     // 構築された最初のフレームでは無効なので
     if (this.frame === 0) {
-      this.$scene.reserveExecuteNextFrame(() => {
-        this.to(option, duration, timingFunction, delay)
-      })
+      this.$scene.reserveExecuteNextFrame(() => { this.to(option, transition) })
       return
     }
-    this.applyOption(option, { duration, timingFunction, delay })
+    this.applyOption(option, transition)
     if (id === null) {
       this.transitionMaxId++;
       id = this.transitionMaxId;
     }
+    let { duration } = fillTransition(transition)
     this.update(milliSec => {
-      if (milliSec / 1000.0 >= duration) {
-        if (this.callBacks[id]) {
-          this.callBacks[id]()
-          delete this.callBacks[id]
-        }
-        return false;
-      }
-      return true;
+      if (milliSec / 1000.0 < duration) return true
+      if (!this.callBacks[id]) return false
+      this.callBacks[id]()
+      delete this.callBacks[id]
     })
     return this
   }
   // 最後に登録した to / next が 終わってから発火する
-  next(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0) {
+  next(option: BoxOption, transition: Transition = undefined) {
     // 構築された最初のフレームでは無効なので
     if (this.frame === 0) {
-      this.$scene.reserveExecuteNextFrame(() => {
-        this.next(option, duration, timingFunction, delay)
-      })
+      this.$scene.reserveExecuteNextFrame(() => { this.next(option, transition) })
       return
     }
     this.transitionMaxId++;
     let id = this.transitionMaxId
     if (!this.callBacks[id - 1]) {
-      this.callBacks[id - 1] = () => {
-        this.to(option, duration, timingFunction, delay, id)
-      }
+      this.callBacks[id - 1] = () => { this.to(option, transition, id) }
     } else console.assert("illegal transition maxid")
     return this
   }
   // 複数の toRelativeを適応すると既存設定値も消される.
-  toRelative(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0) {
+  toRelative(option: BoxOption, transition: Transition = undefined) {
     this.setPercentages(option)
-    this.to({}, duration, timingFunction, delay)
+    this.to({}, transition)
   }
   private stopped: { [key: number]: boolean } = {}
   endRepeat(id: number) { this.stopped[id] = true }
@@ -512,30 +521,32 @@ export class Box extends DOM implements Transform {
     this.stopped[id] = false
   }
   private playMaxId = 0
-  repeatRelative(destination: BoxOption | BoxOption[], insertBaseState = true, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity, allowEndDstState = false): number {
+  repeatRelative(destination: BoxOption | BoxOption[], insertBaseState = true, transition: Transition = undefined, iterationCount = Infinity, allowEndDstState = false, state: string = ""): number {
     // percentage
     let dst: BoxOption[] = destination instanceof Array ? destination : [destination];
+    let { duration } = fillTransition(transition)
     let per = Math.floor(duration * 60) || 1
-    let state = 1
+    let lv = 1
     let itcnt = 0;
     let id = this.playMaxId
     this.playMaxId++
     let i = 0
     this.update(() => {
       if (this.stopped[id]) {
-        if (allowEndDstState || state === 0) {
+        if (allowEndDstState || lv === 0) {
           i = 0;
           return;
         }
       }
+      if (i === 0 && state && state === this.state) return
       if (i % per !== 0) {
         i++;
         return;
       }
       i++;
-      state = (state + 1) % (1 + dst.length)
-      if (state === 0 && !insertBaseState) state = 1;
-      this.toRelative(state === 0 ? {} : dst[state - 1])
+      lv = (lv + 1) % (1 + dst.length)
+      if (lv === 0 && !insertBaseState) lv = 1;
+      this.toRelative(lv === 0 ? {} : dst[lv - 1], transition)
       itcnt++;
       if (itcnt === iterationCount) {
         itcnt = 0
@@ -547,12 +558,13 @@ export class Box extends DOM implements Transform {
     return id
   }
   // ある状態のときだけとかできるように
-  repeatRelativeOnHover(destination: BoxOption | BoxOption[], insertBaseState = true, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
+  repeatRelativeOnHover(destination: BoxOption | BoxOption[], insertBaseState = true, transition: Transition = undefined, iterationCount = Infinity, state: string = "") {
     let id = null;
     this.on("mouseover", () => {
+      if (state && this.state !== state) return
       this.$dom.style.cursor = "pointer"
       if (id !== null) this.restartRepeat(id)
-      else id = this.repeatRelative(destination, insertBaseState, duration, timingFunction, delay, iterationCount)
+      else id = this.repeatRelative(destination, insertBaseState, transition, iterationCount)
     })
     this.on("mouseout", () => {
       this.$dom.style.cursor = "default"
@@ -560,14 +572,15 @@ export class Box extends DOM implements Transform {
     })
     return this
   }
-  toRelativeOnHover(option: BoxOption, duration = 1, timingFunction: TimingFunction = "ease", delay = 0, iterationCount = Infinity) {
+  toRelativeOnHover(option: BoxOption, transition: Transition = undefined, state: string = "") {
     this.on("mouseover", () => {
+      if (state && this.state !== state) return
       this.$dom.style.cursor = "pointer"
-      this.toRelative(option, duration, timingFunction, delay)
+      this.toRelative(option, transition)
     })
     this.on("mouseout", () => {
       this.$dom.style.cursor = "default"
-      this.toRelative({}, duration, timingFunction, delay)
+      this.toRelative({}, transition)
     })
     return this
   }

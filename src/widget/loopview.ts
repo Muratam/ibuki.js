@@ -24,6 +24,7 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
       }),
       fit: { x: "left", y: "center" },
       zIndex: 100,
+      state: "back"
     }, {
       scale: 1.0,
       fit: { x: "center", y: "center" },
@@ -32,6 +33,7 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
         dropShadow: { x: 5, y: 5, blur: 10, color: "gray" }
       }),
       zIndex: 200,
+      state: "fore"
     }, {
       scale: 0.5,
       fit: { x: "right", y: "center" },
@@ -40,6 +42,7 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
         dropShadow: { x: 5, y: 5, blur: 10, color: "gray" },
       }),
       zIndex: 100,
+      state: "back"
     }, {
       scale: 0.2,
       fit: { x: "center", y: "center" },
@@ -48,6 +51,7 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
         dropShadow: { x: 5, y: 5, blur: 10, color: "gray" },
       }),
       zIndex: 0,
+      state: "back"
     },]
     this.childrenInitialOption = childrenInitialOption;
   }
@@ -63,7 +67,7 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
       ...option,
       ...this.childrenInitialOption,
       isScrollable: true,
-    }).toRelativeOnHover({ scale: 1.02, rotate: 0.1 }, 0.5)
+    }).toRelativeOnHover({ scale: 1.02, rotate: 0.1 }, { duration: 0.5 }, "fore")
     seed(box)
     this.boxes.push(box)
     return this
@@ -77,7 +81,8 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
       let preIndex = (i + pre) % this.boxes.length
       if (index >= this.tops.length - 1 && preIndex >= this.tops.length - 1) continue
       let option = index < this.tops.length - 1 ? this.tops[index] : this.tops[this.tops.length - 1]
-      this.boxes[i].to(option, 0.5)
+      if (index === 1) this.boxes[i].state = "fore"
+      this.boxes[i].to(option, { duration: 0.5 })
     }
     this.value.set(this.$count)
     return this

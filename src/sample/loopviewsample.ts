@@ -175,16 +175,17 @@ function movableBottomTest(p: I.Box, store: I.DataStore, colorScheme: I.ColorSch
   }).tree(p => {
     new I.Text(p, "クリックすると動き出すやで")
   }).on("click", function () {
+    let tr = { duration: 0.5 }
     this
-      .to({ fit: { x: "right", y: "center" }, }, 0.5)
-      .next({ fit: { x: "right", y: "top" } }, 0.5)
-      .next({ fit: { x: "center", y: "top" } }, 0.5)
-      .next({ fit: { x: "left", y: "top" } }, 0.5)
-      .next({ fit: { x: "left", y: "center" }, }, 0.5)
-      .next({ fit: { x: "left", y: "bottom" }, }, 0.5)
-      .next({ fit: { x: "center", y: "bottom" } }, 0.5)
-      .next({ fit: { x: "right", y: "bottom" } }, 0.5)
-  })//.toRelativeOnHover({ scale: 0.8 }, 0.5)
+      .to({ fit: { x: "right", y: "center" }, }, tr)
+      .next({ fit: { x: "right", y: "top" } }, tr)
+      .next({ fit: { x: "center", y: "top" } }, tr)
+      .next({ fit: { x: "left", y: "top" } }, tr)
+      .next({ fit: { x: "left", y: "center" }, }, tr)
+      .next({ fit: { x: "left", y: "bottom" }, }, tr)
+      .next({ fit: { x: "center", y: "bottom" } }, tr)
+      .next({ fit: { x: "right", y: "bottom" } }, tr)
+  }).toRelativeOnHover({ scale: 0.8 })
 }
 function bottomTest(p: I.Box, store: I.DataStore, colorScheme: I.ColorScheme): I.Box {
   // TODO: show FPS
@@ -197,7 +198,7 @@ function bottomTest(p: I.Box, store: I.DataStore, colorScheme: I.ColorScheme): I
     fontSize: 40,
     border: { width: 5, style: "solid", radius: 15 },
   }).tree(p => {
-    new I.Text(p, "ドラッグアンドドロップできるやで")
+    new I.Text(p, "ドラッグできるやで")
   }).onDrag(function (x, y) {
     this.x = x;
     this.y = y;
