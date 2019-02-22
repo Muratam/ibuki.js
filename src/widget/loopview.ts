@@ -1,7 +1,7 @@
-import { Box, BoxOption, Seed } from "../core/dom";
-import { Store, HasStoreValueWidgetInterface } from "../core/store"
+import { Box, BoxOption } from "../core/dom";
+import { Store, HasStoreValue } from "../core/store"
 import * as CSS from "../core/style"
-export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<number> {
+export class ThreeLoopView extends Box implements HasStoreValue<number> {
   value = new Store<number>(0)
   private $count = 0
   assign(dst: Store<number>) {
@@ -22,37 +22,36 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
         blur: 5,
         dropShadow: { x: 5, y: 5, blur: 10, color: "gray" },
       }),
-      x: -this.width * 0.3,
-      y: 0,
-      zIndex: 1,
+      fit: { x: "left", y: "center" },
+      zIndex: 100,
     }, {
       scale: 1.0,
-      x: 0,
-      y: 0,
+      fit: { x: "center", y: "center" },
       filter: new CSS.Filter({
         blur: 0,
         dropShadow: { x: 5, y: 5, blur: 10, color: "gray" }
       }),
-      zIndex: 2,
+      zIndex: 200,
     }, {
       scale: 0.5,
-      x: this.width * 0.3,
-      y: 0,
+      fit: { x: "right", y: "center" },
       filter: new CSS.Filter({
         blur: 5,
         dropShadow: { x: 5, y: 5, blur: 10, color: "gray" },
       }),
-      zIndex: 1,
+      zIndex: 100,
     }, {
       scale: 0.2,
-      x: 0,
-      y: 0,
-      filter: new CSS.Filter({ blur: 5 }),
+      fit: { x: "center", y: "center" },
+      filter: new CSS.Filter({
+        blur: 5,
+        dropShadow: { x: 5, y: 5, blur: 10, color: "gray" },
+      }),
       zIndex: 0,
     },]
     this.childrenInitialOption = childrenInitialOption;
   }
-  add(seed: Seed<Box> | Seed<Box>[]) {
+  add(seed: ((p: Box) => Box) | ((p: Box) => Box)[]) {
     if (seed instanceof Array) {
       for (let s of seed) this.add(s)
       return this
@@ -64,7 +63,7 @@ export class ThreeLoopView extends Box implements HasStoreValueWidgetInterface<n
       ...option,
       ...this.childrenInitialOption,
       isScrollable: true,
-    }).toRelativeOnHover({ scale: 1.02, rotate: 5 }, 0.5)
+    }).toRelativeOnHover({ scale: 1.02, rotate: 0.1 }, 0.5)
     seed(box)
     this.boxes.push(box)
     return this

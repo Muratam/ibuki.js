@@ -1,15 +1,10 @@
-import { Store, MayStore, assign } from "./store"
-
-export interface AnyStyle { [key: string]: any }
-export interface Style { [key: string]: string }
-export interface NumberStyle { [key: string]: number }
-
+export interface Style<T> { [key: string]: T }
 export interface CanTranslateCSS {
-  toCSS(): string
-  // multiply(target: CanTranslateCSS): CanTranslateCSS
+  toCSS(): string,
+  getProperties?(): string[]
 }
-export function toNormalizedStyle(style: AnyStyle): AnyStyle {
-  let result: AnyStyle = {}
+export function toNormalizedStyle(style: Style<any>): Style<any> {
+  let result: Style<any> = {}
   let isOK = false;
   for (let key in style) {
     let val = style[key]
@@ -26,9 +21,9 @@ export function toNormalizedStyle(style: AnyStyle): AnyStyle {
   if (!isOK) return {};
   return result
 }
-export function parse(style: AnyStyle): Style {
+export function parse(style: Style<any>): Style<any> {
   let flattened = toNormalizedStyle(style)
-  let result: Style = {}
+  let result: Style<string> = {}
   for (let key in flattened) {
     let val = flattened[key]
     if (typeof val === "number") {
@@ -41,26 +36,26 @@ export function parse(style: AnyStyle): Style {
   return result
 }
 
-export function flatten(style: Style): string {
+export function flatten(style: Style<string>): string {
   let result = "";
   for (let key in style) result += `${key}:${style[key]};`
   return result;
 }
 
 
-export class Transfrom implements CanTranslateCSS {
+export class TransformCSS implements CanTranslateCSS {
   y: number
   x: number
   scale: number
-  rotate: number
-  constructor(x: number, y: number, scale: number, rotate: number = 0) {
+  rotation: number
+  constructor(x: number, y: number, scale: number, rotation: number) {
     this.x = x
     this.y = y
     this.scale = scale
-    this.rotate = rotate
+    this.rotation = rotation
   }
   toCSS(): string {
-    return `translate(${Math.floor(this.x)}px,${Math.floor(this.y)}px) scale(${this.scale}) rotate(${Math.floor(this.rotate)}deg) `
+    return `translate(${Math.floor(this.x)}px,${Math.floor(this.y)}px) scale(${this.scale}) rotate(${100 * this.rotation}deg) `
   }
 }
 export interface FilterOption {
@@ -78,6 +73,23 @@ export interface FilterOption {
 export class Filter implements CanTranslateCSS {
   option: FilterOption
   constructor(option: FilterOption) { this.option = option; }
+  // o:src x:dst -> src のまま / 他は補完
+  complement(src: Filter, per: number): Filter {
+    let result = new Filter({ ...this.option })
+    for (let key in { ...(src ? src.option : {}), ...this.option }) {
+      if (key === "dropShadow") {
+        for (let k2 in this.option[key]) {
+          if (k2 === "color") result.option.dropShadow.color = this.option.dropShadow.color
+          else result.option.dropShadow[k2] =
+            this.option.dropShadow[k2] * per
+            + (1 - per) * (src && src.option ? src.option.dropShadow[k2] || 0 : 0)
+        }
+        continue
+      }
+      result.option[key] = this.option[key] * per + (1 - per) * (src && src.option ? src.option[key] || 0 : 0)
+    }
+    return result
+  }
   toCSS(): string {
     let result = ""
     if (this.option.blur) result += ` blur(${this.option.blur}px) `
@@ -95,3 +107,4 @@ export class Filter implements CanTranslateCSS {
     return result
   }
 }
+

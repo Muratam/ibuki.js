@@ -1,6 +1,5 @@
-import { Box, BoxOption, FitWidthDOM, FitWidthDOMOption, DOM, DOMOption } from "../core/dom";
-import { Text, TextSeed } from "./text"
-import { Store, HasStoreValueWidgetInterface } from "../core/store"
+import { FitWidthDOM, FitWidthDOMOption, DOM, Text, TextSeed } from "../core/dom";
+import { Store, HasStoreValue } from "../core/store"
 import { ColorScheme, Color } from "../core/color";
 export type InputType =
   "password" | "search" | "text" | "textarea" | "select" |
@@ -38,7 +37,7 @@ export interface InputOption {
   prependLabel?: TextSeed
   valid?: Store<boolean>
 }
-export class Input extends FitWidthDOM implements HasStoreValueWidgetInterface<string> {
+export class Input extends FitWidthDOM implements HasStoreValue<string> {
   value: Store<string>
   public readonly $dom: HTMLInputElement
   constructor(parent: DOM, inputAttributeOption: InputOption = {}, domOption: FitWidthDOMOption = {}) {
@@ -51,7 +50,7 @@ export class Input extends FitWidthDOM implements HasStoreValueWidgetInterface<s
     function createLabel(flag: boolean) {
       if (!inputAttributeOption.label) return;
       label = new DOM(formGroup, "label")
-      Text.bloom(label, inputAttributeOption.label)
+      label.bloom(inputAttributeOption.label)
     }
     if (!isSmallInputType) createLabel(false)
     if (inputAttributeOption.prependLabel) {
@@ -60,9 +59,9 @@ export class Input extends FitWidthDOM implements HasStoreValueWidgetInterface<s
         dontFitWidth: domOption.dontFitWidth
       })
       let prependLabel = new DOM(formGroup, { class: "input-group-prepend" })
-      let labelContent = Text.bloom(prependLabel, inputAttributeOption.prependLabel)
+      let labelContent = prependLabel.bloom(inputAttributeOption.prependLabel)
       labelContent.$dom.classList.add("input-group-text")
-      let c = ColorScheme.parseToColorScheme(domOption.colorScheme).addColor(Color.sub("#080808"))
+      let c = new ColorScheme(domOption.colorScheme).addColor(Color.sub("#080808"))
       labelContent.applyStyle(labelContent.parseDOMOption({ colorScheme: c }))
     }
     let option = {
@@ -135,32 +134,3 @@ export class Input extends FitWidthDOM implements HasStoreValueWidgetInterface<s
     this.setAttributes(option);
   }
 }
-
-/*
-export interface ButtonOption extends FitWidthDOMOption {
-
-}
-
-export class Button extends FitWidthDOM {
-  // <button class="btn btn-primary" type="submit">Button</button>
-  constructor(parent: DOM, option: ButtonOption = {}) {
-    super(parent, { tag: "button", class: ["btn", "btn-primary"], ...option })
-  }
-}
-
-export interface FormOption {
-  // TODO: with submit(button?)
-  action?: string
-  method?: "get" | "post"
-  "accept-charset"?: string
-  enctype?: "application/x-www-form-urlencoded" | "multipart/form-data" | "text/plain"
-  name?: string
-  target?: "_blank" | "_self" | "_parent" | "_top" | string
-}
-export class Form extends Box {
-  constructor(parent: Box, formOption: FormOption = {}, containerOption: BoxOption = {}) {
-    super(parent, { tag: "form", ...containerOption })
-    this.setAttributes(formOption)
-  }
-}
-*/

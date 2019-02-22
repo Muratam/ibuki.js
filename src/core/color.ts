@@ -35,6 +35,7 @@ export class Color implements CanTranslateCSS {
     }
     return "#" + tr(this.r) + tr(this.g) + tr(this.b) + tr(this.a);
   }
+
   addColor(c: Color | string): Color {
     if (typeof c === "string") c = Color.parse(c)
     return new Color(this.r + c.r, this.g + c.g, this.b + c.b, this.a + c.a)
@@ -82,12 +83,6 @@ export class ColorScheme implements CanTranslateCSS {
     if (colors.length === 1) return Color.parse(str)
     return new LinearGradient(colors.map(x => Color.parse(x)))
   }
-  static parseToColorScheme(color: Colors): ColorScheme {
-    if (color instanceof ColorScheme) return color
-    if (color instanceof LinearGradient) return new ColorScheme(color)
-    if (color instanceof Color) return new ColorScheme(color)
-    return new ColorScheme(color)
-  }
   addColor(color: Color | string): ColorScheme {
     if (typeof color === "string") color = Color.parse(color)
     return new ColorScheme(
@@ -96,14 +91,33 @@ export class ColorScheme implements CanTranslateCSS {
       this.accentColor.addColor(color))
   }
   constructor(baseColor: Colors = "#fff", mainColor: Colors = "#000", accentColor: Colors = "") {
+    if (baseColor instanceof ColorScheme) {
+      this.baseColor = baseColor.baseColor
+      this.mainColor = baseColor.mainColor
+      this.accentColor = baseColor.accentColor
+      return
+    }
     this.baseColor = ColorScheme.parse(baseColor)
     this.mainColor = ColorScheme.parse(mainColor)
     if (accentColor === "") this.accentColor = this.baseColor
     else this.accentColor = ColorScheme.parse(accentColor)
   }
-  multiply(target: CanTranslateCSS) {
-    console.assert(false, "not inplemented error @ multiply color scheme")
-    return this
+  // o:src x:dst -> src のまま / 他は補完
+  add(src: ColorScheme): ColorScheme {
+    let result = new ColorScheme(this)
+    for (let key in ["baseColor", "accentColor", "mainColor"]) {
+      if (src[key] instanceof LinearGradient || this[key] instanceof LinearGradient)
+        console.assert("LinearGradient is not suppoerted for animation...")
+      let a = src[key]
+      let b = this[key]
+      result[key] = new Color(
+        b.r + a.r,
+        b.g + a.g,
+        b.b + a.b,
+        b.a + a.a
+      )
+    }
+    return result
   }
   toCSS(): string { return this.baseColor.toCSS() }
 }

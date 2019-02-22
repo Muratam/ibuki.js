@@ -1,11 +1,11 @@
+
 import { Color, ColorScheme } from "../core/color";
-import { Box, DOM, Scene, FitWidthDOM } from "../core/dom";
-import { Text, Spinner, HR } from "../html/text";
+import { Box, FitBox, DOM, Scene, Text } from "../core/dom";
 import { Input, InputOption, InputType } from "../html/input"
 import { FlexBox, Table } from "../html/container"
 import { toStore, DataStore } from "../core/store"
-import { ProgressBar, IFrame, Image } from "../html/media";
-import { Alert, Badge } from "../html/notice"
+import { ProgressBar, IFrame } from "../html/media";
+import { Alert, Badge, Spinner, HR, popover, tooltip } from "../html/notice"
 import { FAIcon } from "../widget/external/faicon"
 import { MarkDown } from "../widget/external/markdown"
 import { Katex } from "../widget/external/katex"
@@ -26,13 +26,13 @@ function helloBox(p: Box, store: DataStore): Box {
   文字が見えるでしょう？？
   これはただのテキストですが後で見ていくように様々なwidgetを活用することができます！
   `.replace(/\n/g, "")
-  return new Box(p, { textAlign: "left", padding: 30 }).tree(p => {
+  return new FitBox(p, { textAlign: "left", padding: 30 }).tree(p => {
     new Text(p, text)
   })
 }
 
 function informationBox(p: Box, store: DataStore): Box {
-  return new Box(p, {
+  return new FitBox(p, {
     textAlign: "center",
     fontSize: 30,
     padding: 30
@@ -103,8 +103,8 @@ function flexBoxMediaTest(p: Box, store: DataStore, colorScheme: ColorScheme): B
     new HR(p)
     new DOM(p).tree(p => {
       new Badge(p, "Badge:", { label: store.pressedKey, href: store.pressedKey, modifier: "primary" })
-      new Badge(p, "Badge:", { pill: true, label: store.pressedKey, href: store.pressedKey, modifier: "warning" })
-        .tooltip("tooltip", "right")
+      tooltip(new Badge(p, "Badge:", { pill: true, label: store.pressedKey, href: store.pressedKey, modifier: "warning" })
+        , "tooltip", "right")
     })
     new Alert(p).tree(p => {
       new Text(p, "current link is ")
@@ -148,7 +148,7 @@ function tableTest(p: Box, store: DataStore): Box {
   });
 }
 function iframeTest(p: Box, store: DataStore): Box {
-  return new Box(p, {
+  return new FitBox(p, {
     padding: 20,
   }).tree(p => {
     new Text(p, "iframe Test Box\n", {})
@@ -156,7 +156,7 @@ function iframeTest(p: Box, store: DataStore): Box {
   });
 }
 function markdownTest(p: Box, colorScheme: ColorScheme): Box {
-  return new Box(p, {
+  return new FitBox(p, {
     padding: 20,
   }).tree(p => {
     let text = new Input(p, { type: "textarea", label: "realtime markdown" }, { colorScheme: colorScheme }).value
@@ -164,7 +164,7 @@ function markdownTest(p: Box, colorScheme: ColorScheme): Box {
   });
 }
 function katexTest(p: Box, colorScheme: ColorScheme): Box {
-  return new Box(p, {
+  return new FitBox(p, {
     padding: 20,
   }).tree(p => {
     new Text(p, "realtime katex")
@@ -194,23 +194,24 @@ function movableBottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): 
       .next({ fit: { x: "left", y: "bottom" }, }, 0.5)
       .next({ fit: { x: "center", y: "bottom" } }, 0.5)
       .next({ fit: { x: "right", y: "bottom" } }, 0.5)
-  }).toRelativeOnHover({ scale: 0.8 }, 0.5)
+  })//.toRelativeOnHover({ scale: 0.8 }, 0.5)
 }
 function bottomTest(p: Box, store: DataStore, colorScheme: ColorScheme): Box {
   // TODO: show FPS
-  return new Box(p, {
+  let result = new Box(p, {
     fit: { x: "left", y: "bottom" },
     height: p.height * 0.3,
     width: p.width * 0.45,
     colorScheme: colorScheme,
     padding: 20,
     fontSize: 40,
-    isDraggable:true,
+    isDraggable: true,
     border: { width: 5, style: "solid", radius: 15 },
   }).tree(p => {
     new Text(p, "ドラッグアンドドロップできるやで")
-  }).on("click", function () {
-  }).update(function () { }).popover("iikanji ", "これが Pop over ってやつやで", "top")
+  })
+  popover(result, "iikanji ", "これが Pop over ってやつやで", "top")
+  return result
 }
 
 export function threeBoxSampleScene(scene: Scene) {
@@ -222,10 +223,7 @@ export function threeBoxSampleScene(scene: Scene) {
     posX: toStore(0)
   }
   let colorScheme = new ColorScheme("#222222bb", "#cdf", "#abd")
-  let backGround = new Box(scene, {
-    colorScheme: new ColorScheme("#181818")
-  })
-  let loopView = new ThreeLoopView(backGround,
+  let loopView = new ThreeLoopView(scene,
     {
       height: scene.height * 0.7,
       fit: { x: "center", y: "top" },
@@ -234,7 +232,6 @@ export function threeBoxSampleScene(scene: Scene) {
       border: { width: 5, style: "solid", radius: 15 },
       fontFamily: "Menlo",
     }).add([
-      p => new Image(new Box(p, { padding: 20 }), { src: "https://sagisawa.0am.jp/me.jpg" }),
       p => helloBox(p, store),
       p => informationBox(p, store),
       p => flexBoxInputTest(p, store, colorScheme),
@@ -272,3 +269,4 @@ export function threeBoxSampleScene(scene: Scene) {
 
 // try
 // new World().play(scene => threeBoxSampleScene(scene, threeLoopViewStore))
+

@@ -5,7 +5,7 @@ import { Store } from "./store"
 export class GlobalCSS {
   private doms: HTMLStyleElement[] = []
   constructor() { }
-  regist(styles: { [key: string]: CSS.AnyStyle } | string) {
+  regist(styles: { [key: string]: CSS.Style<any> } | string) {
     let dom = document.createElement("style")
     dom.type = "text/css"
     let styleStr = typeof styles === "string" ? styles : "";
