@@ -42,7 +42,6 @@ export interface DOMOption {
   colorScheme?: Colors
   margin?: Rect | number
   padding?: Rect | number
-  opacity?: number
   border?: Border | BorderContentType
   fontSize?: number
   fontFamily?: string

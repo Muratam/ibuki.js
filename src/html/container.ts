@@ -9,9 +9,16 @@ export interface FlexBoxOption extends BoxOption {
 }
 
 export class FlexBox extends FitBox {
-  constructor(parent: Box, option: FlexBoxOption) {
+  constructor(parent: Box, option: FlexBoxOption = {}) {
     super(parent, option)
     this.applyStyle({ display: "flex" })
+  }
+  static column(parent: Box, option: FlexBoxOption = {}): FlexBox {
+    return new FlexBox(parent, {
+      flexDirection: "column",
+      alignItems: "flex-start",
+      ...option
+    })
   }
 }
 export interface TableOption extends BoxOption {

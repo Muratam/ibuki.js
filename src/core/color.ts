@@ -1,6 +1,6 @@
 import * as rgba from "color-rgba";
 import { CanTranslateCSS } from "./style"
-import * as ColorSchemeLib from "color-scheme";
+const ColorSchemeLib = require("color-scheme");
 function clamp(val: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.floor(val)));
 }
@@ -68,6 +68,7 @@ export class LinearGradient implements CanTranslateCSS {
   }
 }
 export type Colors = Color | LinearGradient | string | ColorScheme
+export type ColorSchemeVariationType = "default" | "soft" | "light" | "pastel" | "light" | "hard" | "pale"
 export class ColorScheme implements CanTranslateCSS {
   baseColor?: Color | LinearGradient // 70%
   mainColor?: Color | LinearGradient// 25%
@@ -82,6 +83,19 @@ export class ColorScheme implements CanTranslateCSS {
     let colors = str.split("-")
     if (colors.length === 1) return Color.parse(str)
     return new LinearGradient(colors.map(x => Color.parse(x)))
+  }
+  static fromHue(n: number, type: ColorSchemeVariationType = "default") {
+    let c = (new ColorSchemeLib)
+      .from_hue(n)
+      .scheme("mono").variation(type).colors()
+    return new ColorScheme("#" + c[2], "#" + c[1], "#" + c[0])
+  }
+  static from(colorStr: string, type: ColorSchemeVariationType = "default"): ColorScheme {
+    let color = Color.parse(colorStr).toCSS().substr(1, 6)
+    let c = (new ColorSchemeLib)
+      .from_hex(color)
+      .scheme("mono").variation(type).colors()
+    return new ColorScheme("#" + c[2], "#" + c[1], "#" + c[0])
   }
   addColor(color: Color | string): ColorScheme {
     if (typeof color === "string") color = Color.parse(color)
