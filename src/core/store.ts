@@ -1,5 +1,6 @@
 // 自分が変更すると自分に関わったものを全て変更させる
-export type Primitive = string | number | boolean
+export type PrimitiveElement = string | number | boolean
+export type Primitive = PrimitiveElement | PrimitiveElement[]
 export type DataStore = { [key: string]: Store<any> }
 export function toStore(s: string): Store<string>;
 export function toStore(s: number): Store<number>;
@@ -17,6 +18,7 @@ export class Store<T extends Primitive> {
     if (may instanceof Store) may.regist(func)
     else func(may)
   }
+  public getRaw(): T { return this.data }
   public get notLinkCreatedRawValue(): T { return this.data; }
   private registed: ((root: T) => any)[] = []
   constructor(initialValue: T) {

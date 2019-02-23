@@ -1,4 +1,4 @@
-import { DOM, DOMOption, Text, FitWidthDOM, FitWidthDOMOption, TextSeed, TextOption } from "../core/dom";
+import { Box, DOM, DOMOption, Text, FitWidthDOM, FitWidthDOMOption, TextSeed, TextOption, BoxOption } from "../core/dom";
 import { MayStore } from "../core/store";
 import { Placement } from "bootstrap";
 
@@ -69,6 +69,11 @@ export class HR extends DOM {
 export class BR extends DOM {
   constructor(parent: DOM) {
     super(parent, { tag: "br" })
+  }
+}
+export class PopUpBox extends Box {
+  constructor(parent: Box, option: BoxOption = {}) {
+    super(parent, option)
   }
 }
 

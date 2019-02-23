@@ -92,14 +92,14 @@ export class Filter implements CanTranslateCSS {
   }
   toCSS(): string {
     let result = ""
-    if (this.option.blur) result += ` blur(${this.option.blur}px) `
-    if (this.option.brightness) result += ` brightness(${this.option.brightness}) `
-    if (this.option.contrast) result += ` contrast(${this.option.contrast}) `
-    if (this.option.grayscale) result += ` grayscale(${this.option.grayscale}) `
-    if (this.option.hueRotate) result += ` hue-rotate(${this.option.hueRotate}deg) `
-    if (this.option.opacity) result += ` opacity(${this.option.opacity}) `
-    if (this.option.saturate) result += ` saturate(${this.option.saturate}) `
-    if (this.option.sepia) result += ` sepia(${this.option.sepia}) `
+    if (typeof this.option.blur === "number") result += ` blur(${this.option.blur}px) `
+    if (typeof this.option.brightness === "number") result += ` brightness(${this.option.brightness}) `
+    if (typeof this.option.contrast === "number") result += ` contrast(${this.option.contrast}) `
+    if (typeof this.option.grayscale === "number") result += ` grayscale(${this.option.grayscale}) `
+    if (typeof this.option.hueRotate === "number") result += ` hue-rotate(${this.option.hueRotate}deg) `
+    if (typeof this.option.opacity === "number") result += ` opacity(${this.option.opacity}) `
+    if (typeof this.option.saturate === "number") result += ` saturate(${this.option.saturate}) `
+    if (typeof this.option.sepia === "number") result += ` sepia(${this.option.sepia}) `
     if (this.option.dropShadow) {
       let s = this.option.dropShadow
       result += ` drop-shadow(${s.x}px ${s.y}px ${s.blur}px ${s.color}) `

@@ -63,6 +63,7 @@ export interface BoxOption extends DOMOption {
   x?: number
   y?: number
   fit?: FitType
+  isXYLeftTop?: boolean
   width?: number  // null なら親と同じ
   height?: number // null なら親と同じ
   rotate?: number
@@ -235,15 +236,15 @@ export interface Transition {
 function fillTransition(base: Transition): Transition {
   return {
     ...{
-      duration: 1,
+      duration: 0.5,
       timingFunction: "ease",
       delay: 0
     }, ...(base === undefined ? {} : base),
   }
 }
 export class Box extends DOM implements Transform {
-  private $width: number = undefined;
   private needUpdate = false
+  private $width: number = undefined;
   public get width(): number { return this.$width }
   public set width(val: number) { this.$width = val; this.needUpdate = true; }
   private $height: number = undefined;
@@ -366,6 +367,10 @@ export class Box extends DOM implements Transform {
         result.y = result.height / 2
       }
       delete result.fit
+    } else if (option.isXYLeftTop) {
+      result.x += result.width / 2
+      result.y += result.height / 2
+      delete result.isXYLeftTop
     }
     result.transform = new CSS.TransformCSS(result.x - result.width / 2, result.y - result.height / 2, result.scale, result.rotate)
     return this.parseDOMOption(result);
@@ -476,7 +481,7 @@ export class Box extends DOM implements Transform {
   // transform : translate scale rotate を独立に変更することはできない.
   // すなわち,今のtransitionを破壊的に変更するか,終了を待ってtransitionするか,しかない
   to(option: BoxOption, transition: Transition = undefined, id: number = null) {
-    // 構築された最初のフレームでは無効なので
+    // 構築された最初のフレームでも大丈夫なのと, next()を呼べる
     if (this.frame === 0) {
       this.$scene.reserveExecuteNextFrame(() => { this.to(option, transition) })
       return
@@ -584,7 +589,26 @@ export class Box extends DOM implements Transform {
     })
     return this
   }
-
+  hidden() {
+    this.to({ filter: new CSS.Filter({ opacity: 0 }) })
+    return this
+  }
+  appear(transition: Transition = undefined) {
+    transition = fillTransition(transition)
+    this.to({ filter: new CSS.Filter({ opacity: 1 }) }, transition)
+    return this
+  }
+  disappear(transition: Transition = undefined) {
+    transition = fillTransition(transition)
+    this.to({ filter: new CSS.Filter({ opacity: 0 }) }, transition)
+    return this
+  }
+  appearMouseHover(box: Box, transition: Transition = undefined) {
+    transition = fillTransition(transition)
+    this.on("mouseover", () => { box.appear() })
+    this.on("mouseout", () => { box.disappear() })
+    return this
+  }
 }
 // 0,0 を本当に 0,0 にすると使いにくいことが多いので
 export class FitBox extends Box {
