@@ -501,17 +501,23 @@ export class Box extends DOM implements Transform {
     return this
   }
   // 最後に登録した to / next が 終わってから発火する
-  next(option: BoxOption, transition: Transition = undefined) {
+  next(option: BoxOption, transitionOrFunc: Transition | ((this: this) => any) = undefined) {
     // 構築された最初のフレームでは無効なので
     if (this.frame === 0) {
-      this.$scene.reserveExecuteNextFrame(() => { this.next(option, transition) })
+      this.$scene.reserveExecuteNextFrame(() => { this.next(option, transitionOrFunc) })
       return
     }
     this.transitionMaxId++;
     let id = this.transitionMaxId
-    if (!this.callBacks[id - 1]) {
-      this.callBacks[id - 1] = () => { this.to(option, transition, id) }
-    } else console.assert("illegal transition maxid")
+    console.assert(!this.callBacks[id - 1], "illegal transition maxid")
+    this.callBacks[id - 1] = () => {
+      if (typeof transitionOrFunc === "function") {
+        this.to(option, { duration: 0.001 }, id)
+        transitionOrFunc.bind(this)()
+      } else {
+        this.to(option, transitionOrFunc, id)
+      }
+    }
     return this
   }
   // 複数の toRelativeを適応すると既存設定値も消される.
