@@ -1,5 +1,6 @@
 import { FitBox, Box, BoxOption, IBukiMinElement, Transform, Scene } from "../"
 import * as PIXI from "pixi.js"
+/*
 // DOMの裏側に描画される.
 class PIXIBox extends FitBox {
   app: PIXI.Application
@@ -15,10 +16,10 @@ class PIXIBox extends FitBox {
   }
 }
 export class Sprite extends IBukiMinElement implements Transform {
-  $width: number = undefined;
+  $width: number = 0;
   public get width(): number { return this.$width }
   public set width(val: number) { this.$width = this.sprite.width = val }
-  $height: number = undefined;
+  $height: number = 0;
   public get height(): number { return this.$height }
   public set height(val: number) { this.$height = this.sprite.height = val }
   $x: number = 0;
@@ -53,3 +54,4 @@ export class Sprite extends IBukiMinElement implements Transform {
 // @World
 // public readonly pixi: PIXIBox
 // this.pixi = new PIXIBox(this)
+*/

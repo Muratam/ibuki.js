@@ -37,22 +37,22 @@ export interface InputOption {
   prependLabel?: TextSeed
   valid?: Store<boolean>
 }
-export class Input extends FitWidthDOM implements HasStoreValue<string> {
+export class Input extends FitWidthDOM<HTMLInputElement> implements HasStoreValue<string> {
   value: Store<string>
-  public readonly $dom: HTMLInputElement
   constructor(parent: DOM, inputAttributeOption: InputOption = {}, domOption: FitWidthDOMOption = {}) {
     let isSmallInputType = ["checkbox", "radio"].some(x => x === inputAttributeOption.type)
     let formGroup = new FitWidthDOM(parent, {
       class: ["form-group", isSmallInputType ? "form-check" : ""],
       dontFitWidth: domOption.dontFitWidth
     })
-    let label: DOM = undefined
-    function createLabel(flag: boolean) {
+    let label: DOM | null;
+    let createLabel = () => {
       if (!inputAttributeOption.label) return;
       label = new DOM(formGroup, "label")
       label.bloom(inputAttributeOption.label)
+      if (this.$dom) label.$dom.setAttribute("for", this.$dom.id)
     }
-    if (!isSmallInputType) createLabel(false)
+    if (!isSmallInputType) createLabel()
     if (inputAttributeOption.prependLabel) {
       formGroup = new FitWidthDOM(formGroup, {
         class: "input-group",
@@ -90,8 +90,7 @@ export class Input extends FitWidthDOM implements HasStoreValue<string> {
         }
       }
     } else super(formGroup, option);
-    if (isSmallInputType) createLabel(false)
-    if (label !== undefined) label.$dom.setAttribute("for", this.$dom.id)
+    if (isSmallInputType) createLabel()
     if (inputAttributeOption.valid) {
       inputAttributeOption.valid.regist(x => {
         let now = "is-valid"
@@ -103,16 +102,16 @@ export class Input extends FitWidthDOM implements HasStoreValue<string> {
     }
     this.value = new Store(inputAttributeOption.value || "")
     this.value.regist(r => this.$dom.setAttribute("value", r))
-    this.$dom.addEventListener("change", () => {
-      if (this.$dom.type === "checkbox") this.value.set(this.$dom.checked + "")
-      else this.value.set(this.$dom.value)
+    this.$$dom.addEventListener("change", () => {
+      if (this.$$dom.type === "checkbox") this.value.set(this.$$dom.checked + "")
+      else this.value.set(this.$$dom.value)
     })
     let keyEvent = (e: KeyboardEvent) => {
-      this.value.set(this.$dom.value)
+      this.value.set(this.$$dom.value)
       this.$scene.$keyboard.eventCanceled = true;
     };
-    this.$dom.addEventListener("keyup", keyEvent)
-    this.$dom.addEventListener("keydown", keyEvent)
+    this.$$dom.addEventListener("keyup", keyEvent)
+    this.$$dom.addEventListener("keydown", keyEvent)
     this.applyInputOption(inputAttributeOption)
   }
   public assign(dst: Store<string>) {

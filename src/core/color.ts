@@ -1,5 +1,5 @@
-import * as color from "color";
-
+import * as rgbaimpl from "color-rgba";
+let rgba: any = rgbaimpl;
 import { CanTranslateCSS } from "./style"
 const ColorSchemeLib = require("color-scheme");
 function clamp(val: number, min: number, max: number) {
@@ -25,8 +25,6 @@ export class Color implements CanTranslateCSS {
     return new Color(c[0] / 255, c[1] / 255, c[2] / 255, c[3]);
   }
   static parse(str: string): Color {
-    let c = new color(str).rgb().array().concat([new color(str).a()]);
-
     let c: number[] = rgba(str);
     return new Color(c[0] / 255, c[1] / 255, c[2] / 255, c[3]);
   }
@@ -73,14 +71,17 @@ export class LinearGradient implements CanTranslateCSS {
 export type Colors = Color | LinearGradient | string | ColorScheme
 export type ColorSchemeVariationType = "default" | "soft" | "light" | "pastel" | "light" | "hard" | "pale"
 export class ColorScheme implements CanTranslateCSS {
-  baseColor: Color | LinearGradient // 70%
-  mainColor: Color | LinearGradient// 25%
-  accentColor: Color | LinearGradient// 5%
+  baseColor?: Color | LinearGradient // 70%
+  mainColor?: Color | LinearGradient// 25%
+  accentColor?: Color | LinearGradient// 5%
   static parse(color: Colors): Color | LinearGradient {
-    if (typeof color === "string") return this.parseString(color)
     if (color instanceof Color) return color
     if (color instanceof LinearGradient) return color
-    return color.baseColor
+    if (color instanceof ColorScheme) {
+      let a: any = color;
+      return a.baseColor
+    }
+    return this.parseString(color)
   }
   static parseString(str: string): Color | LinearGradient {
     let colors = str.split("-")
@@ -102,10 +103,11 @@ export class ColorScheme implements CanTranslateCSS {
   }
   addColor(color: Color | string): ColorScheme {
     if (typeof color === "string") color = Color.parse(color)
+    let a: any = this;
     return new ColorScheme(
-      this.baseColor.addColor(color),
-      this.mainColor.addColor(color),
-      this.accentColor.addColor(color))
+      a.baseColor.addColor(color),
+      a.mainColor.addColor(color),
+      a.accentColor.addColor(color))
   }
   constructor(baseColor: Colors = "#fff", mainColor: Colors = "#000", accentColor: Colors = "") {
     if (baseColor instanceof ColorScheme) {
@@ -122,24 +124,25 @@ export class ColorScheme implements CanTranslateCSS {
   // o:src x:dst -> src のまま / 他は補完
   add(src: ColorScheme): ColorScheme {
     let result = new ColorScheme(this)
-    let impl = (key: "baseColor" | "accentColor" | "mainColor") => {
-      let a = src[key]
-      let b = this[key]
-      if (a instanceof LinearGradient || b instanceof LinearGradient) {
-        console.assert(false, "LinearGradient is not suppoerted for animation...")
-        return;
-      }
-      result[key] = new Color(
+    let r: any = result;
+    for (let key in ["baseColor", "accentColor", "mainColor"]) {
+      let s: any = src;
+      let t: any = this;
+      if (s[key] instanceof LinearGradient || t[key] instanceof LinearGradient)
+        console.assert("LinearGradient is not suppoerted for animation...")
+      let a: any = s[key]
+      let b: any = t[key]
+      r[key] = new Color(
         b.r + a.r,
         b.g + a.g,
         b.b + a.b,
         b.a + a.a
       )
     }
-    impl("mainColor")
-    impl("accentColor");
-    impl("baseColor");
     return result
   }
-  toCSS(): string { return this.baseColor.toCSS() }
+  toCSS(): string {
+    let a: any = this;
+    return a.baseColor.toCSS()
+  }
 }
