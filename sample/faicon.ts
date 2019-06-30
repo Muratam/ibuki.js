@@ -1,13 +1,12 @@
 import { library, icon } from '@fortawesome/fontawesome-svg-core'
-import * as FA from '@fortawesome/free-solid-svg-icons'
-import { Color, ColorScheme } from "../core/color";
-import { DOM, DOMOption } from "../core/dom";
-export interface FAIconOption extends DOMOption {
+import * as FA from '@fortawesome/free-solid-svg-icons';
+import * as I from "../src/index";
+export interface FAIconOption extends I.DOMOption {
   size?: number,
-  color?: Color | ColorScheme
+  color?: I.Color | I.ColorScheme
 }
-export class FAIcon extends DOM {
-  constructor(parent: DOM, name: string, option?: FAIconOption) {
+export class FAIcon extends I.DOM {
+  constructor(parent: I.DOM, name: string, option?: FAIconOption) {
     super(parent, "span")
     let fa = FA[name] // ex:faIgloo
     library.add(fa)

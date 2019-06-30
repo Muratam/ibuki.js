@@ -2,10 +2,6 @@ import { Color, Colors, ColorScheme } from "./color";
 import * as CSS from "./style";
 import { Store, MayStore, HasValue, toStore } from "./store";
 import { Updater, KeyBoard, GlobalCSS, KeysType } from "./static"
-import "bootstrap";
-import 'bootstrap/dist/css/bootstrap.min.css';
-import * as jQuery from "jquery";
-
 // types and interfaces
 export type BorderStyle = "none" | "hidden" | "solid" | "double" | "groove" | "ridge" | "inset" | "outset" | "dashed" | "dotted"
 export interface BorderContentType {
@@ -659,8 +655,6 @@ export class Scene extends FitBox {
     })
     document.body.addEventListener("mousemove", this.trackMouse.bind(this))
     document.body.addEventListener("touchmove", this.trackMouse.bind(this))
-    jQuery(() => { jQuery('[data-toggle="tooltip"]').tooltip(); });
-    jQuery(() => { jQuery('[data-toggle="popover"]').popover(); });
   }
   destroy() {
     this.$dom.remove();
@@ -726,4 +720,3 @@ export class World extends Box {
     seed(scene)
   }
 }
-

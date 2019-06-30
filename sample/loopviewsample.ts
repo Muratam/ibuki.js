@@ -1,21 +1,9 @@
-import * as I from ".."
-import { FAIcon } from "./faicon"
-import { MarkDown } from "./markdown"
-import { Katex } from "./katex"
+import * as I from "../src/"
+import { Katex } from "./katex";
+import { MarkDown } from "./markdown";
+import { FAIcon } from "./faicon";
 function helloBox(p: I.Box, store: I.DataStore): I.Box {
-  let text = ` hello ibuki.ts !!
-  ibuki.ts は I.$1 をメインに迎えた新しいゲームエンジンです!!
-  ギャルゲーやボドゲなど、あまりキャラクターは動き回らないけど
-  テキストや UI のアニメーションがたくさん欲しいようなゲームなどにターゲットを当てています.
-  ibuki.ts は vue.js / jquery / ゲームエンジン構成法 のハイブリッドです.
-  通常のゲームエンジンがターゲットとする canvas / webgl ではなく
-  あえて vue.js / jquery のように I.$1 を対象にすることで,
-  豊富な I.$1 資源を活用することができます！
-  例えばこのBox一つとっても,
-  ブラウザの標準スクロールやcanvasのtextでは描画できないキレイな
-  文字が見えるでしょう？？
-  これはただのテキストですが後で見ていくように様々なwidgetを活用することができます！
-  `.replace(/\n/g, "")
+  let text = ` hello ibuki.ts !!`.replace(/\n/g, "")
   return new I.FitBox(p, { textAlign: "left", padding: 30 }).tree(p => {
     new I.Text(p, text)
   })
@@ -95,11 +83,6 @@ function flexBoxMediaTest(p: I.Box, store: I.DataStore, colorScheme: I.ColorSche
     new I.Text(p, "custom color", {})
     new I.ProgressBar(p, store.sec.to(x => Math.floor(x / 50) * 10 % 100), { height: 30, withLabel: true, colorScheme, striped: true }, 100)
     new I.HR(p)
-    new I.DOM(p).tree(p => {
-      new I.Badge(p, "Badge:", { label: store.pressedKey, href: store.pressedKey, modifier: "primary" })
-      I.tooltip(new I.Badge(p, "Badge:", { pill: true, label: store.pressedKey, href: store.pressedKey, modifier: "warning" })
-        , "tooltip", "right")
-    })
     new I.Alert(p).tree(p => {
       new I.Text(p, "current link is ")
       new I.Text(p, store.pressedKey, { href: store.pressedKey })
@@ -207,7 +190,6 @@ function bottomTest(p: I.Box, store: I.DataStore, colorScheme: I.ColorScheme): I
     this.x = x;
     this.y = y;
   })
-  I.popover(result, "iikanji ", "これが Pop over ってやつやで", "top")
   return result
 }
 
@@ -267,4 +249,3 @@ export function threeBoxSampleScene(scene: I.Scene) {
 
 // try
 // new World().play(scene => threeBoxSampleScene(scene, threeLoopViewStore))
-
