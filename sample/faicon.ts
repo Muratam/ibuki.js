@@ -8,7 +8,9 @@ export interface FAIconOption extends I.DOMOption {
 export class FAIcon extends I.DOM {
   constructor(parent: I.DOM, name: string, option?: FAIconOption) {
     super(parent, "span")
-    let fa = FA[name] // ex:faIgloo
+    /*
+    let fa: any = FA[name] // ex:faIgloo
+    if (!fa) return;
     library.add(fa)
     this.$dom.appendChild(icon(fa).node[0]);
     if (!option) return;
@@ -16,5 +18,6 @@ export class FAIcon extends I.DOM {
       color: option.color,
       font: { size: option.size }
     });
+    */
   }
 }

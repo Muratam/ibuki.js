@@ -229,6 +229,7 @@ export function threeBoxSampleScene(scene: I.Scene) {
     let last = ""
     for (let k in key) last = k
     if (last !== "") store.pressedKey.set(last)
+    if (!key) return;
     if (key.Escape) {
       scene.destroy();
       scene.gotoNextScene(threeBoxSampleScene)

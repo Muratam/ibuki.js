@@ -1,4 +1,5 @@
-import * as rgba from "color-rgba";
+import * as rgbaimpl from "color-rgba";
+let rgba: any = rgbaimpl;
 import { CanTranslateCSS } from "./style"
 const ColorSchemeLib = require("color-scheme");
 function clamp(val: number, min: number, max: number) {
@@ -76,7 +77,10 @@ export class ColorScheme implements CanTranslateCSS {
   static parse(color: Colors): Color | LinearGradient {
     if (color instanceof Color) return color
     if (color instanceof LinearGradient) return color
-    if (color instanceof ColorScheme) return color.baseColor
+    if (color instanceof ColorScheme) {
+      let a: any = color;
+      return a.baseColor
+    }
     return this.parseString(color)
   }
   static parseString(str: string): Color | LinearGradient {
@@ -99,10 +103,11 @@ export class ColorScheme implements CanTranslateCSS {
   }
   addColor(color: Color | string): ColorScheme {
     if (typeof color === "string") color = Color.parse(color)
+    let a: any = this;
     return new ColorScheme(
-      this.baseColor.addColor(color),
-      this.mainColor.addColor(color),
-      this.accentColor.addColor(color))
+      a.baseColor.addColor(color),
+      a.mainColor.addColor(color),
+      a.accentColor.addColor(color))
   }
   constructor(baseColor: Colors = "#fff", mainColor: Colors = "#000", accentColor: Colors = "") {
     if (baseColor instanceof ColorScheme) {
@@ -119,12 +124,15 @@ export class ColorScheme implements CanTranslateCSS {
   // o:src x:dst -> src のまま / 他は補完
   add(src: ColorScheme): ColorScheme {
     let result = new ColorScheme(this)
+    let r: any = result;
     for (let key in ["baseColor", "accentColor", "mainColor"]) {
-      if (src[key] instanceof LinearGradient || this[key] instanceof LinearGradient)
+      let s: any = src;
+      let t: any = this;
+      if (s[key] instanceof LinearGradient || t[key] instanceof LinearGradient)
         console.assert("LinearGradient is not suppoerted for animation...")
-      let a = src[key]
-      let b = this[key]
-      result[key] = new Color(
+      let a: any = s[key]
+      let b: any = t[key]
+      r[key] = new Color(
         b.r + a.r,
         b.g + a.g,
         b.b + a.b,
@@ -133,5 +141,8 @@ export class ColorScheme implements CanTranslateCSS {
     }
     return result
   }
-  toCSS(): string { return this.baseColor.toCSS() }
+  toCSS(): string {
+    let a: any = this;
+    return a.baseColor.toCSS()
+  }
 }

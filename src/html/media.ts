@@ -29,29 +29,27 @@ export class ProgressBar extends FitWidthDOM {
     this.$dom.setAttribute("aria-value-max", "" + max);
     if (option.colorScheme) {
       let c = new ColorScheme(option.colorScheme)
-      parent.$dom.style.backgroundColor = c.baseColor.toCSS()
-      this.$dom.style.backgroundColor = c.mainColor.toCSS()
-      this.$dom.style.color = c.accentColor.toCSS()
+      if (c.baseColor) parent.$dom.style.backgroundColor = c.baseColor.toCSS()
+      if (c.mainColor) this.$dom.style.backgroundColor = c.mainColor.toCSS()
+      if (c.accentColor) this.$dom.style.color = c.accentColor.toCSS()
     }
   }
 }
 
 export interface IFrameOption extends BoxOption { src: string }
-export class IFrame extends FitBox {
-  public readonly $dom: HTMLIFrameElement
+export class IFrame extends FitBox<HTMLIFrameElement> {
   constructor(parent: Box, option: IFrameOption) {
     super(parent, { ...option, tag: "iframe" })
-    this.$dom.src = option.src;
+    this.$$dom.src = option.src;
   }
 }
 export interface ImageOption extends BoxOption {
   src: string
   forceSize?: boolean
 }
-export class Image extends FitBox {
-  public readonly $dom: HTMLImageElement
+export class Image extends FitBox<HTMLImageElement> {
   constructor(parent: Box, option: ImageOption) {
     super(parent, { ...option, tag: "img" })
-    this.$dom.src = option.src;
+    this.$$dom.src = option.src;
   }
 }

@@ -69,14 +69,20 @@ export interface BoxOption extends DOMOption {
 // implements
 // 一番の基本要素,各々がちょうど一つのdomに対応する.
 export class IBukiMinElement {
-  $scene: Scene;
-  protected $createdFrame: number
+  $$scene: Scene | undefined;
+  public get $scene(): Scene {
+    let a: any = {};
+    return this.$$scene ? this.$$scene : a;
+  }
+  protected $createdFrame = 0
   public get createdFrame(): number { return this.$createdFrame }
-  public get frame(): number { return this.$scene.$createdFrame - this.$createdFrame; }
+  public get frame(): number { return this.$scene ? this.$scene.$createdFrame - this.$createdFrame : 0; }
   constructor() { }
   public update(fun: (this: this, milliSec: number) => boolean | void | number) {
     let f = fun.bind(this);
     let start = Date.now();
+    if (!this.$scene) return;
+    if (!this.$scene.$updater) return;
     this.$scene.$updater.regist(() => {
       let now = Date.now()
       let result = f(now - start);
@@ -90,25 +96,31 @@ export class IBukiMinElement {
   }
 }
 export class DOM extends IBukiMinElement {
-  public readonly $dom: HTMLElement = null;
+  public readonly $dom: HTMLElement;
   public readonly $DOMId: number;
-  public readonly $parent: DOM = null; // 移ることがある？
+  private $$parent: DOM | undefined = undefined; // 移ることは無いと仮定
+  public get $parent(): DOM {
+    return this.$$parent ? this.$$parent : this;
+  }
+  public set $parent(value: DOM) {
+    this.$$parent = value;
+  }
   private $children: DOM[] = [];
   public get children() { return this.$children; }
   private static DOMMaxId: number = 0;
   public get id(): string { return this.$dom.id }
-  constructor(parent: DOM, option: string | DOMOption = "") {
+  constructor(parent?: DOM, option: string | DOMOption = "") {
     super()
     this.$dom = document.createElement(
       (typeof option === "string" ? option : option.tag) || "div");
     this.$DOMId = DOM.DOMMaxId++
     this.$dom.id = `ibuki-box-${this.$DOMId}`
-    if (parent !== null) {
+    if (parent !== undefined) {
       parent.$dom.appendChild(this.$dom);
-      this.$parent = parent;
+      this.$$parent = parent;
       parent.$children.push(this)
       if (parent.$scene) {
-        this.$scene = parent.$scene;
+        this.$$scene = parent.$scene;
         this.$createdFrame = this.$scene.$createdFrame;
       }
     }
@@ -125,23 +137,26 @@ export class DOM extends IBukiMinElement {
     if (seed instanceof Store) return new Text(this, seed)
     return seed(this)
   }
-  on(name: Event, callback: (this: this, key?: KeysType) => void, bind = true) {
-    let c = bind ? callback.bind(this) : callback
+  on(name: Event, callback: (this: this, key?: KeysType) => void) {
+    let c = callback.bind(this)
     if (name === "keydownall") this.$scene.$keyboard.onKeyDown(c)
     else if (name === "keyupall") this.$scene.$keyboard.onKeyUp(c)
     else if (name === "keypressall") this.$scene.$keyboard.onKeyPress(c)
-    else this.$dom.addEventListener(name, e => {
-      // WARN: ↑と違って毎フレームに一回呼ばれるわけではない(し、メインスレッドでもない)！同時に押されてもダメかも.
-      if (!e.key) return c()
-      let key = {}
+    // WARN: ↑と違って毎フレームに一回呼ばれるわけではない(し、メインスレッドでもない)！同時に押されてもダメかも.
+    else if (name === "keydown" || name === "keypress" || name === "keyup") this.$dom.addEventListener(name, e => {
+      let key: KeysType = {}
       key[e.key] = true
       c(key)
     })
+    else this.$dom.addEventListener(name, e => { c() })
     return this;
   }
   applyStyle(style: { [key: string]: any }) {
     let normalized = CSS.parse(style);
-    for (let key in normalized) this.$dom.style[key] = normalized[key];
+    for (let key in normalized) {
+      let key2: any = key
+      this.$dom.style[key2] = normalized[key];
+    }
     return this;
   }
   tree(func: (parent: this) => any) { func(this); return this; }
@@ -182,7 +197,7 @@ export class DOM extends IBukiMinElement {
   }
 }
 export class Text extends DOM implements HasValue<string> {
-  private $text: string;
+  private $text: string = "";
   get value(): string { return this.$text; }
   set value(val: string) {
     this.$text = val.replace(" ", '\u00a0');
@@ -205,7 +220,12 @@ export class Text extends DOM implements HasValue<string> {
   }
 }
 // 文字が右向きに流れるせいでWidthにのみFitするDOMという概念ができる.
-export class FitWidthDOM extends DOM {
+export class FitWidthDOM<T extends HTMLElement = HTMLElement> extends DOM {
+  public get $$dom(): T {
+    let a: any = this.$dom;
+    let b: T = a;
+    return b;
+  }
   fitWidth() { if (this.$parent instanceof Box) this.$dom.style.width = this.$parent.contentWidth + "px" }
   constructor(parent: DOM, option: FitWidthDOMOption = {}) {
     super(parent, option)
@@ -229,7 +249,7 @@ export interface Transition {
   delay?: number
 }
 
-function fillTransition(base: Transition): Transition {
+function fillTransition(base?: Transition): Required<Transition> {
   return {
     ...{
       duration: 0.5,
@@ -238,12 +258,12 @@ function fillTransition(base: Transition): Transition {
     }, ...(base === undefined ? {} : base),
   }
 }
-export class Box extends DOM implements Transform {
+export class Box<T extends HTMLElement = HTMLElement> extends DOM implements Transform {
   private needUpdate = false
-  private $width: number = undefined;
+  private $width: number = 0;
   public get width(): number { return this.$width }
   public set width(val: number) { this.$width = val; this.needUpdate = true; }
-  private $height: number = undefined;
+  private $height: number = 0;
   public get height(): number { return this.$height }
   public set height(val: number) { this.$height = val; this.needUpdate = true; }
   private $x: number = 0;
@@ -258,54 +278,65 @@ export class Box extends DOM implements Transform {
   private $rotate: number = 0;
   public get rotate(): number { return this.$rotate }
   public set rotate(val: number) { this.$rotate = val; this.needUpdate = true; }
-  private $colorScheme: ColorScheme = undefined
+  private $colorScheme?: ColorScheme;
   public get colorScheme(): ColorScheme {
-    // if (this.$colorScheme !== undefined)
-    return this.$colorScheme
+    let a: any = this.$colorScheme;
+    return a;
+    // if (this.$colorScheme !== undefined) return this.$colorScheme
     // if (!this.$parent) return new ColorScheme()
-    // return this.$parent.colorScheme
+    // return this.$parentBox.colorScheme
   }
   public set colorScheme(val: ColorScheme) { this.$colorScheme = val; this.needUpdate = true; }
-  private $filter: CSS.Filter = undefined
+  private $filter?: CSS.Filter;
   public get filter(): CSS.Filter {
-    // if (this.$filter !== undefined)
-    return this.$filter
+    let a: any = this.$filter;
+    return a;
+    // if (this.$filter !== undefined) return this.$filter
     // if (!this.$parent) return new CSS.Filter({})
-    // return this.$parent.filter
+    // return this.$parentBox.filter
   }
   public set filter(val: CSS.Filter) { this.$filter = val; this.needUpdate = true; }
-  private $zIndex: number = undefined
+  private $zIndex?: number
   public get zIndex(): number {
-    // if (this.$zIndex !== undefined)
-    return this.$zIndex
+    let a: any = this.$zIndex;
+    return a;
+    // if (this.$zIndex !== undefined) return this.$zIndex
     // if (!this.$parent) return 0
-    // return this.$parent.zIndex
+    // return this.$parentBox.zIndex
   }
   public set zIndex(val: number) { this.$zIndex = val; this.needUpdate = true; }
 
   private keys = ["x", "y", "scale", "width", "height", "rotate", "colorScheme", "filter", "zIndex"]
 
   public get contentWidth(): number {
-    return this.width
-      - (Box.pickNum(this.$dom.style.borderRightWidth) || 0) * 2
-      - (Box.pickNum(this.$dom.style.paddingRight) || 0) * 2
+    let a = this.$dom.style.borderRightWidth || "0";
+    let b = this.$dom.style.paddingRight || "0";
+    return this.width - Box.pickNum(a) * 2 - Box.pickNum(b) * 2
   }
   public get contentHeight(): number {
-    return this.height
-      - (Box.pickNum(this.$dom.style.borderBottomWidth) || 0) * 2
-      - (Box.pickNum(this.$dom.style.paddingBottom) || 0) * 2
+    let a = this.$dom.style.borderBottomWidth || "0";
+    let b = this.$dom.style.paddingBottom || "0";
+    return this.height - Box.pickNum(a) * 2 - Box.pickNum(b) * 2
   }
-  public readonly $parent: Box;
-  constructor(parent: Box, option: BoxOption = {}) {
+  public get $$dom(): T {
+    let a: any = this.$dom;
+    let b: T = a;
+    return b;
+  }
+
+  private readonly $$parentBox: Box;
+  public get $parentBox(): Box { return this.$$parentBox ? this.$$parentBox : this; }
+  constructor(parent?: Box, option: BoxOption = {}) {
     super(parent, Box.deleteTransformKeys({ ...option }))
     // 全ての transform 値を number に保証
-    if (parent !== null) {
+    if (parent !== undefined) {
       this.width = parent.contentWidth
       this.height = parent.contentHeight
+      this.$$parentBox = parent;
     } else {
-      this.width = option.width
-      this.height = option.height
-      console.assert(typeof this.width === "number" && typeof this.height === "number", "illegal initial World")
+      this.width = option.width || 0
+      this.height = option.height || 0
+      this.$$parentBox = this;
     }
     this.applyOption(option)
     if (this.$scene) this.update(() => {
@@ -316,7 +347,7 @@ export class Box extends DOM implements Transform {
   }
   // option を読み込み,自身に(上書きができれば)適応
   // transition もするが,複数のtransitionを行うと不整合になる可能性がある.
-  public applyOption(option: BoxOption, transition: Transition = undefined) {
+  public applyOption(option: BoxOption, transition?: Transition) {
     let style = this.parseBoxOption(option)
     this.setValues(style)
     style = { ...style, ...this.parseBoxOption(this.getValues()) } // percent適応値で上書き
@@ -338,8 +369,8 @@ export class Box extends DOM implements Transform {
     result["transform-origin"] = `center center`
     if (result.x === undefined) result.x = this.x
     if (result.y === undefined) result.y = this.y
-    if (result.width === undefined) result.width = typeof this.width !== undefined ? this.width : this.$parent.contentWidth
-    if (result.height === undefined) result.height = typeof this.height !== undefined ? this.height : this.$parent.contentHeight
+    if (result.width === undefined) result.width = typeof this.width !== undefined ? this.width : this.$parentBox.contentWidth
+    if (result.height === undefined) result.height = typeof this.height !== undefined ? this.height : this.$parentBox.contentHeight
     if (result.scale === undefined) result.scale = this.scale
     if (result.rotate === undefined) result.rotate = this.rotate
     console.assert(result.width !== undefined && result.width !== null, "illegal width")
@@ -349,16 +380,16 @@ export class Box extends DOM implements Transform {
       // ひとまずtransform-originは `center center` . ただし,位置はleft top が 0 0
       // 倍率が1倍のときにジャストフィットするような位置
       if (option.fit.x === "right") {
-        result.x = this.$parent.contentWidth - result.width / 2
+        result.x = this.$parentBox.contentWidth - result.width / 2
       } else if (option.fit.x === "center") {
-        result.x = this.$parent.contentWidth / 2
+        result.x = this.$parentBox.contentWidth / 2
       } else {
         result.x = result.width / 2;
       }
       if (option.fit.y === "bottom") {
-        result.y = this.$parent.contentHeight - result.height / 2
+        result.y = this.$parentBox.contentHeight - result.height / 2
       } else if (option.fit.y === "center") {
-        result.y = this.$parent.contentHeight / 2;
+        result.y = this.$parentBox.contentHeight / 2;
       } else {
         result.y = result.height / 2
       }
@@ -372,9 +403,9 @@ export class Box extends DOM implements Transform {
     return this.parseDOMOption(result);
   }
   private static pickNum(s: string): number {
-    let result: number = null
+    let result = 0
     for (let c of s) {
-      if ("0" <= c && c <= "9") result = (result || 0) * 10 + (+c)
+      if ("0" <= c && c <= "9") result = result * 10 + (+c)
     }
     return result
   }
@@ -383,22 +414,25 @@ export class Box extends DOM implements Transform {
   private setPercentages(style: BoxOption) {
     this.percentages = {}
     let apply = (key: string) => {
-      if (style[key] !== undefined || style[key] !== null || typeof style[key] !== "string") {
-        this.percentages[key] = style[key]
+      let style2: any = style;
+      let that = style2[key];
+      if (that !== undefined || that !== null || typeof that !== "string") {
+        this.percentages[key] = that
       }
     }
     for (let key of this.keys) apply(key)
   }
   private setValues(style: CSS.Style<any>) {
-    let apply = (key: string, init: number) => {
-      this[key] =
-        typeof style[key] === "number"
-          ? style[key]
-          : this[key] || init
+    let apply = (key: "width" | "height" | "scale" | "x" | "y" | "rotate", init: number) => {
+      if (typeof style[key] === "number") {
+        this[key] = style[key];
+      } else {
+        this[key] = this[key] || init
+      }
     }
     if (this.$parent !== null) {
-      apply("width", this.$parent.width)
-      apply("height", this.$parent.height)
+      apply("width", this.$parentBox.width)
+      apply("height", this.$parentBox.height)
     }
     apply("scale", 1.0)
     apply("rotate", 0.0)
@@ -411,7 +445,7 @@ export class Box extends DOM implements Transform {
   }
   private getValues(): BoxOption {
     let result: BoxOption = {}
-    let set = (key: string) => {
+    let set = (key: "width" | "height" | "scale" | "x" | "y" | "rotate" | "colorScheme" | "filter") => {
       if (this[key] === undefined) return
       if (key === "x" || key === "y" || key === "rotate") {
         result[key] = this[key] +
@@ -423,7 +457,9 @@ export class Box extends DOM implements Transform {
       } else result[key] = this[key] *
         (this.percentages[key] === undefined ? 1 : this.percentages[key])
     }
-    for (let key of this.keys) set(key)
+    for (let key of this.keys) {
+      if (key === "width" || key === "height" || key === "scale" || key === "x" || key === "y" || key === "rotate" || key === "colorScheme" || key === "filter") set(key)
+    }
     return result
   }
 
@@ -441,7 +477,7 @@ export class Box extends DOM implements Transform {
     let dragStartMouseX = 0;
     let dragStartMouseY = 0;
     let dragState = 0
-    let dragStart = (e) => {
+    let dragStart = () => {
       dragStartMyX = this.x
       dragStartMyY = this.y
       dragStartMouseX = this.$scene.mouseX
@@ -449,11 +485,11 @@ export class Box extends DOM implements Transform {
       dragState++
       this.applyStyle({ userSelect: "none" })
     }
-    let dragging = (e) => {
+    let dragging = () => {
       if (dragState === 0) return;
       fun.bind(this)(dragStartMyX + this.$scene.mouseX - dragStartMouseX, dragStartMyY + this.$scene.mouseY - dragStartMouseY)
     }
-    let dragEnd = (e) => {
+    let dragEnd = () => {
       dragState = 0;
       this.applyStyle({ userSelect: "auto" })
     }
@@ -476,17 +512,19 @@ export class Box extends DOM implements Transform {
   // すぐに値を変更する(with transition)
   // transform : translate scale rotate を独立に変更することはできない.
   // すなわち,今のtransitionを破壊的に変更するか,終了を待ってtransitionするか,しかない
-  to(option: BoxOption, transition: Transition = undefined, id: number = null) {
+  to(option: BoxOption, transition?: Transition, startId?: number): this {
     // 構築された最初のフレームでも大丈夫なのと, next()を呼べる
     if (this.frame === 0) {
       this.$scene.reserveExecuteNextFrame(() => { this.to(option, transition) })
-      return
+      return this
     }
     this.applyOption(option, transition)
-    if (id === null) {
+    let id: number;
+    if (startId === undefined) {
       this.transitionMaxId++;
       id = this.transitionMaxId;
-    }
+    } else
+      id = startId;
     let { duration } = fillTransition(transition)
     this.update(milliSec => {
       if (milliSec / 1000.0 < duration) return true
@@ -497,11 +535,11 @@ export class Box extends DOM implements Transform {
     return this
   }
   // 最後に登録した to / next が 終わってから発火する
-  next(option: BoxOption, transitionOrFunc: Transition | ((this: this) => any) = undefined) {
+  next(option: BoxOption, transitionOrFunc?: Transition | ((this: this) => any)): this {
     // 構築された最初のフレームでは無効なので
     if (this.frame === 0) {
       this.$scene.reserveExecuteNextFrame(() => { this.next(option, transitionOrFunc) })
-      return
+      return this
     }
     this.transitionMaxId++;
     let id = this.transitionMaxId
@@ -517,7 +555,7 @@ export class Box extends DOM implements Transform {
     return this
   }
   // 複数の toRelativeを適応すると既存設定値も消される.
-  toRelative(option: BoxOption, transition: Transition = undefined) {
+  toRelative(option: BoxOption, transition?: Transition) {
     this.setPercentages(option)
     this.to({}, transition)
   }
@@ -528,7 +566,7 @@ export class Box extends DOM implements Transform {
     this.stopped[id] = false
   }
   private playMaxId = 0
-  repeatRelative(destination: BoxOption | BoxOption[], insertBaseState = true, transition: Transition = undefined, iterationCount = Infinity, allowEndDstState = false, state: string = ""): number {
+  repeatRelative(destination: BoxOption | BoxOption[], insertBaseState = true, transition?: Transition, iterationCount = Infinity, allowEndDstState = false, state: string = ""): number {
     // percentage
     let dst: BoxOption[] = destination instanceof Array ? destination : [destination];
     let { duration } = fillTransition(transition)
@@ -565,8 +603,8 @@ export class Box extends DOM implements Transform {
     return id
   }
   // ある状態のときだけとかできるように
-  repeatRelativeOnHover(destination: BoxOption | BoxOption[], insertBaseState = true, transition: Transition = undefined, iterationCount = Infinity, state: string = "") {
-    let id = null;
+  repeatRelativeOnHover(destination: BoxOption | BoxOption[], insertBaseState = true, transition?: Transition, iterationCount = Infinity, state: string = "") {
+    let id: number | null = null;
     this.on("mouseover", () => {
       if (state && this.state !== state) return
       this.$dom.style.cursor = "pointer"
@@ -575,11 +613,11 @@ export class Box extends DOM implements Transform {
     })
     this.on("mouseout", () => {
       this.$dom.style.cursor = "default"
-      this.endRepeat(id)
+      this.endRepeat(id || 0)
     })
     return this
   }
-  toRelativeOnHover(option: BoxOption, transition: Transition = undefined, state: string = "") {
+  toRelativeOnHover(option: BoxOption, transition?: Transition, state: string = "") {
     this.on("mouseover", () => {
       if (state && this.state !== state) return
       this.$dom.style.cursor = "pointer"
@@ -595,17 +633,17 @@ export class Box extends DOM implements Transform {
     this.to({ filter: new CSS.Filter({ opacity: 0 }) })
     return this
   }
-  appear(transition: Transition = undefined) {
+  appear(transition?: Transition) {
     transition = fillTransition(transition)
     this.to({ filter: new CSS.Filter({ opacity: 1 }) }, transition)
     return this
   }
-  disappear(transition: Transition = undefined) {
+  disappear(transition?: Transition) {
     transition = fillTransition(transition)
     this.to({ filter: new CSS.Filter({ opacity: 0 }) }, transition)
     return this
   }
-  appearMouseHover(box: Box, transition: Transition = undefined) {
+  appearMouseHover(box: Box, transition?: Transition) {
     transition = fillTransition(transition)
     this.on("mouseover", () => { box.appear() })
     this.on("mouseout", () => { box.disappear() })
@@ -613,7 +651,7 @@ export class Box extends DOM implements Transform {
   }
 }
 // 0,0 を本当に 0,0 にすると使いにくいことが多いので
-export class FitBox extends Box {
+export class FitBox<T extends HTMLElement = HTMLElement> extends Box<T> {
   constructor(parent: Box, option: BoxOption = {}) {
     super(parent, { fit: { x: "left", y: "top" }, ...option })
   }
@@ -641,10 +679,11 @@ export class Scene extends FitBox {
   }
   constructor(parent: World) {
     super(parent)
+    this.$parent = parent
     this.$updater = new Updater();
     this.$keyboard = new KeyBoard(this.$updater)
     this.$css = new GlobalCSS();
-    this.$scene = this
+    this.$$scene = this
     this.$mouseX = 0
     this.$createdFrame = 0;
     this.$updater.regist(() => {
@@ -654,7 +693,7 @@ export class Scene extends FitBox {
       return true;
     })
     document.body.addEventListener("mousemove", this.trackMouse.bind(this))
-    document.body.addEventListener("touchmove", this.trackMouse.bind(this))
+    //document.body.addEventListener("touchmove", this.trackMouse.bind(this))
   }
   destroy() {
     this.$dom.remove();
@@ -662,7 +701,7 @@ export class Scene extends FitBox {
     this.$css.destroy();
     this.$keyboard.destroy();
     document.body.removeEventListener("mousemove", this.trackMouse, false)
-    document.body.removeEventListener("touchmove", this.trackMouse, false)
+    //document.body.removeEventListener("touchmove", this.trackMouse, false)
   }
   gotoNextScene(seed: (scene: Scene) => any) {
     this.destroy()
@@ -674,7 +713,7 @@ export class Scene extends FitBox {
 export class World extends Box {
   constructor(width: number = 1280, height: number = 720) {
     // null　なので 必要最低限が全て有るように設定
-    super(null, {
+    super(undefined, {
       x: 0, y: 0, scale: 1, width: width, height: height,
       isScrollable: false,
     })
