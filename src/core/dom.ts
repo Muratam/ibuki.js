@@ -78,11 +78,11 @@ export class IBukiMinElement {
   public get createdFrame(): number { return this.$createdFrame }
   public get frame(): number { return this.$scene ? this.$scene.$createdFrame - this.$createdFrame : 0; }
   constructor() { }
-  public update(fun: (this: this, milliSec: number) => boolean | void | number) {
+  public update(fun: (this: this, milliSec: number) => boolean | void | number): this {
     let f = fun.bind(this);
     let start = Date.now();
-    if (!this.$scene) return;
-    if (!this.$scene.$updater) return;
+    if (!this.$scene) return this;
+    if (!this.$scene.$updater) return this;
     this.$scene.$updater.regist(() => {
       let now = Date.now()
       let result = f(now - start);
@@ -137,7 +137,7 @@ export class DOM extends IBukiMinElement {
     if (seed instanceof Store) return new Text(this, seed)
     return seed(this)
   }
-  on(name: Event, callback: (this: this, key?: KeysType) => void) {
+  on(name: Event, callback: (this: this, key?: KeysType) => void): this {
     let c = callback.bind(this)
     if (name === "keydownall") this.$scene.$keyboard.onKeyDown(c)
     else if (name === "keyupall") this.$scene.$keyboard.onKeyUp(c)
@@ -151,7 +151,7 @@ export class DOM extends IBukiMinElement {
     else this.$dom.addEventListener(name, e => { c() })
     return this;
   }
-  applyStyle(style: { [key: string]: any }) {
+  applyStyle(style: { [key: string]: any }): this {
     let normalized = CSS.parse(style);
     for (let key in normalized) {
       let key2: any = key
@@ -160,7 +160,7 @@ export class DOM extends IBukiMinElement {
     return this;
   }
   tree(func: (parent: this) => any) { func(this); return this; }
-  setAttributes(attrs: { [key: string]: any }) {
+  setAttributes(attrs: { [key: string]: any }): this {
     for (let key in attrs) {
       let val = attrs[key]
       if (typeof val === "boolean") {
@@ -347,7 +347,7 @@ export class Box<T extends HTMLElement = HTMLElement> extends DOM implements Tra
   }
   // option を読み込み,自身に(上書きができれば)適応
   // transition もするが,複数のtransitionを行うと不整合になる可能性がある.
-  public applyOption(option: BoxOption, transition?: Transition) {
+  public applyOption(option: BoxOption, transition?: Transition): this {
     let style = this.parseBoxOption(option)
     this.setValues(style)
     style = { ...style, ...this.parseBoxOption(this.getValues()) } // percent適応値で上書き
@@ -471,7 +471,7 @@ export class Box<T extends HTMLElement = HTMLElement> extends DOM implements Tra
     delete style.rotate
     return style
   }
-  onDrag(fun: (this: this, x: number, y: number) => any) {
+  onDrag(fun: (this: this, x: number, y: number) => any): this {
     let dragStartMyX = 0
     let dragStartMyY = 0
     let dragStartMouseX = 0;
@@ -555,15 +555,17 @@ export class Box<T extends HTMLElement = HTMLElement> extends DOM implements Tra
     return this
   }
   // 複数の toRelativeを適応すると既存設定値も消される.
-  toRelative(option: BoxOption, transition?: Transition) {
+  toRelative(option: BoxOption, transition?: Transition): this {
     this.setPercentages(option)
     this.to({}, transition)
+    return this;
   }
   private stopped: { [key: number]: boolean } = {}
-  endRepeat(id: number) { this.stopped[id] = true }
-  restartRepeat(id: number) {
+  endRepeat(id: number): this { this.stopped[id] = true; return this; }
+  restartRepeat(id: number): this {
     console.assert(this.stopped[id] !== undefined, "illegal resume animation")
     this.stopped[id] = false
+    return this;
   }
   private playMaxId = 0
   repeatRelative(destination: BoxOption | BoxOption[], insertBaseState = true, transition?: Transition, iterationCount = Infinity, allowEndDstState = false, state: string = ""): number {
@@ -603,7 +605,7 @@ export class Box<T extends HTMLElement = HTMLElement> extends DOM implements Tra
     return id
   }
   // ある状態のときだけとかできるように
-  repeatRelativeOnHover(destination: BoxOption | BoxOption[], insertBaseState = true, transition?: Transition, iterationCount = Infinity, state: string = "") {
+  repeatRelativeOnHover(destination: BoxOption | BoxOption[], insertBaseState = true, transition?: Transition, iterationCount = Infinity, state: string = ""): this {
     let id: number | null = null;
     this.on("mouseover", () => {
       if (state && this.state !== state) return
@@ -617,7 +619,7 @@ export class Box<T extends HTMLElement = HTMLElement> extends DOM implements Tra
     })
     return this
   }
-  toRelativeOnHover(option: BoxOption, transition?: Transition, state: string = "") {
+  toRelativeOnHover(option: BoxOption, transition?: Transition, state: string = ""): this {
     this.on("mouseover", () => {
       if (state && this.state !== state) return
       this.$dom.style.cursor = "pointer"
@@ -629,21 +631,21 @@ export class Box<T extends HTMLElement = HTMLElement> extends DOM implements Tra
     })
     return this
   }
-  hidden() {
+  hidden(): this {
     this.to({ filter: new CSS.Filter({ opacity: 0 }) })
     return this
   }
-  appear(transition?: Transition) {
+  appear(transition?: Transition): this {
     transition = fillTransition(transition)
     this.to({ filter: new CSS.Filter({ opacity: 1 }) }, transition)
     return this
   }
-  disappear(transition?: Transition) {
+  disappear(transition?: Transition): this {
     transition = fillTransition(transition)
     this.to({ filter: new CSS.Filter({ opacity: 0 }) }, transition)
     return this
   }
-  appearMouseHover(box: Box, transition?: Transition) {
+  appearMouseHover(box: Box, transition?: Transition): this {
     transition = fillTransition(transition)
     this.on("mouseover", () => { box.appear() })
     this.on("mouseout", () => { box.disappear() })

@@ -55,7 +55,7 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
     },]
     this.childrenInitialOption = childrenInitialOption;
   }
-  add(seed: ((p: Box) => Box) | ((p: Box) => Box)[]) {
+  add(seed: ((p: Box) => Box) | ((p: Box) => Box)[]): this {
     if (seed instanceof Array) {
       for (let s of seed) this.add(s)
       return this
@@ -72,10 +72,10 @@ export class ThreeLoopView extends Box implements HasStoreValue<number> {
     this.boxes.push(box)
     return this
   }
-  turn(n: number) {
+  turn(n: number): this {
     let pre = this.$count;
     this.$count = (this.$count + n + this.boxes.length) % this.boxes.length;
-    if (pre === this.$count) return;
+    if (pre === this.$count) return this;
     for (let i = 0; i < this.boxes.length; i++) {
       let index = (i + this.$count) % this.boxes.length
       let preIndex = (i + pre) % this.boxes.length

@@ -114,7 +114,7 @@ export class Input extends FitWidthDOM<HTMLInputElement> implements HasStoreValu
     this.$$dom.addEventListener("keydown", keyEvent)
     this.applyInputOption(inputAttributeOption)
   }
-  public assign(dst: Store<string>) {
+  public assign(dst: Store<string>): this {
     this.value.set(dst.notLinkCreatedRawValue)
     this.value.assign(dst)
     return this
