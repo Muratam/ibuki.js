@@ -13,6 +13,6 @@ export * from "./src/html/notice"
 export * from "./src/widget/loopview"
 
 // try
-import { threeBoxSampleScene } from "./sample/loopviewsample"
-import { World } from "./src/core/dom"
-new World().play(scene => threeBoxSampleScene(scene))
+// import { threeBoxSampleScene } from "./sample/loopviewsample"
+// import { World } from "./src/core/dom"
+// new World().play(scene => threeBoxSampleScene(scene))
