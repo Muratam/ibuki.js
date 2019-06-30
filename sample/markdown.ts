@@ -1,4 +1,4 @@
-import * as I from "../src/";
+import * as I from "../";
 let markdownTranslater = require("markdown").markdown;
 
 export class MarkDown extends I.DOM {

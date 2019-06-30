@@ -1,4 +1,4 @@
-import * as I from "../src/"
+import * as I from "../";
 import { Katex } from "./katex";
 import { MarkDown } from "./markdown";
 import { FAIcon } from "./faicon";

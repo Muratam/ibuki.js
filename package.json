@@ -1,28 +1,29 @@
 {
-  "name": "ibuki.ts",
-  "version": "0.72.72",
+  "name": "ibukidom",
+  "version": "0.72.73",
   "license": "MIT",
   "author": "murata <murata@kmc.gr.jp> (https://muratam.github.io)",
-  "description": "ibuki.ts game engine",
+  "description": "Ibuki DOM Game Engine",
   "scripts": {
     "build": "webpack --mode production",
     "watch": "webpack --watch"
   },
   "devDependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.15",
+    "@fortawesome/free-solid-svg-icons": "^5.7.2",
     "@types/node": "^11.9.4",
+    "katex": "^0.10.1",
+    "markdown": "^0.5.0",
+    "pixi.js": "^5.0.0-rc.2",
+    "plotly.js-dist": "^1.44.4",
     "ts-loader": "^5.3.3",
     "ts-node": "^8.0.2",
     "tslint": "^5.12.1",
     "typedoc": "^0.14.2",
-    "webpack": "^4.29.3",
-    "webpack-cli": "^3.2.3",
     "typescript": "^3.3.3",
-    "pixi.js": "^5.0.0-rc.2",
-    "plotly.js-dist": "^1.44.4",
-    "katex": "^0.10.1",
-    "markdown": "^0.5.0",
-    "@fortawesome/fontawesome-svg-core": "^1.2.15",
-    "@fortawesome/free-solid-svg-icons": "^5.7.2"
+    "underscore": "^1.9.1",
+    "webpack": "^4.29.3",
+    "webpack-cli": "^3.2.3"
   },
   "dependencies": {
     "color-rgba": "^2.1.0",

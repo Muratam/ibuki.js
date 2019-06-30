@@ -1,4 +1,4 @@
-import * as I from "../src/index";
+import * as I from "../";
 let katexTranslater = require("katex")
 
 export class Katex extends I.DOM {

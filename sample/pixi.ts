@@ -1,4 +1,4 @@
-import { FitBox, Box, BoxOption, IBukiMinElement, Transform, Scene } from "../src"
+import { FitBox, Box, BoxOption, IBukiMinElement, Transform, Scene } from "../"
 import * as PIXI from "pixi.js"
 // DOMの裏側に描画される.
 class PIXIBox extends FitBox {
