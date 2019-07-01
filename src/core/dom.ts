@@ -159,7 +159,7 @@ export class DOM extends IBukiMinElement {
     }
     return this;
   }
-  tree(func: (parent: this) => any) { func(this); return this; }
+  tree(func: (parent: this) => any): this { func(this); return this; }
   setAttributes(attrs: { [key: string]: any }): this {
     for (let key in attrs) {
       let val = attrs[key]
