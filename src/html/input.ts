@@ -83,10 +83,13 @@ export class Input extends FitWidthDOM<HTMLInputElement> implements HasStoreValu
         for (let option of inputAttributeOption.options)
           new DOM(this, "option").$dom.innerText = option
       } else {
-        for (let optionKey in inputAttributeOption.options) {
-          let optgroup = new DOM(this, "optgroup").setAttributes({ label: optionKey })
-          for (let option of inputAttributeOption.options[optionKey])
-            new DOM(optgroup, "option").$dom.innerText = option
+        let options = inputAttributeOption.options
+        if (options) {
+          for (let optionKey in options) {
+            let optgroup = new DOM(this, "optgroup").setAttributes({ label: optionKey })
+            for (let option of options[optionKey])
+              new DOM(optgroup, "option").$dom.innerText = option
+          }
         }
       }
     } else super(formGroup, option);

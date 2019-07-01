@@ -1,3 +1,1 @@
-declare module "color-rgba" {
-
-}
+declare module "color-rgba" { }

@@ -14,11 +14,13 @@ export class FlexBox extends FitBox {
     this.applyStyle({ display: "flex" })
   }
   static column(parent: Box, option: FlexBoxOption = {}): FlexBox {
-    return new FlexBox(parent, {
+    let a: any = {
       flexDirection: "column",
       alignItems: "flex-start",
       ...option
-    })
+    };
+    let b: BoxOption = a;
+    return new FlexBox(parent, b)
   }
 }
 export interface TableOption extends BoxOption {
@@ -35,7 +37,10 @@ export class Table extends FitBox {
   constructor(parent: Box, option: TableOption = {}, containerOptionFunc: ContainerOptionFunc = (x, y) => ({})) {
     // サイズが変わる？
     // super(new Container(parent, option), { ...option, tag: "table" })
-    super(parent, { ...option, tag: "table" })
+    super(parent, ((): BoxOption => {
+      let a: any = { ...option, tag: "table" };
+      return a;
+    })())
     this.applyStyle({ "table-layout": "fixed" })
     this.containerOptionFunc = containerOptionFunc;
     if (option.caption) this.bloom(option.caption)
@@ -43,8 +48,10 @@ export class Table extends FitBox {
   addHeader(header: TextSeed[]): Table {
     if (header.length === 0) return this;
     let tr = new DOM(this, "tr")
-    for (let x = 0; x < header.length; x++)
-      new DOM(tr, { ...this.containerOptionFunc(x, 0), tag: "th" }).bloom(header[x])
+    for (let x = 0; x < header.length; x++) {
+      let a: any = { ...this.containerOptionFunc(x, 0), tag: "th" };
+      new DOM(tr, a).bloom(header[x])
+    }
     return this;
   }
   addContents(contents: TextSeed[][]): Table {
@@ -52,8 +59,10 @@ export class Table extends FitBox {
     for (let tds of contents) {
       this.ySize++;
       let tr = new DOM(this, "tr")
-      for (let x = 0; x < tds.length; x++)
-        new DOM(tr, { ...this.containerOptionFunc(x, this.ySize), tag: "th" }).bloom(tds[x])
+      for (let x = 0; x < tds.length; x++) {
+        let a: any = { ...this.containerOptionFunc(x, this.ySize), tag: "th" };
+        new DOM(tr, a).bloom(tds[x])
+      }
     }
     return this
   }

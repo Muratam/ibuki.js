@@ -1,7 +1,8 @@
 import * as rgbaimpl from "color-rgba";
 let rgba: any = rgbaimpl;
 import { CanTranslateCSS } from "./style"
-const ColorSchemeLib = require("color-scheme");
+import * as ColorSchemeLibImpl from "color-scheme";
+let ColorSchemeLib: any = ColorSchemeLibImpl;
 function clamp(val: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.floor(val)));
 }
@@ -129,7 +130,7 @@ export class ColorScheme implements CanTranslateCSS {
       let s: any = src;
       let t: any = this;
       if (s[key] instanceof LinearGradient || t[key] instanceof LinearGradient)
-        console.assert("LinearGradient is not suppoerted for animation...")
+        console.assert(false, "LinearGradient is not suppoerted for animation...")
       let a: any = s[key]
       let b: any = t[key]
       r[key] = new Color(

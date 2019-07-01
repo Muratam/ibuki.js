@@ -18,7 +18,9 @@ export class ProgressBar extends FitWidthDOM {
     parent = new FitWidthDOM(parent, parentOption)
     let classes = ["progress-bar"]
     if (option.striped) classes = classes.concat(["progress-bar-striped", "progress-bar-animated"])
-    super(parent, { ...option, tag: "div", class: classes })
+    let a: any = { ...option, tag: "div", class: classes };
+    let b: FitWidthDOMOption = a;
+    super(parent, b)
     this.$dom.setAttribute("role", "progressbar")
     Store.regist(progress, x => {
       this.$dom.style.width = `${x}%`
@@ -39,7 +41,9 @@ export class ProgressBar extends FitWidthDOM {
 export interface IFrameOption extends BoxOption { src: string }
 export class IFrame extends FitBox<HTMLIFrameElement> {
   constructor(parent: Box, option: IFrameOption) {
-    super(parent, { ...option, tag: "iframe" })
+    let a: any = { ...option, tag: "iframe" }
+    let b: BoxOption = a;
+    super(parent, b)
     this.$$dom.src = option.src;
   }
 }
@@ -49,7 +53,9 @@ export interface ImageOption extends BoxOption {
 }
 export class Image extends FitBox<HTMLImageElement> {
   constructor(parent: Box, option: ImageOption) {
-    super(parent, { ...option, tag: "img" })
+    let a: any = { ...option, tag: "img" }
+    let b: BoxOption = a;
+    super(parent, b)
     this.$$dom.src = option.src;
   }
 }

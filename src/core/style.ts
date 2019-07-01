@@ -75,22 +75,26 @@ export class Filter implements CanTranslateCSS {
   constructor(option: FilterOption) { this.option = option; }
   // o:src x:dst -> src のまま / 他は補完
   complement(src: Filter, per: number): Filter {
-    let result = new Filter({ ...this.option })
-    for (let key in { ...(src ? src.option : {}), ...this.option }) {
-      if (key === "dropShadow" && result.option.dropShadow && this.option.dropShadow) {
-        for (let k2 in this.option[key]) {
-          if (k2 === "color") {
-            result.option.dropShadow.color = this.option.dropShadow.color;
-          } else if ((k2 === "x" || k2 === "y" || k2 === "blur") && src.option.dropShadow) {
-            result.option.dropShadow[k2] =
-              this.option.dropShadow[k2] * per
-              + (1 - per) * (src && src.option ? src.option.dropShadow[k2] || 0 : 0)
+    let thisOption = this.option;
+    let result = new Filter({ ...thisOption })
+    for (let key in { ...(src ? src.option : {}), ...thisOption }) {
+      if (key === "dropShadow" && result.option.dropShadow && thisOption.dropShadow) {
+        let thisOptionKey = thisOption[key];
+        if (thisOptionKey) {
+          for (let k2 in thisOptionKey) {
+            if (k2 === "color") {
+              result.option.dropShadow.color = thisOption.dropShadow.color;
+            } else if ((k2 === "x" || k2 === "y" || k2 === "blur") && src.option.dropShadow) {
+              result.option.dropShadow[k2] =
+                thisOption.dropShadow[k2] * per
+                + (1 - per) * (src && src.option ? src.option.dropShadow[k2] || 0 : 0)
+            }
           }
         }
         continue
       }
       if (key === "blur" || key === "brightness" || key === "contrast" || key === "grayscale" || key === "hueRotate" || key === "opacity" || key === "saturate" || key === "sepia") {
-        let option = this.option[key]
+        let option = thisOption[key]
         if (option) result.option[key] = option * per + (1 - per) * (src && src.option ? src.option[key] || 0 : 0)
       } else {
         console.assert(false, "illegal key")

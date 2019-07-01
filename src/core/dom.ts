@@ -205,7 +205,10 @@ export class Text extends DOM implements HasValue<string> {
   }
   // text には改行をいれたStoreを含めないこと(DOMGCが増えてパフォーマンスがかなり落ちる)
   constructor(parent: DOM, text: MayStore<string>, option: TextOption = {}) {
-    super(parent, { ...option, tag: option.href ? "a" : "span" })
+    super(parent, (() => {
+      let a: any = { ...option, tag: option.href ? "a" : "span" }
+      return a;
+    })())
     Store.regist(text, t => this.value = t)
     if (option.href) Store.regist(option.href, t => this.$dom.setAttribute("href", t))
     this.applyStyle({
@@ -376,7 +379,7 @@ export class Box<T extends HTMLElement = HTMLElement> extends DOM implements Tra
     console.assert(result.width !== undefined && result.width !== null, "illegal width")
     console.assert(result.height !== undefined && result.height !== null, "illegal height")
     if (option.fit) {
-      console.assert(this.$parent, "fit option but no parent")
+      // console.assert(this.$parent, "fit option but no parent")
       // ひとまずtransform-originは `center center` . ただし,位置はleft top が 0 0
       // 倍率が1倍のときにジャストフィットするような位置
       if (option.fit.x === "right") {
