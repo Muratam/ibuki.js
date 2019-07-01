@@ -1,3 +1,4 @@
+import "./color-rgba";
 import * as rgbaimpl from "color-rgba";
 let rgba: any = rgbaimpl;
 import { CanTranslateCSS } from "./style"
